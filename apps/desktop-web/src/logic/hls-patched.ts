@@ -1,4 +1,5 @@
 import type {
+  Fragment,
   HlsConfig,
   LoaderCallbacks,
   LoaderConfiguration,
@@ -7,8 +8,7 @@ import type {
   LoaderResponse
 } from "hls.js"
 import Hls from "hls.js"
-// eslint-disable-next-line camelcase
-import { decrypt_segment } from "src/logic/new-dha/pkg/new_dha"
+import { decryptAvsPlaylist } from "src/logic/avs-playlist"
 
 function getRequestParameters(
   context: LoaderContext,
@@ -96,7 +96,14 @@ export class HlsPatched extends Hls {
         this.context = context
         this.config = config
         this.callbacks = callbacks
+        // fetchSetup tags context.url in place for the extension. hls.js keys
+        // its key cache on context.url and checks it again when the key
+        // arrives, so hand the original back and keep the tagged one for the
+        // request.
+        const publicUrl = context.url
         this.request = this.fetchSetup(context, initParams)
+        const requestUrl = context.url
+        context.url = publicUrl
         self.clearTimeout(this.requestTimeout)
         config.timeout =
           maxTimeToFirstByteMs && Number.isFinite(maxTimeToFirstByteMs)
@@ -108,14 +115,8 @@ export class HlsPatched extends Hls {
         }, config.timeout)
 
         const now = performance.now()
-        decrypt_segment(context.url)
-          .then((decryptedUrl) => {
-            const resolvedUrl = decryptedUrl.startsWith("http")
-              ? decryptedUrl
-              : new URL(decryptedUrl, context.url).href
-            return fetch(new Request(resolvedUrl, initParams))
-          })
-          .then((response: Response): Promise<string | ArrayBuffer> => {
+        fetch(new Request(requestUrl, initParams))
+          .then(async (response: Response): Promise<string | ArrayBuffer> => {
             this.response = this.loader = response
 
             const first = Math.max(self.performance.now(), stats.loading.start)
@@ -132,6 +133,17 @@ export class HlsPatched extends Hls {
 
             if (!response.ok) {
               const { status, statusText } = response
+              if (import.meta.env.DEV) {
+                const body = await response
+                  .clone()
+                  .text()
+                  .catch(() => "<unreadable>")
+                console.warn(
+                  `[hls-patched] HTTP ${status} ${context.url.split("#")[0].slice(0, 90)}\n` +
+                    `  cf-mitigated: ${response.headers.get("cf-mitigated") ?? "-"}\n` +
+                    `  body: ${body.slice(0, 300)}`
+                )
+              }
               throw new FetchError(
                 statusText || "fetch, bad network response",
                 status,
@@ -143,6 +155,19 @@ export class HlsPatched extends Hls {
             stats.total = getContentLength(response.headers) || stats.total
 
             if (onProgress && Number.isFinite(config.highWaterMark)) {
+              // Streamed chunks of an AES-128 segment reach the decrypter at
+              // arbitrary boundaries and come out misaligned ("TS packets
+              // that do not start with 0x47"), so encrypted fragments are
+              // read whole and handed over in a single progress call, which
+              // is how a progressive loader delivers its data.
+              const encrypted = !!(context as { frag?: Fragment }).frag
+                ?.decryptdata?.key
+              if (encrypted) {
+                const buffer = await response.arrayBuffer()
+                stats.loaded = buffer.byteLength
+                onProgress(stats, context, buffer, response)
+                return new ArrayBuffer(0)
+              }
               return this.loadProgressively(
                 response,
                 stats,
@@ -154,18 +179,34 @@ export class HlsPatched extends Hls {
 
             let data: any
 
+            // Read the body exactly once: a Response body can only be consumed
+            // a single time, so the earlier chain of separate `if`s threw
+            // "body stream already read" for key and segment requests
+            // (arraybuffer) and surfaced as keyLoadError with HTTP code 0.
             if (isArrayBuffer) {
               data = response.arrayBuffer()
-            }
-            if (context.responseType === "json") {
+            } else if (context.responseType === "json") {
               data = response.json()
+            } else {
+              data = response
+                .text()
+                .then((text) =>
+                  decryptAvsPlaylist(
+                    text,
+                    response.headers,
+                    response.url || context.url
+                  )
+                )
             }
-            data = response.text()
 
             return data
           })
           .then((responseData: string | ArrayBuffer) => {
             const dur = performance.now() - now
+            if (import.meta.env.DEV)
+              console.info(
+                `[hls-patched] ${context.responseType} ${dur.toFixed(0)}ms ${context.url.slice(0, 48)}`
+              )
             if (dur > 14_000) {
               onSlow?.()
             }

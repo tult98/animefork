@@ -1,13 +1,36 @@
-/* eslint-disable camelcase */
 import { decryptM3u8, init } from "src/logic/decrypt-hls-animevsub"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
 import { post } from "src/logic/http"
-import newDhaInit, { get_m3u8_content } from "src/logic/new-dha/pkg/new_dha"
-import newDhaWasmUrl from "src/logic/new-dha/pkg/new_dha_bg.wasm?url"
 // import { post } from "src/logic/http"
 
 const addProtocolUrl = (file: string) =>
   file.startsWith("http") ? file : `https:${file}`
+
+// Build the playlist URL instead of downloading the body: hls.js fetches it
+// through the custom loader (the #tag is what the extension matches to set
+// Referer and CORS), and that loader decrypts it (see avs-playlist.ts).
+// Downloading it ourselves and stuffing it into a data:/blob: URL makes the
+// loader stall with manifestLoadTimeout and loaded: 0.
+const VSUB_TAG = "#animevsub-vsub_extrao"
+const RE_PLAYER_ID = /id\s*=\s*"([^"]+)"/
+const RE_AVS_TOKEN = /avsToken\s*=\s*"([^"]+)"/
+
+async function resolveIframePlaylistUrl(playerUrl: string): Promise<string> {
+  const pageRes = await fetch(playerUrl + VSUB_TAG)
+  if (!pageRes.ok) throw new Error(`player page ${pageRes.status}`)
+  const html = await pageRes.text()
+
+  const id = RE_PLAYER_ID.exec(html)?.[1]
+  const token = RE_AVS_TOKEN.exec(html)?.[1]
+  if (!id || !token) throw new Error("player page: id or avsToken not found")
+
+  const playlistUrl = new URL(`/playlist/${id}/playlist.m3u8`, new URL(playerUrl))
+  playlistUrl.searchParams.set("token", token)
+  playlistUrl.searchParams.set("fc", btoa("cross-origin"))
+  // no #animevsub-vsub tag here: the player appends its own before fetching,
+  // and a doubled tag ends the URL with something the extension does not match
+  return playlistUrl.href
+}
 
 interface PlayerLinkReturn {
   readonly link:
@@ -70,12 +93,11 @@ export function PlayerLink(config: {
           })
 
         if (config.playTech === "iframe") {
-          await newDhaInit(newDhaWasmUrl)
+          const file = await resolveIframePlaylistUrl(config.link as string)
+
           config.link = [
             {
-              file: `data:application/vnd.apple.mpegurl;base64,${btoa(
-                await get_m3u8_content(config.link as string)
-              )}`,
+              file,
               label: "HD",
               preload: "auto",
               qualityCode: getQualityByLabel("HD"),
