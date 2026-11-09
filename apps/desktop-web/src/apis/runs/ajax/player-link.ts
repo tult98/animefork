@@ -1,3 +1,4 @@
+import { noteLoaderVersion } from "src/logic/avs-playlist"
 import { decryptM3u8, init } from "src/logic/decrypt-hls-animevsub"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
 import { post } from "src/logic/http"
@@ -14,11 +15,13 @@ const addProtocolUrl = (file: string) =>
 const VSUB_TAG = "#animevsub-vsub_extrao"
 const RE_PLAYER_ID = /id\s*=\s*"([^"]+)"/
 const RE_AVS_TOKEN = /avsToken\s*=\s*"([^"]+)"/
+const RE_AVS_LOADER_VERSION = /\/static\/avs-loader(?:\.min)?\.js\?v=([\d.]+)/
 
 async function resolveIframePlaylistUrl(playerUrl: string): Promise<string> {
   const pageRes = await fetch(playerUrl + VSUB_TAG)
   if (!pageRes.ok) throw new Error(`player page ${pageRes.status}`)
   const html = await pageRes.text()
+  noteLoaderVersion(RE_AVS_LOADER_VERSION.exec(html)?.[1] ?? null)
 
   const id = RE_PLAYER_ID.exec(html)?.[1]
   const token = RE_AVS_TOKEN.exec(html)?.[1]

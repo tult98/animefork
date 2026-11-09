@@ -1,9 +1,14 @@
 // @vitest-environment node
 import { webcrypto } from "node:crypto"
 
-import { describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 
-import { decryptAvsPlaylist, maskPlan, shufflePlan } from "./avs-playlist"
+import {
+  AvsCipherError,
+  decryptAvsPlaylist,
+  maskPlan,
+  shufflePlan
+} from "./avs-playlist"
 
 const subtle = webcrypto.subtle
 const enc = new TextEncoder()
@@ -17,13 +22,14 @@ const BASE = "https://stream.example/"
 
 const FILE_ID = "0123456789abcdef01234567"
 const REAL_SEGMENT = "https://cdn.example/media/seg000.png?sig=abc"
-const JTI = Array.from({ length: 64 }, (_, i) => `x${(i % 10).toString()}`).join(
-  ""
-)
+const JTI = Array.from(
+  { length: 64 },
+  (_, i) => `x${(i % 10).toString()}`
+).join("")
 const TOKEN = `h.${Buffer.from(JSON.stringify({ jti: JTI })).toString("base64url")}.s`
 const SESSION_KEY = [...JTI].filter((_, i) => i % 2 === 1).join("")
 
-async function placeholderUrl(index: number): Promise<string> {
+async function placeholderUrl(index: number, corrupt = false): Promise<string> {
   const hmac = await subtle.importKey(
     "raw",
     enc.encode(SESSION_KEY),
@@ -48,7 +54,8 @@ async function placeholderUrl(index: number): Promise<string> {
       enc.encode(REAL_SEGMENT)
     )
   )
-  return `https://cdn.example/hls/${FILE_ID}.ts?e=${b64u(cipher)}&i=${index}&token=${TOKEN}`
+  const e = corrupt ? b64u(cipher.map((byte) => byte ^ 0xff)) : b64u(cipher)
+  return `https://cdn.example/hls/${FILE_ID}.ts?e=${e}&i=${index}&token=${TOKEN}`
 }
 
 async function encryptPlaylist(plain: string): Promise<string> {
@@ -107,15 +114,15 @@ function envelopeHeader(): string {
   )
 }
 
-async function cipherPlaylist() {
+async function cipherPlaylist(corruptUrls = false) {
   const real = [
     '#EXT-X-KEY:METHOD=AES-128,URI="https://stream.example/seg-key/k"',
     "#EXTINF:10.01,",
     "#EXT-X-BYTERANGE:100@128",
-    await placeholderUrl(0),
+    await placeholderUrl(0, corruptUrls),
     "#EXTINF:8.008,",
     "#EXT-X-BYTERANGE:200@128",
-    await placeholderUrl(1),
+    await placeholderUrl(1, corruptUrls),
     "#EXT-X-ENDLIST"
   ].join("\n")
 
@@ -179,7 +186,8 @@ describe("decryptAvsPlaylist", () => {
   })
 
   test("leaves a plain playlist untouched", async () => {
-    const plain = "#EXTM3U\n#EXTINF:10,\nhttps://cdn.example/a.ts\n#EXT-X-ENDLIST"
+    const plain =
+      "#EXTM3U\n#EXTINF:10,\nhttps://cdn.example/a.ts\n#EXT-X-ENDLIST"
 
     expect(
       await decryptAvsPlaylist(
@@ -190,15 +198,31 @@ describe("decryptAvsPlaylist", () => {
     ).toBe(plain)
   })
 
-  test("leaves a cipher playlist alone when the envelope is missing", async () => {
+  test("fails with an envelope error when a cipher playlist has no envelope", async () => {
     const { text } = await cipherPlaylist()
 
-    expect(await decryptAvsPlaylist(text, new Headers(), BASE)).toBe(text)
+    await expect(
+      decryptAvsPlaylist(text, new Headers(), BASE)
+    ).rejects.toMatchObject({ name: "AvsCipherError", step: "envelope" })
+  })
+
+  test("fails with an envelope error on a garbage X-Envelope", async () => {
+    const { text } = await cipherPlaylist()
+    const error = await decryptAvsPlaylist(
+      text,
+      new Headers({ "X-Envelope": "garbage" }),
+      BASE
+    ).catch((e) => e)
+
+    expect(error).toBeInstanceOf(AvsCipherError)
+    expect(error.step).toBe("envelope")
   })
 
   test("rejects a tampered ciphertext", async () => {
     const { text } = await cipherPlaylist()
-    const tampered = text.replace(/_t=./, (m) => (m === "_t=A" ? "_t=B" : "_t=A"))
+    const tampered = text.replace(/_t=./, (m) =>
+      m === "_t=A" ? "_t=B" : "_t=A"
+    )
 
     await expect(
       decryptAvsPlaylist(
@@ -206,6 +230,81 @@ describe("decryptAvsPlaylist", () => {
         new Headers({ "X-Envelope": envelopeHeader() }),
         BASE
       )
-    ).rejects.toThrow()
+    ).rejects.toMatchObject({
+      name: "AvsCipherError",
+      step: "playlist-decrypt"
+    })
+  })
+
+  test("fails with a playlist-decrypt error when a cipher playlist has no _t values", async () => {
+    const { text } = await cipherPlaylist()
+    const stripped = text.replace(/&_t=[^&\s]+/g, "")
+    expect(stripped).not.toContain("_t=")
+
+    const error = await decryptAvsPlaylist(
+      stripped,
+      new Headers({ "X-Envelope": envelopeHeader() }),
+      BASE
+    ).catch((e) => e)
+
+    expect(error).toBeInstanceOf(AvsCipherError)
+    expect(error.step).toBe("playlist-decrypt")
+    expect(error.message).toContain("no _t= values")
+  })
+
+  test("fails with a url-cipher error on a corrupted placeholder url", async () => {
+    const { text } = await cipherPlaylist(true)
+    const error = await decryptAvsPlaylist(
+      text,
+      new Headers({ "X-Envelope": envelopeHeader() }),
+      BASE
+    ).catch((e) => e)
+
+    expect(error).toBeInstanceOf(AvsCipherError)
+    expect(error.step).toBe("url-cipher")
+  })
+})
+
+describe("noteLoaderVersion", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.resetModules()
+  })
+
+  test("warns once per version whose major.minor is unsupported", async () => {
+    vi.resetModules()
+    const { noteLoaderVersion } = await import("./avs-playlist")
+    const warn = vi.spyOn(console, "warn").mockReturnValue(undefined)
+
+    noteLoaderVersion("1.36.2")
+    noteLoaderVersion("1.36.2")
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0][0]).toContain("1.36.2")
+    expect(warn.mock.calls[0][0]).toContain("1.35")
+
+    noteLoaderVersion("1.35.40")
+    noteLoaderVersion(null)
+    expect(warn).toHaveBeenCalledTimes(1)
+
+    noteLoaderVersion("2.0.0")
+    expect(warn).toHaveBeenCalledTimes(2)
+  })
+
+  test("puts the noted version in the error message", async () => {
+    vi.resetModules()
+    const mod = await import("./avs-playlist")
+    vi.spyOn(console, "warn").mockReturnValue(undefined)
+    mod.noteLoaderVersion("1.36.2")
+    const { text } = await cipherPlaylist()
+
+    const error = await mod
+      .decryptAvsPlaylist(text, new Headers(), BASE)
+      .catch((e) => e)
+
+    expect(error).toBeInstanceOf(mod.AvsCipherError)
+    expect(error.loaderVersion).toBe("1.36.2")
+    expect(error.message).toMatch(
+      /^avs envelope failed \(server avs-loader 1\.36\.2, cipher written for 1\.35\): /
+    )
   })
 })

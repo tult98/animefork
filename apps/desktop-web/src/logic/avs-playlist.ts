@@ -17,6 +17,46 @@ const dec = new TextDecoder()
 const PLACEHOLDER = /\/hls\/([0-9a-f]{24})\.ts(?:$|\?)/i
 const SEGMENT_TAG = /^#EXTINF:|^#EXT-X-ENDLIST|^#EXT-X-KEY/
 
+export type AvsStep = "envelope" | "playlist-decrypt" | "url-cipher"
+
+export const SUPPORTED_LOADER_VERSION = "1.35"
+
+let loaderVersion: string | null = null
+const warnedVersions = new Set<string>()
+
+export class AvsCipherError extends Error {
+  readonly step: AvsStep
+  readonly loaderVersion: string | null
+
+  constructor(step: AvsStep, cause: unknown) {
+    const original = cause instanceof Error ? cause.message : String(cause)
+    super(
+      `avs ${step} failed (server avs-loader ${loaderVersion ?? "unknown"}, cipher written for ${SUPPORTED_LOADER_VERSION}): ${original}`,
+      { cause }
+    )
+    this.name = "AvsCipherError"
+    this.step = step
+    this.loaderVersion = loaderVersion
+  }
+}
+
+export function noteLoaderVersion(version: string | null): void {
+  loaderVersion = version
+  const parsed = version && /^(\d+)\.(\d+)/.exec(version)
+  if (!version || !parsed || warnedVersions.has(version)) return
+  if (`${parsed[1]}.${parsed[2]}` === SUPPORTED_LOADER_VERSION) return
+  warnedVersions.add(version)
+  console.warn(
+    `avs-loader ${version} seen on the iframe server, but the cipher in avs-playlist.ts was written for ${SUPPORTED_LOADER_VERSION}. Decryption may break.`
+  )
+}
+
+function asStepError(step: AvsStep, error: unknown): AvsCipherError {
+  return error instanceof AvsCipherError
+    ? error
+    : new AvsCipherError(step, error)
+}
+
 export interface AvsEnvelope {
   cn: string
   sk: string
@@ -33,33 +73,49 @@ function base64UrlToBytes(value: string): Uint8Array {
 }
 
 function parseEnvelope(value: string): AvsEnvelope {
+  try {
+    return parseEnvelopeUnchecked(value)
+  } catch (error) {
+    throw asStepError("envelope", error)
+  }
+}
+
+function parseEnvelopeUnchecked(value: string): AvsEnvelope {
   const bytes = base64UrlToBytes(value)
   const isUsdk =
     bytes[0] === 85 && bytes[1] === 83 && bytes[2] === 68 && bytes[3] === 75
-  if (!isUsdk) throw new Error("avs envelope: bad magic")
-  if (bytes[4] !== 1) throw new Error(`avs envelope: version ${bytes[4]}`)
+  if (!isUsdk) throw new Error("bad magic")
+  if (bytes[4] !== 1) throw new Error(`unsupported version ${bytes[4]}`)
   const length = (bytes[5] << 8) | bytes[6]
   const json = JSON.parse(dec.decode(bytes.subarray(7, 7 + length)))
   return { cn: json.cn, sk: json.sk, ts: String(json.ts ?? "0"), uid: json.uid }
 }
 
-export function readEnvelope(headers: Headers): AvsEnvelope | null {
+function findEnvelope(headers: Headers): {
+  envelope: AvsEnvelope | null
+  error: unknown
+} {
+  let error: unknown = new Error("no X-Envelope or split key headers")
   const packed = headers.get("X-Envelope")
   if (packed) {
     try {
-      return parseEnvelope(packed)
-    } catch {
+      return { envelope: parseEnvelope(packed), error: null }
+    } catch (parseError) {
       // older servers send the same fields as separate headers
+      error = parseError
     }
   }
   const cn = headers.get("X-Edge-Tag")
   const sk = headers.get("X-Cache-Node")
-  if (!cn || !sk) return null
+  if (!cn || !sk) return { envelope: null, error }
   return {
-    cn,
-    sk,
-    ts: headers.get("X-Request-Trace") || "0",
-    uid: decodeURIComponent(headers.get("X-Proxy-Digest") || "anon")
+    envelope: {
+      cn,
+      sk,
+      ts: headers.get("X-Request-Trace") || "0",
+      uid: decodeURIComponent(headers.get("X-Proxy-Digest") || "anon")
+    },
+    error: null
   }
 }
 
@@ -186,7 +242,7 @@ async function decryptBlob(
       // try the next variant
     }
   }
-  throw new Error("avs playlist: AES-GCM tag mismatch")
+  throw new Error("AES-GCM tag mismatch")
 }
 
 // The session key is every second character of the token's `jti` claim.
@@ -207,6 +263,19 @@ export async function resolvePlaceholderUrl(
   const token = parsed.searchParams.get("token")
   if (!match || !cipher || !token) return url
 
+  try {
+    return await decryptPlaceholder(match[1], cipher, token, parsed)
+  } catch (error) {
+    throw asStepError("url-cipher", error)
+  }
+}
+
+async function decryptPlaceholder(
+  fileId: string,
+  cipher: string,
+  token: string,
+  parsed: URL
+): Promise<string> {
   const counter = new Uint8Array(16)
   new DataView(counter.buffer).setUint32(
     12,
@@ -222,7 +291,7 @@ export async function resolvePlaceholderUrl(
   const material = await crypto.subtle.sign(
     "HMAC",
     hmacKey,
-    enc.encode(`url-cipher|${match[1]}`)
+    enc.encode(`url-cipher|${fileId}`)
   )
   const aesKey = await crypto.subtle.importKey(
     "raw",
@@ -238,7 +307,7 @@ export async function resolvePlaceholderUrl(
       base64UrlToBytes(cipher)
     )
   )
-  if (!real.startsWith("http")) throw new Error("avs url-cipher: not a url")
+  if (!real.startsWith("http")) throw new Error("decrypted value is not a url")
   return real
 }
 
@@ -249,7 +318,8 @@ function isCipherPlaylist(lines: string[]): boolean {
 
 /**
  * Returns the real playlist for a cipher playlist, and `text` untouched for
- * anything else (plain playlists, or a response without the envelope).
+ * a plain playlist. A cipher playlist that cannot be decoded throws an
+ * AvsCipherError naming the step that broke.
  */
 export async function decryptAvsPlaylist(
   text: string,
@@ -257,20 +327,29 @@ export async function decryptAvsPlaylist(
   base: string
 ): Promise<string> {
   const lines = text.split("\n").map((line) => line.replace(/\r$/, ""))
-  const envelope = readEnvelope(headers)
-  if (!envelope || !isCipherPlaylist(lines)) return text
+  if (!isCipherPlaylist(lines)) return text
+  const { envelope, error } = findEnvelope(headers)
+  if (!envelope) throw asStepError("envelope", error)
 
   const blob = lines
     .filter((line) => line.trim() && !line.startsWith("#"))
     .map((line) => /[?&]_t=([^&\s]+)/.exec(line)?.[1] ?? "")
     .join("")
-  if (!blob) return text
+  if (!blob) {
+    throw new AvsCipherError(
+      "playlist-decrypt",
+      new Error("no _t= values found in a cipher playlist")
+    )
+  }
 
   const head = lines.filter(
     (line) => line.startsWith("#") && !SEGMENT_TAG.test(line)
   )
+  const plain = await decryptBlob(blob, envelope).catch((error) => {
+    throw asStepError("playlist-decrypt", error)
+  })
   const body = await Promise.all(
-    (await decryptBlob(blob, envelope))
+    plain
       .split("\n")
       .map((line) => line.replace(/\r$/, ""))
       .map((line) =>
