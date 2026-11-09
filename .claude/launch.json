@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "desktop-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["nx", "run", "git.shin.animevsub:dev"],
+      "port": 9000
+    }
+  ]
+}

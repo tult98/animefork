@@ -1,0 +1,1 @@
+Stub for the private `anime-vsub/new-dha` submodule. The app builds and loads with it, but encrypted stream playback and segment decryption fail at runtime. Replace `pkg/` with the real build (`sh build.sh` in the private repo) to restore them.
