@@ -114,28 +114,11 @@ export function PlayerLink(config: {
             )
           }
 
-          // The segment URIs in this playlist are placeholders: the real URL is
-          // a client-side rewrite that decrypt_segment() performs with the
-          // session key it keeps in wasm global state. That key is only loaded
-          // as a side effect of get_m3u8_content(), whose playlist output is
-          // unusable here, so prime it and ignore the result.
-          try {
-            await newDhaInit(newDhaWasmUrl)
-            const primed = await get_m3u8_content(config.link as string)
-            if (import.meta.env.DEV) {
-              const seg = (await (await fetch(file + VSUB_TAG)).text())
-                .split(/\r?\n/)
-                .find((l) => l.startsWith("http"))
-              const out = seg ? await decrypt_segment(seg) : null
-              console.info(
-                `[new-dha] wasm playlist uris: ${primed.split(/\r?\n/).filter((l) => l && !l.startsWith("#")).length}`
-              )
-              console.info(`[new-dha] seg in : ${String(seg).slice(0, 120)}`)
-              console.info(`[new-dha] seg out: ${String(out).slice(0, 200)}`)
-            }
-          } catch (error) {
-            console.warn("[new-dha] could not prime the wasm session key", error)
-          }
+          // The wasm cannot help here: priming the session key and calling
+          // decrypt_segment() on a /chunks/ URL aborts the module with
+          // "unreachable" (Rust str::slice_error_fail), because it slices the
+          // path expecting the older /hls/<24hex>.ts layout. The URI rewrite has
+          // to be reimplemented from the player's own avs-loader.js.
 
           config.link = [
             {
