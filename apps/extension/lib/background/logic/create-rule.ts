@@ -130,7 +130,6 @@ export function createRule(endsWith: string, referer: string) {
       newRule.action.requestHeaders?.push({
         header: "Origin",
         operation: HeaderOperation.SET,
-        // eslint-disable-next-line n/no-unsupported-features/node-builtins
         value: referer ? new URL(referer).origin : ""
       })
       newRule.condition = {

@@ -2,6 +2,9 @@
   "name": "animevsub-helper-lib",
   "version": "0.0.0",
   "private": true,
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build:dts": "tsup ./contentScripts/inject.ts --dts-only --clean",
     "test": "vitest --run",

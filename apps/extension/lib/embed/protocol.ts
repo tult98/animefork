@@ -1,5 +1,4 @@
 /* eslint-disable no-undef */
-/* eslint-disable n/no-unsupported-features/node-builtins */
 export const EMBED_CHANNEL = "__animevsub_embed__" as const
 export const EMBED_VERSION = 1 as const
 
@@ -59,9 +58,7 @@ export interface EmbedPingMessage {
 }
 
 export type EmbedRequestMessageInput =
-  | EmbedRequestMessage
-  | EmbedAbortMessage
-  | EmbedPingMessage
+  EmbedRequestMessage | EmbedAbortMessage | EmbedPingMessage
 
 export interface EmbedResponseData {
   headers: Record<string, string>
@@ -102,9 +99,7 @@ export interface EmbedReadyMessage {
 }
 
 export type EmbedMessage =
-  | EmbedRequestMessageInput
-  | EmbedResponseMessageInput
-  | EmbedReadyMessage
+  EmbedRequestMessageInput | EmbedResponseMessageInput | EmbedReadyMessage
 
 export function isEmbedMessage(data: unknown): data is EmbedMessage {
   return (
@@ -135,7 +130,9 @@ export function serializeError(error: unknown): EmbedErrorMessage["error"] {
  * animevietsub.id, animevietsub.xyz, www.animevietsub.tv, ...).
  */
 export function isAnimevietsubHost(hostname: string) {
-  return /^(?:[a-z0-9-]+\.)*(?:animevietsub|googleapiscdn|fbcdns)\.[a-z0-9.-]+$/i.test(hostname)
+  return /^(?:[a-z0-9-]+\.)*(?:animevietsub|googleapiscdn|fbcdns)\.[a-z0-9.-]+$/i.test(
+    hostname
+  )
 }
 
 /**

@@ -7,34 +7,46 @@ on:
   pull_request:
 
 permissions:
-  actions: read
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  main:
+  checks:
+    name: Code quality
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
-          filter: tree:0
+          # Nx needs history to work out which projects a change affects.
           fetch-depth: 0
 
-      # This enables task distribution via Nx Cloud
-      # Run this command as early as possible, before dependencies are installed
-      # Learn more at https://nx.dev/docs/reference/nx-cloud-cli#npx-nxcloud-startcirun
-      - run: npx nx start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="e2e"
+      # The pnpm version comes from "packageManager" in package.json.
+      - uses: pnpm/action-setup@v4
 
-      # Cache node_modules
+      # Node comes from .nvmrc. vue-tsc 2.x crashes on Node 25, so keep this on 24.
       - uses: actions/setup-node@v5
         with:
-          node-version: 24
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      # Prepend any command with "nx record --" to record its logs to Nx Cloud
-      - run: npx nx record -- npx nx format:check --base="remotes/origin/main"
-      - run: npx nx run-many -t lint test build typecheck e2e
-      # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/docs/features/ci-features/self-healing-ci
-      - run: npx nx fix-ci
-        if: always()
+      # Sets NX_BASE / NX_HEAD so `nx affected` and `nx format:check`
+      # compare against the right commit on both PRs and pushes to main.
+      - uses: nrwl/nx-set-shas@v4
+
+      # desktop-web's lint and typing read auto-import files that are generated
+      # and gitignored (auto-imports.d.ts, components.d.ts, .eslintrc-auto-import.json).
+      # Running any spec makes the Vite plugins emit them.
+      - name: Generate auto-import typings
+        run: pnpm --filter animefork exec vitest run src/logic/noop.spec.ts
+
+      - name: Check formatting
+        run: pnpm nx format:check
+
+      - name: Lint, typecheck and test
+        run: pnpm nx affected -t lint typecheck typing test
