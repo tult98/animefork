@@ -142,6 +142,17 @@ export class HlsPatched extends Hls {
 
             if (!response.ok) {
               const { status, statusText } = response
+              if (import.meta.env.DEV) {
+                const body = await response
+                  .clone()
+                  .text()
+                  .catch(() => "<unreadable>")
+                console.warn(
+                  `[hls-patched] HTTP ${status} ${context.url.split("#")[0].slice(0, 90)}\n` +
+                    `  cf-mitigated: ${response.headers.get("cf-mitigated") ?? "-"}\n` +
+                    `  body: ${body.slice(0, 300)}`
+                )
+              }
               throw new FetchError(
                 statusText || "fetch, bad network response",
                 status,
