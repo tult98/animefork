@@ -23,6 +23,7 @@ import net from "node:net"
 import fs from "node:fs"
 import path from "node:path"
 import { execFileSync } from "node:child_process"
+import { X509Certificate } from "node:crypto"
 import { fileURLToPath } from "node:url"
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -97,6 +98,9 @@ server.listen(listenPort, "0.0.0.0", () => {
     console.log(`cert issuer : ${cert.issuer.replace(/\n/g, ", ")}`)
     console.log(`cert valid  : ${cert.validFrom} -> ${cert.validTo}`)
     console.log(`cert SAN    : ${cert.subjectAltName || "(none)"}`)
+    if (!(cert.subjectAltName || "").includes(host)) {
+      console.log(`!! this cert is not valid for ${host}. delete ${certDir} (sudo rm -rf) and restart to regenerate`)
+    }
   } catch (e) {
     console.log(`could not parse cert: ${e.message}`)
   }
