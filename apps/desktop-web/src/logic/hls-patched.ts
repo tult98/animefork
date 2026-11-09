@@ -109,6 +109,9 @@ export class HlsPatched extends Hls {
 
         const now = performance.now()
         decrypt_segment(context.url)
+          // the wasm only knows the old /hls/<hex>.ts layout and throws when no
+          // playlist was decoded; the URL it was given is already usable
+          .catch(() => context.url)
           .then((decryptedUrl) => {
             const resolvedUrl = decryptedUrl.startsWith("http")
               ? decryptedUrl

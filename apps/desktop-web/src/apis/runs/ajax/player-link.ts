@@ -9,6 +9,34 @@ import newDhaWasmUrl from "src/logic/new-dha/pkg/new_dha_bg.wasm?url"
 const addProtocolUrl = (file: string) =>
   file.startsWith("http") ? file : `https:${file}`
 
+// The iframe server hands back a plain m3u8: the playlist itself is not
+// encrypted, and its segment URIs are absolute /chunks/... URLs. The private
+// wasm does the same fetch but drops every URI because it only understands the
+// older /hls/<24hex>.ts layout, which leaves hls.js with zero fragments.
+const VSUB_TAG = "#animevsub-vsub_extrao"
+const RE_PLAYER_ID = /id\s*=\s*"([^"]+)"/
+const RE_AVS_TOKEN = /avsToken\s*=\s*"([^"]+)"/
+
+async function fetchIframePlaylist(playerUrl: string): Promise<string> {
+  const pageUrl = playerUrl.includes("#") ? playerUrl : playerUrl + VSUB_TAG
+  const pageRes = await fetch(pageUrl)
+  if (!pageRes.ok) throw new Error(`player page ${pageRes.status}`)
+  const html = await pageRes.text()
+
+  const id = RE_PLAYER_ID.exec(html)?.[1]
+  const token = RE_AVS_TOKEN.exec(html)?.[1]
+  if (!id || !token)
+    throw new Error("player page: id or avsToken not found")
+
+  const playlistUrl = new URL(`/playlist/${id}/playlist.m3u8`, new URL(playerUrl))
+  playlistUrl.searchParams.set("token", token)
+  playlistUrl.searchParams.set("fc", btoa("cross-origin"))
+
+  const res = await fetch(playlistUrl.href + VSUB_TAG)
+  if (!res.ok) throw new Error(`playlist ${res.status} ${res.statusText}`)
+  return res.text()
+}
+
 interface PlayerLinkReturn {
   readonly link:
     | {
@@ -70,51 +98,25 @@ export function PlayerLink(config: {
           })
 
         if (config.playTech === "iframe") {
-          await newDhaInit(newDhaWasmUrl)
-          // dev: capture the raw CDN responses the wasm makes (playlist, key)
-          if (import.meta.env.DEV) {
-            const origFetch = window.fetch
-            window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-              const res = await origFetch(input as RequestInfo, init)
-              const url = typeof input === "string" ? input : (input as Request).url
-              if (/playlist\.m3u8|seg-key/.test(url)) {
-                const clone = res.clone()
-                const buf = await clone.arrayBuffer()
-                const text = new TextDecoder().decode(buf)
-                console.info(
-                  `[new-dha raw] ${res.status} ${url}\nheaders: ` +
-                    JSON.stringify(Object.fromEntries(res.headers)) +
-                    `\nbody(${text.length}): ${text.slice(0, 500)}`
-                )
-                if (/playlist\.m3u8/.test(url)) {
-                  ;(window as unknown as any).__newDhaRawPlaylist = text
-                } else {
-                  ;(window as unknown as any).__newDhaKeyHex = Array.from(
-                    new Uint8Array(buf)
-                  )
-                    .map((b) => b.toString(16).padStart(2, "0"))
-                    .join("")
-                }
-              }
-              return res
-            }
-            setTimeout(() => {
-              window.fetch = origFetch
-            }, 30_000)
+          let m3u8: string
+          try {
+            m3u8 = await fetchIframePlaylist(config.link as string)
+          } catch (error) {
+            if (!import.meta.env.DEV) throw error
+            console.warn("[new-dha] direct playlist failed, falling back to wasm", error)
+            await newDhaInit(newDhaWasmUrl)
+            m3u8 = await get_m3u8_content(config.link as string)
           }
-          const m3u8 = await get_m3u8_content(config.link as string)
+
           if (import.meta.env.DEV) {
             const lines = m3u8.split(/\r?\n/)
             console.info(
               `[new-dha] playlist ${m3u8.length}B, ${lines.length} lines, ` +
                 `${lines.filter((l) => l && !l.startsWith("#")).length} uri lines`
             )
-            console.info(
-              "[new-dha] head:\n" + lines.slice(0, 12).join("\n") +
-                "\n[new-dha] tail:\n" + lines.slice(-6).join("\n")
-            )
-            ;(window as unknown as any).__newDhaPlaylist = m3u8
+            ;(window as unknown as any).__newDhaRawPlaylist = m3u8
           }
+
           config.link = [
             {
               file: `data:application/vnd.apple.mpegurl;base64,${btoa(m3u8)}`,
