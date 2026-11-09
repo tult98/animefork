@@ -125,7 +125,7 @@ export class HlsPatched extends Hls {
               : new URL(decryptedUrl, context.url).href
             return fetch(new Request(resolvedUrl, initParams))
           })
-          .then((response: Response): Promise<string | ArrayBuffer> => {
+          .then(async (response: Response): Promise<string | ArrayBuffer> => {
             this.response = this.loader = response
 
             const first = Math.max(self.performance.now(), stats.loading.start)
