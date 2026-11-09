@@ -2,7 +2,10 @@
 import { decryptM3u8, init } from "src/logic/decrypt-hls-animevsub"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
 import { post } from "src/logic/http"
-import newDhaInit, { get_m3u8_content } from "src/logic/new-dha/pkg/new_dha"
+import newDhaInit, {
+  decrypt_segment,
+  get_m3u8_content
+} from "src/logic/new-dha/pkg/new_dha"
 import newDhaWasmUrl from "src/logic/new-dha/pkg/new_dha_bg.wasm?url"
 // import { post } from "src/logic/http"
 
@@ -109,6 +112,29 @@ export function PlayerLink(config: {
             file = URL.createObjectURL(
               new Blob([m3u8], { type: "application/vnd.apple.mpegurl" })
             )
+          }
+
+          // The segment URIs in this playlist are placeholders: the real URL is
+          // a client-side rewrite that decrypt_segment() performs with the
+          // session key it keeps in wasm global state. That key is only loaded
+          // as a side effect of get_m3u8_content(), whose playlist output is
+          // unusable here, so prime it and ignore the result.
+          try {
+            await newDhaInit(newDhaWasmUrl)
+            const primed = await get_m3u8_content(config.link as string)
+            if (import.meta.env.DEV) {
+              const seg = (await (await fetch(file + VSUB_TAG)).text())
+                .split(/\r?\n/)
+                .find((l) => l.startsWith("http"))
+              const out = seg ? await decrypt_segment(seg) : null
+              console.info(
+                `[new-dha] wasm playlist uris: ${primed.split(/\r?\n/).filter((l) => l && !l.startsWith("#")).length}`
+              )
+              console.info(`[new-dha] seg in : ${String(seg).slice(0, 120)}`)
+              console.info(`[new-dha] seg out: ${String(out).slice(0, 200)}`)
+            }
+          } catch (error) {
+            console.warn("[new-dha] could not prime the wasm session key", error)
           }
 
           config.link = [
