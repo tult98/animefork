@@ -71,6 +71,27 @@ export function PlayerLink(config: {
 
         if (config.playTech === "iframe") {
           await newDhaInit(newDhaWasmUrl)
+          // dev: capture the raw CDN responses the wasm makes (playlist, key)
+          if (import.meta.env.DEV) {
+            const origFetch = window.fetch
+            window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+              const res = await origFetch(input as RequestInfo, init)
+              const url = typeof input === "string" ? input : (input as Request).url
+              if (/playlist\.m3u8|seg-key/.test(url)) {
+                const clone = res.clone()
+                const text = await clone.text()
+                console.info(
+                  `[new-dha raw] ${res.status} ${url}\nheaders: ` +
+                    JSON.stringify(Object.fromEntries(res.headers)) +
+                    `\nbody(${text.length}): ${text.slice(0, 500)}`
+                )
+              }
+              return res
+            }
+            setTimeout(() => {
+              window.fetch = origFetch
+            }, 30_000)
+          }
           const m3u8 = await get_m3u8_content(config.link as string)
           if (import.meta.env.DEV) {
             const lines = m3u8.split(/\r?\n/)
