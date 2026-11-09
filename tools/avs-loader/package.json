@@ -1,0 +1,16 @@
+{
+  "name": "avs-loader-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch": "node fetch.mjs",
+    "deobfuscate": "node deobfuscate.mjs"
+  },
+  "devDependencies": {
+    "@babel/generator": "7.29.13",
+    "@babel/parser": "7.29.13",
+    "@babel/traverse": "7.29.13",
+    "@babel/types": "7.29.11",
+    "obfuscator-io-deobfuscator": "1.0.6"
+  }
+}
