@@ -1,22 +1,16 @@
-/* eslint-disable camelcase */
 import { decryptM3u8, init } from "src/logic/decrypt-hls-animevsub"
 import { getQualityByLabel } from "src/logic/get-quality-by-label"
 import { post } from "src/logic/http"
-import newDhaInit, {
-  decrypt_segment,
-  get_m3u8_content
-} from "src/logic/new-dha/pkg/new_dha"
-import newDhaWasmUrl from "src/logic/new-dha/pkg/new_dha_bg.wasm?url"
 // import { post } from "src/logic/http"
 
 const addProtocolUrl = (file: string) =>
   file.startsWith("http") ? file : `https:${file}`
 
-// Build the playlist URL instead of downloading the body: the playlist is a
-// plain m3u8 served by the CDN, and hls.js fetches it happily through the
-// custom loader (the #tag is what the extension matches to set Referer and
-// CORS). Downloading it ourselves and stuffing it into a data:/blob: URL makes
-// the loader stall with manifestLoadTimeout and loaded: 0.
+// Build the playlist URL instead of downloading the body: hls.js fetches it
+// through the custom loader (the #tag is what the extension matches to set
+// Referer and CORS), and that loader decrypts it (see avs-playlist.ts).
+// Downloading it ourselves and stuffing it into a data:/blob: URL makes the
+// loader stall with manifestLoadTimeout and loaded: 0.
 const VSUB_TAG = "#animevsub-vsub_extrao"
 const RE_PLAYER_ID = /id\s*=\s*"([^"]+)"/
 const RE_AVS_TOKEN = /avsToken\s*=\s*"([^"]+)"/
@@ -99,28 +93,7 @@ export function PlayerLink(config: {
           })
 
         if (config.playTech === "iframe") {
-          if (import.meta.env.DEV)
-            console.info(`[new-dha] player url ${String(config.link)}`)
-          let file: string
-          try {
-            file = await resolveIframePlaylistUrl(config.link as string)
-            if (import.meta.env.DEV)
-              console.info(`[new-dha] playlist url ${file.slice(0, 120)}`)
-          } catch (error) {
-            if (!import.meta.env.DEV) throw error
-            console.warn("[new-dha] direct playlist failed, falling back to wasm", error)
-            await newDhaInit(newDhaWasmUrl)
-            const m3u8 = await get_m3u8_content(config.link as string)
-            file = URL.createObjectURL(
-              new Blob([m3u8], { type: "application/vnd.apple.mpegurl" })
-            )
-          }
-
-          // The wasm cannot help here: priming the session key and calling
-          // decrypt_segment() on a /chunks/ URL aborts the module with
-          // "unreachable" (Rust str::slice_error_fail), because it slices the
-          // path expecting the older /hls/<24hex>.ts layout. The URI rewrite has
-          // to be reimplemented from the player's own avs-loader.js.
+          const file = await resolveIframePlaylistUrl(config.link as string)
 
           config.link = [
             {

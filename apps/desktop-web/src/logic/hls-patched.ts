@@ -1,4 +1,5 @@
 import type {
+  Fragment,
   HlsConfig,
   LoaderCallbacks,
   LoaderConfiguration,
@@ -7,8 +8,7 @@ import type {
   LoaderResponse
 } from "hls.js"
 import Hls from "hls.js"
-// eslint-disable-next-line camelcase
-import { decrypt_segment } from "src/logic/new-dha/pkg/new_dha"
+import { decryptAvsPlaylist } from "src/logic/avs-playlist"
 
 function getRequestParameters(
   context: LoaderContext,
@@ -96,7 +96,14 @@ export class HlsPatched extends Hls {
         this.context = context
         this.config = config
         this.callbacks = callbacks
+        // fetchSetup tags context.url in place for the extension. hls.js keys
+        // its key cache on context.url and checks it again when the key
+        // arrives, so hand the original back and keep the tagged one for the
+        // request.
+        const publicUrl = context.url
         this.request = this.fetchSetup(context, initParams)
+        const requestUrl = context.url
+        context.url = publicUrl
         self.clearTimeout(this.requestTimeout)
         config.timeout =
           maxTimeToFirstByteMs && Number.isFinite(maxTimeToFirstByteMs)
@@ -108,23 +115,7 @@ export class HlsPatched extends Hls {
         }, config.timeout)
 
         const now = performance.now()
-        // decrypt_segment throws synchronously when the wasm was never
-        // initialised (the playlist no longer goes through it), and a sync
-        // throw here kills load() before the fetch, leaving hls.js to time out
-        // 20s later with loaded: 0.
-        let decryptPromise: Promise<string>
-        try {
-          decryptPromise = decrypt_segment(context.url).catch(() => context.url)
-        } catch {
-          decryptPromise = Promise.resolve(context.url)
-        }
-        decryptPromise
-          .then((decryptedUrl) => {
-            const resolvedUrl = decryptedUrl.startsWith("http")
-              ? decryptedUrl
-              : new URL(decryptedUrl, context.url).href
-            return fetch(new Request(resolvedUrl, initParams))
-          })
+        fetch(new Request(requestUrl, initParams))
           .then(async (response: Response): Promise<string | ArrayBuffer> => {
             this.response = this.loader = response
 
@@ -164,6 +155,19 @@ export class HlsPatched extends Hls {
             stats.total = getContentLength(response.headers) || stats.total
 
             if (onProgress && Number.isFinite(config.highWaterMark)) {
+              // Streamed chunks of an AES-128 segment reach the decrypter at
+              // arbitrary boundaries and come out misaligned ("TS packets
+              // that do not start with 0x47"), so encrypted fragments are
+              // read whole and handed over in a single progress call, which
+              // is how a progressive loader delivers its data.
+              const encrypted = !!(context as { frag?: Fragment }).frag
+                ?.decryptdata?.key
+              if (encrypted) {
+                const buffer = await response.arrayBuffer()
+                stats.loaded = buffer.byteLength
+                onProgress(stats, context, buffer, response)
+                return new ArrayBuffer(0)
+              }
               return this.loadProgressively(
                 response,
                 stats,
@@ -184,7 +188,15 @@ export class HlsPatched extends Hls {
             } else if (context.responseType === "json") {
               data = response.json()
             } else {
-              data = response.text()
+              data = response
+                .text()
+                .then((text) =>
+                  decryptAvsPlaylist(
+                    text,
+                    response.headers,
+                    response.url || context.url
+                  )
+                )
             }
 
             return data
