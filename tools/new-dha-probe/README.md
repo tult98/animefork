@@ -53,13 +53,36 @@ node tools/new-dha-probe/probe.mjs "<url>" \
 
 Lấy `cf_clearance` trong DevTools → Application → Cookies. Cookie không bị ghi vào file log.
 
-## Cái đang chờ
+## Lỗi `{"status":"fail","message":"domain not allowed"}`
 
-Thuật toán nằm **toàn bộ trong wasm** (73 import đều là glue `fetch` / `crypto.subtle` / `TextDecoder`, không có logic trong JS). String table cho biết khung:
+Token của playlist được mint lúc fetch **trang player**, và gắn với domain gọi nó. App chạy ở `localhost:9000` nên bị chặn. App deploy thật (`animevsub.eu.org`) thì qua.
 
-- `/playlist/`, `/playlist.m3u8?token=`
-- regex `avsToken\s*=\s*"([^"]+)"`, `token_avsCryptoHarden\s*=\s*true`, `bad_i_param`
-- `AES-CTR`, `AES-GCM`, `HMAC` + `SHA-256` + `sign`
-- lỗi `SK_GLOBAL_DECODED not set; call get_m3u8_content first` → key playlist được cache global, `decrypt_segment` phụ thuộc lần gọi trước
+Cách né, không cần sửa site: cho traffic đi qua proxy local, proxy gắn `Referer`/`Origin` của domain được phép.
 
-Muốn port sang TS thì cần đúng một lần chạy probe thành công (playlist + vài cặp URL trước/sau của `decrypt_segment`).
+```bash
+# 1. chạy proxy
+node tools/new-dha-probe/dev-proxy.mjs --referer https://animevietsub.best/
+
+# 2. trong app, mở DevTools console, dán:
+window.__NEW_DHA_PROXY__ = "http://127.0.0.1:8787/"
+
+# 3. bấm play lại
+```
+
+`pkg/new_dha.js` sẽ bọc `fetch` để đẩy mọi request `https://...` qua proxy. Proxy log status, số byte, `x-edge-tag` của từng request ra `tools/new-dha-probe/out/proxy.log`.
+
+Nếu vẫn "domain not allowed": đổi `--referer` sang domain khác mà site đang chấp nhận (`animevsub.eu.org`, `animevietsub.id`, `animevietsub.pl`). Cách chắc chắn nhất là xem header `Referer` của request `playlist.m3u8` đang chạy được trên site thật: DevTools → Network → chọn request → Request Headers.
+
+## Giao thức đã dựng lại được 🍌
+
+Từ việc chạy wasm với một trang player giả (`fake-player.mjs`):
+
+1. `GET <link>#animevsub-vsub_extrao`, tải trang player.
+2. Bóc HTML bằng regex: `id\s*=\s*"([^"]+)"`, `avsToken\s*=\s*"([^"]+)"`, `token_avsCryptoHarden\s*=\s*true`, `_avsCryptoHardenShadow\s*=\s*true`.
+3. `GET /playlist/<id>/playlist.m3u8?token=<avsToken>&fc=<base64("cross-origin")>`.
+4. Response là envelope: cần header `X-Envelope` + `X-edge-Tag` (thiếu thì lỗi `Can't find stag`), có `X-Cache-Node`, `X-Request-Trace`, `X-Proxy-Digest`.
+5. Giải mã bằng `AES-CTR`/`AES-GCM` + `HMAC`/`SHA-256` (và `SHA-1` cho digest), key cache lại trong biến global, lỗi `SK_GLOBAL_DECODED not set` nếu gọi `decrypt_segment` trước.
+6. Segment: `decrypt_segment(url)` trả URL mới; chỉ áp cho dạng `/hls/([0-9a-f]{24})\.ts`, URL khác trả nguyên.
+
+Còn thiếu để port sang TS: một playlist response thật (kèm header `X-Envelope`/`X-edge-Tag`) và vài cặp vào/ra của `decrypt_segment`.
+

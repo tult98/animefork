@@ -16,6 +16,25 @@ import { initModule, get_m3u8_content, decrypt_segment } from "./glue.mjs"
 
 let ready
 
+// Dev escape hatch: when the app is served from a domain the CDN does not
+// whitelist (localhost), route media traffic through tools/new-dha-probe/dev-proxy.mjs
+// which re-issues it with an allowed Referer/Origin. Enable from the console:
+//   window.__NEW_DHA_PROXY__ = "http://127.0.0.1:8787/"
+function installProxy(base) {
+  if (!base || globalThis.__newDhaProxyInstalled) return
+  globalThis.__newDhaProxyInstalled = true
+  const orig = globalThis.fetch.bind(globalThis)
+  globalThis.fetch = (input, init = {}) => {
+    const isReq = typeof Request === "function" && input instanceof Request
+    const url = isReq ? input.url : String(input)
+    if (!/^https?:/i.test(url) || url.startsWith(base)) return orig(input, init)
+    const target = base + "?u=" + encodeURIComponent(url)
+    return isReq
+      ? orig(new Request(target, { method: input.method, headers: input.headers, signal: input.signal }))
+      : orig(target, init)
+  }
+}
+
 function toModule(input) {
   if (input instanceof WebAssembly.Module) return Promise.resolve(input)
   if (input instanceof ArrayBuffer || ArrayBuffer.isView(input)) {
@@ -35,6 +54,7 @@ function toModule(input) {
 }
 
 export default function init(wasmUrl) {
+  installProxy(globalThis.__NEW_DHA_PROXY__)
   if (!ready) {
     ready = Promise.resolve(toModule(wasmUrl)).then((mod) => {
       initModule(mod)
