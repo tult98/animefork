@@ -108,10 +108,17 @@ export class HlsPatched extends Hls {
         }, config.timeout)
 
         const now = performance.now()
-        decrypt_segment(context.url)
-          // the wasm only knows the old /hls/<hex>.ts layout and throws when no
-          // playlist was decoded; the URL it was given is already usable
-          .catch(() => context.url)
+        // decrypt_segment throws synchronously when the wasm was never
+        // initialised (the playlist no longer goes through it), and a sync
+        // throw here kills load() before the fetch, leaving hls.js to time out
+        // 20s later with loaded: 0.
+        let decryptPromise: Promise<string>
+        try {
+          decryptPromise = decrypt_segment(context.url).catch(() => context.url)
+        } catch {
+          decryptPromise = Promise.resolve(context.url)
+        }
+        decryptPromise
           .then((decryptedUrl) => {
             const resolvedUrl = decryptedUrl.startsWith("http")
               ? decryptedUrl

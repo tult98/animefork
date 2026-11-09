@@ -30,7 +30,9 @@ async function resolveIframePlaylistUrl(playerUrl: string): Promise<string> {
   const playlistUrl = new URL(`/playlist/${id}/playlist.m3u8`, new URL(playerUrl))
   playlistUrl.searchParams.set("token", token)
   playlistUrl.searchParams.set("fc", btoa("cross-origin"))
-  return playlistUrl.href + VSUB_TAG
+  // no #animevsub-vsub tag here: the player appends its own before fetching,
+  // and a doubled tag ends the URL with something the extension does not match
+  return playlistUrl.href
 }
 
 interface PlayerLinkReturn {
