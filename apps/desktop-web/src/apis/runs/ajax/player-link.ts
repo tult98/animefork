@@ -71,11 +71,22 @@ export function PlayerLink(config: {
 
         if (config.playTech === "iframe") {
           await newDhaInit(newDhaWasmUrl)
+          const m3u8 = await get_m3u8_content(config.link as string)
+          if (import.meta.env.DEV) {
+            const lines = m3u8.split(/\r?\n/)
+            console.info(
+              `[new-dha] playlist ${m3u8.length}B, ${lines.length} lines, ` +
+                `${lines.filter((l) => l && !l.startsWith("#")).length} uri lines`
+            )
+            console.info(
+              "[new-dha] head:\n" + lines.slice(0, 12).join("\n") +
+                "\n[new-dha] tail:\n" + lines.slice(-6).join("\n")
+            )
+            ;(window as unknown as any).__newDhaPlaylist = m3u8
+          }
           config.link = [
             {
-              file: `data:application/vnd.apple.mpegurl;base64,${btoa(
-                await get_m3u8_content(config.link as string)
-              )}`,
+              file: `data:application/vnd.apple.mpegurl;base64,${btoa(m3u8)}`,
               label: "HD",
               preload: "auto",
               qualityCode: getQualityByLabel("HD"),
