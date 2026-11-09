@@ -13,12 +13,12 @@ Paths below are relative to the repo root (`REPO=$(git rev-parse --show-toplevel
 
 ## Variables
 
-| name | default | meaning |
-|---|---|---|
-| `VERIFY_ANIMEVSUB_PORT` | `9000` | dev server port the Launch step uses |
-| `VERIFY_ANIMEVSUB_URL` | `http://localhost:$PORT` | base URL the scripts drive (read by `scripts/pw.cjs`) |
-| `PW` | auto | optional path to a `playwright-core` package |
-| `CHROME` | auto | optional path to a Chromium binary |
+| name                    | default                  | meaning                                               |
+| ----------------------- | ------------------------ | ----------------------------------------------------- |
+| `VERIFY_ANIMEVSUB_PORT` | `9000`                   | dev server port the Launch step uses                  |
+| `VERIFY_ANIMEVSUB_URL`  | `http://localhost:$PORT` | base URL the scripts drive (read by `scripts/pw.cjs`) |
+| `PW`                    | auto                     | optional path to a `playwright-core` package          |
+| `CHROME`                | auto                     | optional path to a Chromium binary                    |
 
 ## Evidence dir
 
@@ -55,7 +55,7 @@ for i in $(seq 60); do curl -sf localhost:$PORT/ | grep -q '<title>AnimeVsub' &&
 
 - `pnpm install` at the repo root, Node 22+ (the repo runs with Node 25).
 - `apps/desktop-web/.env` (git-ignored; copy `.env.example`). The blank Firebase/Supabase values only produce console noise (see Gotchas); the app browses anonymously without them.
-- The extension must be built at `apps/extension/manifest-v3/extension/` (it contains `manifest.json` and `dist/`; git-ignored build output). If missing, build it per `apps/extension/package.json` (`build` script, needs `bun`) and report that you did.
+- The extension must be built at `apps/extension/dist/chrome-mv3/` (it contains `manifest.json` and `dist/`; git-ignored build output). If missing, build it with `pnpm nx build extension-animevsub-helper` and report that you did.
 - Playwright: `playwright-core` plus a Chromium from Playwright's cache (`@playwright/cli` global install provides both: `npm i -g @playwright/cli`, then its install-browser command). `ffmpeg`/`ffprobe` on PATH for the clip pacing check.
 
 ## Doctor
@@ -67,7 +67,7 @@ REPO=$(git rev-parse --show-toplevel); PORT=${VERIFY_ANIMEVSUB_PORT:-9000}; ROOT
 PID=$(lsof -nP -iTCP:$PORT -sTCP:LISTEN -t | head -1); CWD=$(lsof -a -p "$PID" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')
 case "$CWD" in "$REPO"/*) echo "OK port $PORT served from $CWD";; *) echo "FAIL port $PORT: pid '$PID' cwd '$CWD'";; esac
 curl -sf localhost:$PORT/ | grep -q '<title>AnimeVsub' && echo "OK serves AnimeVsub" || echo "FAIL page is not AnimeVsub"
-[ -f "$REPO/apps/extension/manifest-v3/extension/manifest.json" ] && echo "OK helper extension built" || echo "FAIL extension not built"
+[ -f "$REPO/apps/extension/dist/chrome-mv3/manifest.json" ] && echo "OK helper extension built" || echo "FAIL extension not built"
 node -e 'const p=require(process.argv[1]+"/scripts/pw.cjs");p.playwrightCore();console.log("OK playwright-core, chromium at",p.chromePath())' "$REPO/.claude/skills/verify-animefork" 2>&1 | tail -1
 command -v ffprobe >/dev/null && echo "OK ffprobe" || echo "FAIL ffprobe missing"
 ```
@@ -90,11 +90,13 @@ Harness: **Playwright (playwright-core) driving Chromium with the AnimeVsub Help
 `scripts/pw.cjs` gives every scenario its own fresh profile (`$EV/profile-<scenario>`), its own page and its own video, so it never touches the developer's browser or another agent's. Use it from a one-off script written to `$EV` or the scratchpad:
 
 ```js
-const pw = require('<REPO>/.claude/skills/verify-animefork/scripts/pw.cjs')
-const t = await pw.open({ runDir: process.env.EV, scenario: 'my-scenario' })   // t.page is a Playwright Page
-await t.page.goto(t.BASE + '/', { waitUntil: 'domcontentloaded' })
-await t.step('label shown on screen', () => t.page.getByRole('link', { name: 'Day' }).click())
-await t.close({ pass: true, proves: 'what this scenario proves' })              // finishes the clip, writes clips.md, pacing check
+const pw = require('<REPO>/.claude/skills/verify-animefork/scripts/pw.cjs');
+const t = await pw.open({ runDir: process.env.EV, scenario: 'my-scenario' }); // t.page is a Playwright Page
+await t.page.goto(t.BASE + '/', { waitUntil: 'domcontentloaded' });
+await t.step('label shown on screen', () =>
+  t.page.getByRole('link', { name: 'Day' }).click(),
+);
+await t.close({ pass: true, proves: 'what this scenario proves' }); // finishes the clip, writes clips.md, pacing check
 ```
 
 Run scripts with `EV=$(cat ${TMPDIR:-/tmp}/verify-animefork/latest) VERIFY_ANIMEVSUB_URL=http://localhost:${VERIFY_ANIMEVSUB_PORT:-9000} node script.cjs`. Helper API: `t.step(label, fn)` (label, pause, act, pause; counts as one action), `t.type(locator, text)`, `t.say(label)`, `t.snap(name)` (accessibility snapshot to `shots/`), `t.shot(name)` (PNG to `shots/`), `t.consoleLog`, `t.close({pass, proves})`.
@@ -124,13 +126,13 @@ Per scenario, capture before and after, not only the final screen:
 
 Pacing is the `PACE` object at the top of `scripts/pw.cjs`, tune per repo:
 
-| name | value | rule |
-|---|---|---|
-| `PAUSE_BEFORE` | 1000 ms | pause before every action so the viewer sees the target |
-| `PAUSE_AFTER` | 1000 ms | pause after so the result is visible |
-| `TYPE_DELAY` | 120 ms | per keystroke (never snap a value in) |
-| `FINAL_HOLD` | 2000 ms | hold the final state |
-| `MIN_SEC_PER_ACTION` | 2 s | pacing self-check threshold |
+| name                 | value   | rule                                                    |
+| -------------------- | ------- | ------------------------------------------------------- |
+| `PAUSE_BEFORE`       | 1000 ms | pause before every action so the viewer sees the target |
+| `PAUSE_AFTER`        | 1000 ms | pause after so the result is visible                    |
+| `TYPE_DELAY`         | 120 ms  | per keystroke (never snap a value in)                   |
+| `FINAL_HOLD`         | 2000 ms | hold the final state                                    |
+| `MIN_SEC_PER_ACTION` | 2 s     | pacing self-check threshold                             |
 
 Rules for a watchable clip: one script per scenario so no agent latency becomes frozen frames; start with `t.say('Scenario: …')`; label each step with `t.step` (the label overlay uses `pointer-events:none` and only literal text from the script, never page content or API text); hold transient states (toast, redirect) with an extra `page.waitForTimeout(2500)` until readable; choose the slowest comfortable pace. The self-check prints `PACING OK` or `PACING TOO FAST: <s>s for <n> actions`. Under `MIN_SEC_PER_ACTION` per action, or with dead air (long waits for the app), re-record with slower pacing. Confirm the clip is non-empty with `ls -l $EV/video` and `ffprobe -v error -show_entries format=duration -of csv=p=0 $EV/video/<scenario>.webm`. A clip's dead time is the app's own (first compile, upstream latency); warm the route first.
 
@@ -156,7 +158,7 @@ The app writes nothing to the upstream site during anonymous browsing, so there 
 
 ## Helpers
 
-`scripts/pw.cjs` is a CommonJS module, not a command: `require` it as shown in Drive. It resolves playwright-core (env `PW`, else global `npm root -g`), picks the newest Chromium in Playwright's cache (env `CHROME` overrides), and loads the extension from `apps/extension/manifest-v3/extension`.
+`scripts/pw.cjs` is a CommonJS module, not a command: `require` it as shown in Drive. It resolves playwright-core (env `PW`, else global `npm root -g`), picks the newest Chromium in Playwright's cache (env `CHROME` overrides), and loads the extension from `apps/extension/dist/chrome-mv3`.
 
 ## Gotchas that are not bugs
 

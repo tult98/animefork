@@ -5,7 +5,8 @@ import browser from "webextension-polyfill"
  * Hosts that can be used as an embed provider.
  * Matches any TLD: animevietsub.id, animevietsub.xyz, www.animevietsub.tv, ...
  */
-const EMBED_URL_REGEX = "^https?://([a-z0-9-]+\\.)*(?:animevietsub|googleapiscdn|fbcdns)\\.[a-z0-9.-]+/"
+const EMBED_URL_REGEX =
+  "^https?://([a-z0-9-]+\\.)*(?:animevietsub|googleapiscdn|fbcdns)\\.[a-z0-9.-]+/"
 const EMBED_BRIDGE_REGEX = `${EMBED_URL_REGEX}[^#]*[?&]animevsub-embed-origins=[^&#]+`
 const EMBED_RULE_ID = 900_001
 const EMBED_BRIDGE_RULE_ID = 900_002
@@ -17,7 +18,9 @@ const BLOCKED_RESPONSE_HEADERS = new Set([
 ])
 
 function isEmbedUrl(url: string) {
-  return /^https?:\/\/([a-z0-9-]+\.)*(?:animevietsub|googleapiscdn|fbcdns)\.[a-z0-9.-]+/i.test(url)
+  return /^https?:\/\/([a-z0-9-]+\.)*(?:animevietsub|googleapiscdn|fbcdns)\.[a-z0-9.-]+/i.test(
+    url
+  )
 }
 
 /**

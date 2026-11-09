@@ -50,3 +50,7 @@ jobs:
 
       - name: Lint, typecheck and test
         run: pnpm nx affected -t lint typecheck typing test
+
+      # desktop-web is excluded until its rebuild; its Quasar build was never part of CI.
+      - name: Build
+        run: pnpm nx affected -t build --exclude=animefork

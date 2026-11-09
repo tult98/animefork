@@ -1,8 +1,5 @@
 packages:
   - apps/desktop-web
   - apps/extension
-  - apps/extension/lib
-  - apps/extension/manifest-v2
-  - apps/extension/manifest-v3
-  - apps/extension/npm
+  - apps/extension/client
   - tools/avs-loader

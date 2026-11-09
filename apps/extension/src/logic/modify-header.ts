@@ -38,7 +38,7 @@ export function setHeader(
         key as "requestHeaders"
       ]
     ) {
-      (details as browser.WebRequest.OnBeforeSendHeadersDetailsType)[
+      ;(details as browser.WebRequest.OnBeforeSendHeadersDetailsType)[
         key as "requestHeaders"
       ] = []
     }
@@ -69,7 +69,7 @@ export function addHeader(
       key as "requestHeaders"
     ]
   ) {
-    (details as browser.WebRequest.OnBeforeSendHeadersDetailsType)[
+    ;(details as browser.WebRequest.OnBeforeSendHeadersDetailsType)[
       key as "requestHeaders"
     ] = []
   }

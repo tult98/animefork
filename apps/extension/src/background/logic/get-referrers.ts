@@ -9,5 +9,5 @@ export async function getReferrers(): Promise<Record<string, string>> {
 
   return (promiseGetReferrers = Browser.storage.sync
     .get("referrers")
-    .then((res) => (referrers = res)))
+    .then((res) => (referrers = res as Record<string, string>)))
 }

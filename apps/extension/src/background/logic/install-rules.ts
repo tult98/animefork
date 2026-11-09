@@ -53,41 +53,41 @@ function registerMV2() {
 
   const createListener =
     (isResponse: boolean) =>
-      (details: browser.WebRequest.OnBeforeSendHeadersDetailsType) => {
-        const hash = details.url.slice(details.url.indexOf(HASH) >>> 0)
-        if (!hash) return
-        if (!details.originUrl) return
-        const $dblSlash = details.originUrl.indexOf("://") + 3
-        const initiator = details.originUrl.slice(
-          $dblSlash,
-          details.originUrl.indexOf("/", $dblSlash)
-        )
+    (details: browser.WebRequest.OnBeforeSendHeadersDetailsType) => {
+      const hash = details.url.slice(details.url.indexOf(HASH) >>> 0)
+      if (!hash) return
+      if (!details.originUrl) return
+      const $dblSlash = details.originUrl.indexOf("://") + 3
+      const initiator = details.originUrl.slice(
+        $dblSlash,
+        details.originUrl.indexOf("/", $dblSlash)
+      )
 
-        const rules = storeRulesMV2.get(hash + "|")
-        if (!rules) return
+      const rules = storeRulesMV2.get(hash + "|")
+      if (!rules) return
 
-        rules.forEach((rule) => {
-          if (rule.action.type !== "modifyHeaders") return
-          if (!rule.condition.initiatorDomains?.includes(initiator)) return
+      rules.forEach((rule) => {
+        if (rule.action.type !== "modifyHeaders") return
+        if (!rule.condition.initiatorDomains?.includes(initiator)) return
 
-          rule.action[isResponse ? "responseHeaders" : "requestHeaders"]?.forEach(
-            (headers) => {
-              switch (headers.operation) {
-                case "remove":
-                  removeHeader(details, headers.header, isResponse)
-                  break
-                case "append":
-                  addHeader(details, headers.header, headers.value!, isResponse)
-                  break
-                case "set":
-                default:
-                  setHeader(details, headers.header, headers.value!, isResponse)
-              }
+        rule.action[isResponse ? "responseHeaders" : "requestHeaders"]?.forEach(
+          (headers) => {
+            switch (headers.operation) {
+              case "remove":
+                removeHeader(details, headers.header, isResponse)
+                break
+              case "append":
+                addHeader(details, headers.header, headers.value!, isResponse)
+                break
+              case "set":
+              default:
+                setHeader(details, headers.header, headers.value!, isResponse)
             }
-          )
-        })
-        return details
-      }
+          }
+        )
+      })
+      return details
+    }
 
   browser.webRequest.onBeforeSendHeaders.addListener(
     createListener(false),

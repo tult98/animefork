@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import allowlist from "../../../allowlist.yaml"
+import allowlist from "../../../allowlist.json"
 import { EXTRA } from "../../env"
 
 const mapUa = {

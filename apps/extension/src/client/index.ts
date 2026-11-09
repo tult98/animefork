@@ -1,12 +1,11 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-undef */
-import type { ArgumentsType } from "vitest"
 
-import type { RequestOption, RequestResponse } from "../../lib/background"
-import type { DetailCustomEvent_sendToInject } from "../../lib/contentScripts"
-import { base64ToArrayBuffer } from "../../lib/logic/base64ToArrayBuffer"
-import { decodeDetail } from "../../lib/logic/encoder-detail"
-import { randomUUID } from "../../lib/logic/randomUUID"
+import type { RequestOption, RequestResponse } from "../background"
+import type { DetailCustomEvent_sendToInject } from "../contentScripts"
+import { base64ToArrayBuffer } from "../logic/base64ToArrayBuffer"
+import { decodeDetail } from "../logic/encoder-detail"
+import { randomUUID } from "../logic/randomUUID"
 import { version as versionClient } from "../../package.json"
 
 export interface ClientRequestOption extends Omit<RequestOption, "signalId"> {
@@ -123,7 +122,7 @@ export function execTabs<
     | "update"
 >(
   type: T,
-  args: ArgumentsType<(typeof chrome.tabs)[T]>
+  args: Parameters<(typeof chrome.tabs)[T]>
 ): Promise<Awaited<ReturnType<(typeof chrome.tabs)[T]>>> {
   // eslint-disable-next-line functional/no-throw-statements
   if (!tabsApi) throw new Error("Version extension not support tabs api.")
