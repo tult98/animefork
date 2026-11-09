@@ -4,7 +4,7 @@
     {
       "name": "desktop-web",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["nx", "run", "git.shin.animevsub:dev"],
+      "runtimeArgs": ["nx", "run", "animefork:dev"],
       "port": 9000
     }
   ]
