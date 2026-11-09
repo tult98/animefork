@@ -99,6 +99,8 @@ export function PlayerLink(config: {
           })
 
         if (config.playTech === "iframe") {
+          if (import.meta.env.DEV)
+            console.info(`[new-dha] player url ${String(config.link)}`)
           let file: string
           try {
             file = await resolveIframePlaylistUrl(config.link as string)
