@@ -10,19 +10,19 @@ Checked against v1.35.34.
 
 ## Use
 
-This folder is outside the pnpm workspace, so install with npm:
+This folder is a pnpm workspace member. Install from the repo root, then run from this folder:
 
 ```sh
-npm install
-npm run fetch -- https://stream.googleapiscdn.com/player/<id>
-npm run deobfuscate -- out/avs-loader-<version>.min.js
+pnpm install
+pnpm run fetch -- https://stream.googleapiscdn.com/player/<id>
+pnpm run deobfuscate -- out/avs-loader-<version>.min.js
 ```
 
 `fetch` reads the player page (sending the `Referer` the CDN checks), finds
 `/static/avs-loader.min.js?v=<version>` and saves it as
 `out/avs-loader-<version>.min.js`. Cloudflare blocks Node on `/player/`. If that
 fails, open the page in Chrome, copy the script URL from the network tab and run
-`npm run fetch -- --script "<url>"`. The `/static/` file downloads fine.
+`pnpm run fetch -- --script "<url>"`. The `/static/` file downloads fine.
 
 `deobfuscate` writes `out/avs-loader-<version>.clean.js` through three stages:
 
@@ -52,14 +52,14 @@ for them in the clean file:
 
 Function names are from that release's clean file and will change.
 
-| clean file | `avs-playlist.ts` |
-| --- | --- |
-| `K` | `parseEnvelope` |
-| `X`, `Y` | `lcg`, `unshuffle` (`shufflePlan`) |
-| `Z` | `decryptBlob` |
-| `H`, `J` | `xorshift32`, `derange` (`maskPlan`) |
-| `a3` | `sessionKeyOf` |
-| `load` of the fragment loader (second `this.load`, the one using `url-cipher|`) | `resolvePlaceholderUrl` |
+| clean file                                                                   | `avs-playlist.ts`                    |
+| ---------------------------------------------------------------------------- | ------------------------------------ |
+| `K`                                                                          | `parseEnvelope`                      |
+| `X`, `Y`                                                                     | `lcg`, `unshuffle` (`shufflePlan`)   |
+| `Z`                                                                          | `decryptBlob`                        |
+| `H`, `J`                                                                     | `xorshift32`, `derange` (`maskPlan`) |
+| `a3`                                                                         | `sessionKeyOf`                       |
+| `load` of the fragment loader (second `this.load`, the one using `url-cipher | `)                                   | `resolvePlaceholderUrl` |
 
 `Z` is called from the playlist loader's `load` (the first `this.load`, which
 matches `_c=` and `_t=`). In `Z`, the HMAC message is
