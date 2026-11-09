@@ -79,12 +79,22 @@ export function PlayerLink(config: {
               const url = typeof input === "string" ? input : (input as Request).url
               if (/playlist\.m3u8|seg-key/.test(url)) {
                 const clone = res.clone()
-                const text = await clone.text()
+                const buf = await clone.arrayBuffer()
+                const text = new TextDecoder().decode(buf)
                 console.info(
                   `[new-dha raw] ${res.status} ${url}\nheaders: ` +
                     JSON.stringify(Object.fromEntries(res.headers)) +
                     `\nbody(${text.length}): ${text.slice(0, 500)}`
                 )
+                if (/playlist\.m3u8/.test(url)) {
+                  ;(window as unknown as any).__newDhaRawPlaylist = text
+                } else {
+                  ;(window as unknown as any).__newDhaKeyHex = Array.from(
+                    new Uint8Array(buf)
+                  )
+                    .map((b) => b.toString(16).padStart(2, "0"))
+                    .join("")
+                }
               }
               return res
             }
