@@ -35,8 +35,14 @@ const host = flag("--host", "animevsub.eu.org")
 const listenPort = Number(flag("--port", "443"))
 const upstreamPort = Number(flag("--upstream", "9000"))
 const certDir = path.join(here, "out", "cert")
-const keyPath = path.join(certDir, "key.pem")
-const certPath = path.join(certDir, "cert.pem")
+const keyPath = path.resolve(flag("--key", path.join(certDir, "key.pem")))
+const certPath = path.resolve(flag("--cert", path.join(certDir, "cert.pem")))
+
+// A self-signed cert is enough only if the host is not HSTS-preloaded; Chrome
+// refuses to bypass those and reports ERR_FAILED. Use mkcert for a locally
+// trusted cert instead:
+//   mkcert -install
+//   mkcert -cert-file out/cert/cert.pem -key-file out/cert/key.pem animevsub.eu.org
 
 if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
   fs.mkdirSync(certDir, { recursive: true })
@@ -85,5 +91,14 @@ server.on("upgrade", (req, socket, head) => {
 server.listen(listenPort, "0.0.0.0", () => {
   console.log(`https://${host}${listenPort === 443 ? "" : ":" + listenPort}/  ->  http://127.0.0.1:${upstreamPort}`)
   console.log(`cert: ${certPath}`)
+  try {
+    const cert = new X509Certificate(fs.readFileSync(certPath))
+    console.log(`cert subject: ${cert.subject.replace(/\n/g, ", ")}`)
+    console.log(`cert issuer : ${cert.issuer.replace(/\n/g, ", ")}`)
+    console.log(`cert valid  : ${cert.validFrom} -> ${cert.validTo}`)
+    console.log(`cert SAN    : ${cert.subjectAltName || "(none)"}`)
+  } catch (e) {
+    console.log(`could not parse cert: ${e.message}`)
+  }
   if (listenPort < 1024) console.log("(port 443 needs sudo)")
 })
