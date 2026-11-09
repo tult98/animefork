@@ -173,6 +173,10 @@ export class HlsPatched extends Hls {
           })
           .then((responseData: string | ArrayBuffer) => {
             const dur = performance.now() - now
+            if (import.meta.env.DEV)
+              console.info(
+                `[hls-patched] ${context.responseType} ${dur.toFixed(0)}ms ${context.url.slice(0, 48)}`
+              )
             if (dur > 14_000) {
               onSlow?.()
             }

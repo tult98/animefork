@@ -119,7 +119,11 @@ export function PlayerLink(config: {
 
           config.link = [
             {
-              file: `data:application/vnd.apple.mpegurl;base64,${btoa(m3u8)}`,
+              // hls.js stalls on large data: URLs (manifestLoadTimeout with
+              // loaded: 0); a blob URL is same-origin and resolves instantly
+              file: URL.createObjectURL(
+                new Blob([m3u8], { type: "application/vnd.apple.mpegurl" })
+              ),
               label: "HD",
               preload: "auto",
               qualityCode: getQualityByLabel("HD"),
