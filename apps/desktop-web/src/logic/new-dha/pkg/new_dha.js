@@ -23,11 +23,16 @@ let ready
 function installProxy(base) {
   if (!base || globalThis.__newDhaProxyInstalled) return
   globalThis.__newDhaProxyInstalled = true
+  // The player page itself is fetched by the browser, which Cloudflare allows.
+  // Node cannot pass that challenge, so leave player-page requests alone and
+  // only reroute the CDN media routes that check the caller's domain.
+  const skip = globalThis.__NEW_DHA_PROXY_SKIP__ ?? /\/player\//
   const orig = globalThis.fetch.bind(globalThis)
   globalThis.fetch = (input, init = {}) => {
     const isReq = typeof Request === "function" && input instanceof Request
     const url = isReq ? input.url : String(input)
     if (!/^https?:/i.test(url) || url.startsWith(base)) return orig(input, init)
+    if (skip.test(url)) return orig(input, init)
     const target = base + "?u=" + encodeURIComponent(url)
     return isReq
       ? orig(new Request(target, { method: input.method, headers: input.headers, signal: input.signal }))

@@ -24,6 +24,7 @@ const flag = (n, d) => {
 }
 const referer = flag("--referer", "https://animevietsub.best/")
 const port = Number(flag("--port", "8787"))
+const cookie = flag("--cookie", "")
 const outDir = path.join(here, "out")
 fs.mkdirSync(outDir, { recursive: true })
 const logPath = path.join(outDir, "proxy.log")
@@ -63,6 +64,7 @@ http
       referer,
       origin
     }
+    if (cookie) headers.cookie = cookie
     const range = req.headers.range
     if (range) headers.range = range
 
