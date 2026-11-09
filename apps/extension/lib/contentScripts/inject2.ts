@@ -1,9 +1,7 @@
 /* eslint-disable no-useless-call */
 
-/* eslint-disable n/no-unsupported-features/es-builtins */
 /* eslint-disable camelcase */
 /* eslint-disable functional/functional-parameters */
-/* eslint-disable n/no-unsupported-features/node-builtins */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable functional/no-classes */
 /* eslint-disable no-undef */

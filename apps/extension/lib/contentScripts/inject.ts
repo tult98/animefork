@@ -22,9 +22,8 @@ function injectScript(fileName: string) {
   }
 }
 
-if (isEmbedPage) {
+if (isEmbedPage)
   document.querySelectorAll("script").forEach((script) => script.remove())
-}
 
 // Embed bridge: exposes window.AnimeVsubEmbed on every page and listens for
 // requests inside embedded animevietsub pages.

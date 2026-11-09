@@ -160,7 +160,7 @@ onMessage<RequestOption, string>(
 )
 
 async function mergeSetCookie(headers: Headers, url: string) {
-  // eslint-disable-next-line n/no-unsupported-features/es-builtins, @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const obj = Object.fromEntries((headers as unknown as any).entries())
   obj["set-cookie"] = (await browser.cookies.getAll({ url }))
     .map((item) =>
@@ -200,7 +200,6 @@ async function setCookie(url: string, cookie: string) {
       const value = item.slice(equal + 1)
 
       await chrome.cookies.set({
-        // eslint-disable-next-line n/no-unsupported-features/node-builtins
         domain: new URL(url).hostname,
         name,
         path: "/",

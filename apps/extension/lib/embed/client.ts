@@ -1,6 +1,5 @@
 /* eslint-disable no-undef */
 /* eslint-disable functional/no-classes */
-/* eslint-disable n/no-unsupported-features/node-builtins */
 /**
  * Client (parent page) side of the AnimeVsub embed bridge.
  *
@@ -55,8 +54,10 @@ export interface EmbedClientRequestOption extends EmbedRequestOption {
   signal?: AbortSignal
 }
 
-export interface EmbedBridgeResponse<T = unknown>
-  extends Omit<EmbedResponseData, "data"> {
+export interface EmbedBridgeResponse<T = unknown> extends Omit<
+  EmbedResponseData,
+  "data"
+> {
   data: T
 }
 
@@ -87,10 +88,7 @@ interface PendingRequest {
 }
 
 function randomId() {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  )
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
     return crypto.randomUUID()
 
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
