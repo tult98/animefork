@@ -9,32 +9,28 @@ import newDhaWasmUrl from "src/logic/new-dha/pkg/new_dha_bg.wasm?url"
 const addProtocolUrl = (file: string) =>
   file.startsWith("http") ? file : `https:${file}`
 
-// The iframe server hands back a plain m3u8: the playlist itself is not
-// encrypted, and its segment URIs are absolute /chunks/... URLs. The private
-// wasm does the same fetch but drops every URI because it only understands the
-// older /hls/<24hex>.ts layout, which leaves hls.js with zero fragments.
+// Build the playlist URL instead of downloading the body: the playlist is a
+// plain m3u8 served by the CDN, and hls.js fetches it happily through the
+// custom loader (the #tag is what the extension matches to set Referer and
+// CORS). Downloading it ourselves and stuffing it into a data:/blob: URL makes
+// the loader stall with manifestLoadTimeout and loaded: 0.
 const VSUB_TAG = "#animevsub-vsub_extrao"
 const RE_PLAYER_ID = /id\s*=\s*"([^"]+)"/
 const RE_AVS_TOKEN = /avsToken\s*=\s*"([^"]+)"/
 
-async function fetchIframePlaylist(playerUrl: string): Promise<string> {
-  const pageUrl = playerUrl.includes("#") ? playerUrl : playerUrl + VSUB_TAG
-  const pageRes = await fetch(pageUrl)
+async function resolveIframePlaylistUrl(playerUrl: string): Promise<string> {
+  const pageRes = await fetch(playerUrl + VSUB_TAG)
   if (!pageRes.ok) throw new Error(`player page ${pageRes.status}`)
   const html = await pageRes.text()
 
   const id = RE_PLAYER_ID.exec(html)?.[1]
   const token = RE_AVS_TOKEN.exec(html)?.[1]
-  if (!id || !token)
-    throw new Error("player page: id or avsToken not found")
+  if (!id || !token) throw new Error("player page: id or avsToken not found")
 
   const playlistUrl = new URL(`/playlist/${id}/playlist.m3u8`, new URL(playerUrl))
   playlistUrl.searchParams.set("token", token)
   playlistUrl.searchParams.set("fc", btoa("cross-origin"))
-
-  const res = await fetch(playlistUrl.href + VSUB_TAG)
-  if (!res.ok) throw new Error(`playlist ${res.status} ${res.statusText}`)
-  return res.text()
+  return playlistUrl.href + VSUB_TAG
 }
 
 interface PlayerLinkReturn {
@@ -98,32 +94,24 @@ export function PlayerLink(config: {
           })
 
         if (config.playTech === "iframe") {
-          let m3u8: string
+          let file: string
           try {
-            m3u8 = await fetchIframePlaylist(config.link as string)
+            file = await resolveIframePlaylistUrl(config.link as string)
+            if (import.meta.env.DEV)
+              console.info(`[new-dha] playlist url ${file.slice(0, 120)}`)
           } catch (error) {
             if (!import.meta.env.DEV) throw error
             console.warn("[new-dha] direct playlist failed, falling back to wasm", error)
             await newDhaInit(newDhaWasmUrl)
-            m3u8 = await get_m3u8_content(config.link as string)
-          }
-
-          if (import.meta.env.DEV) {
-            const lines = m3u8.split(/\r?\n/)
-            console.info(
-              `[new-dha] playlist ${m3u8.length}B, ${lines.length} lines, ` +
-                `${lines.filter((l) => l && !l.startsWith("#")).length} uri lines`
+            const m3u8 = await get_m3u8_content(config.link as string)
+            file = URL.createObjectURL(
+              new Blob([m3u8], { type: "application/vnd.apple.mpegurl" })
             )
-            ;(window as unknown as any).__newDhaRawPlaylist = m3u8
           }
 
           config.link = [
             {
-              // hls.js stalls on large data: URLs (manifestLoadTimeout with
-              // loaded: 0); a blob URL is same-origin and resolves instantly
-              file: URL.createObjectURL(
-                new Blob([m3u8], { type: "application/vnd.apple.mpegurl" })
-              ),
+              file,
               label: "HD",
               preload: "auto",
               qualityCode: getQualityByLabel("HD"),
