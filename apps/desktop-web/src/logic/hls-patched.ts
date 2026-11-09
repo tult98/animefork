@@ -154,13 +154,17 @@ export class HlsPatched extends Hls {
 
             let data: any
 
+            // Read the body exactly once: a Response body can only be consumed
+            // a single time, so the earlier chain of separate `if`s threw
+            // "body stream already read" for key and segment requests
+            // (arraybuffer) and surfaced as keyLoadError with HTTP code 0.
             if (isArrayBuffer) {
               data = response.arrayBuffer()
-            }
-            if (context.responseType === "json") {
+            } else if (context.responseType === "json") {
               data = response.json()
+            } else {
+              data = response.text()
             }
-            data = response.text()
 
             return data
           })
