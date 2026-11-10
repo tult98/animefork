@@ -18,7 +18,7 @@ With `DATABASE_URL` missing, or with `--dry-run`, nothing touches the database. 
 
 ## Local stack
 
-`docker-compose.yml` starts Postgres 17 and PostgREST. Postgres applies `db/local/000_roles.sql` (public local-only logins), then the migration, then `db/local/002_grants.sql`. PostgREST serves the `public` schema on port 3000 as `web_anon`, with CORS open to every origin.
+`docker-compose.yml` starts Postgres 17 and PostgREST. Postgres applies `db/local/000_roles.sql` (public local-only logins), then the migration, then `db/local/002_grants.sql`. PostgREST serves the `public` schema as `web_anon` on host port 3000, or on `ART_API_PORT` when 3000 is taken, with CORS open to every origin.
 
 ```sh
 docker compose -f tools/art-sync/docker-compose.yml up -d --wait
