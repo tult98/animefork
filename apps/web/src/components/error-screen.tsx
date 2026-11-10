@@ -1,5 +1,5 @@
-import { Button } from '@base-ui/react/button';
 import { ExtensionMissingError } from '../lib/transport/index.ts';
+import { Button } from './ui/button.tsx';
 
 export function ErrorScreen({
   error,
@@ -24,9 +24,10 @@ export function ErrorScreen({
           : 'We could not load or read the data from the source.'}
       </p>
       <Button
+        kind="pill"
+        tone="brand"
         data-testid="error:retry"
         onClick={onRetry}
-        className="min-h-11 rounded-md bg-brand px-5 font-medium text-on-brand"
       >
         Retry
       </Button>
