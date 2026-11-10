@@ -1,21 +1,21 @@
-name: art-api
+name: api
 
 services:
   db:
     image: postgres:17
     environment:
-      POSTGRES_DB: art
-      POSTGRES_USER: art
-      POSTGRES_PASSWORD: local-art
+      POSTGRES_DB: api
+      POSTGRES_USER: api
+      POSTGRES_PASSWORD: local-api
     ports:
       - '54330:5432'
     volumes:
-      - art-db:/var/lib/postgresql/data
+      - api-db:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U art -d art']
+      test: ['CMD-SHELL', 'pg_isready -U api -d api']
       interval: 2s
       timeout: 3s
       retries: 30
 
 volumes:
-  art-db:
+  api-db:

@@ -1,6 +1,7 @@
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import pg from 'pg';
+import { Inject, Injectable } from '@nestjs/common';
+import type pg from 'pg';
+import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
+import { PG_POOL } from '../database/migration-runner.ts';
 import { MATCHER_VERSION, type MissStatus, type TitleStatus } from './retry.ts';
 import type { MatchedTitle } from './tmdb/sync.ts';
 
@@ -18,6 +19,8 @@ export interface StoredTitle {
 
 export type MatchedArt = Pick<MatchedTitle, 'title' | 'episodes'>;
 
+export const ART_STORE = Symbol('ArtStore');
+
 export interface ArtStore {
   find(slugs: string[]): Promise<Map<string, StoredTitle>>;
   episodes(slug: string): Promise<Map<number, string>>;
@@ -25,13 +28,14 @@ export interface ArtStore {
   saveMiss(slug: string, status: MissStatus, reason: string): Promise<void>;
 }
 
-export class MemoryStore implements ArtStore {
+@Injectable()
+export class MemoryArtStore implements ArtStore {
   readonly titles = new Map<string, StoredTitle>();
   readonly stills = new Map<string, Map<number, string>>();
-  private readonly now: () => Date;
+  private readonly now: Clock;
 
-  constructor(options: { now?: () => Date } = {}) {
-    this.now = options.now ?? (() => new Date());
+  constructor(@Inject(CLOCK) now: Clock = systemClock) {
+    this.now = now;
   }
 
   async find(slugs: string[]): Promise<Map<string, StoredTitle>> {
@@ -98,19 +102,11 @@ interface TitleRow {
   attempted_at: Date;
 }
 
-const MIGRATION = resolve(
-  import.meta.dirname,
-  '../../db/migrations/001_art.sql',
-);
-
-export async function migrate(pool: pg.Pool): Promise<void> {
-  await pool.query(await readFile(MIGRATION, 'utf8'));
-}
-
-export class PostgresStore implements ArtStore {
+@Injectable()
+export class PostgresArtStore implements ArtStore {
   private readonly pool: pg.Pool;
 
-  constructor(pool: pg.Pool) {
+  constructor(@Inject(PG_POOL) pool: pg.Pool) {
     this.pool = pool;
   }
 

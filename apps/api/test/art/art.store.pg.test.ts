@@ -1,20 +1,23 @@
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { migrate, PostgresStore } from '../../src/art/art.store.ts';
+import { PostgresArtStore } from '../../src/art/art.store.ts';
+import {
+  DEFAULT_MIGRATIONS_DIR,
+  MigrationRunner,
+} from '../../src/database/migration-runner.ts';
 
 const url = process.env.DATABASE_URL;
 const prefix = `test-${process.pid}-${Date.now()}`;
 const slug = (name: string) => `${prefix}-${name}`;
 
-describe.skipIf(!url)('PostgresStore against DATABASE_URL', () => {
+describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
   let pool: pg.Pool;
-  let store: PostgresStore;
+  let store: PostgresArtStore;
 
   beforeAll(async () => {
     pool = new pg.Pool({ connectionString: url });
-    await migrate(pool);
-    await migrate(pool);
-    store = new PostgresStore(pool);
+    await new MigrationRunner(pool, DEFAULT_MIGRATIONS_DIR).run();
+    store = new PostgresArtStore(pool);
   });
 
   afterAll(async () => {

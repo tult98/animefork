@@ -1,17 +1,13 @@
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { CLOCK, type Clock } from '../common/clock.ts';
 import type { TitleInput } from './contract.ts';
 import { isSettled } from './retry.ts';
-import type { ArtStore } from './art.store.ts';
+import { ART_STORE, type ArtStore } from './art.store.ts';
 import { syncTitle, type SyncDeps } from './tmdb/sync.ts';
 
+export const ART_SYNC = Symbol('ArtSync');
+export const FILL_CONCURRENCY = Symbol('FillConcurrency');
 export const DEFAULT_FILL_CONCURRENCY = 2;
-
-export interface FillerOptions {
-  store: ArtStore;
-  sync: SyncDeps;
-  concurrency?: number;
-  now?: () => Date;
-  log?: (message: string) => void;
-}
 
 export function describeError(error: unknown): string {
   if (!(error instanceof Error)) return String(error);
@@ -20,22 +16,27 @@ export function describeError(error: unknown): string {
 }
 
 // Single-flight lives in this process's memory, so it only dedupes TMDB calls when one replica serves the API.
+@Injectable()
 export class ArtFiller {
+  private readonly logger = new Logger(ArtFiller.name);
   private readonly inFlight = new Map<string, Promise<void>>();
   private readonly queue: (() => void)[] = [];
   private running = 0;
   private readonly store: ArtStore;
   private readonly sync: SyncDeps;
   private readonly concurrency: number;
-  private readonly now: () => Date;
-  private readonly log: (message: string) => void;
+  private readonly now: Clock;
 
-  constructor(options: FillerOptions) {
-    this.store = options.store;
-    this.sync = options.sync;
-    this.concurrency = options.concurrency ?? DEFAULT_FILL_CONCURRENCY;
-    this.now = options.now ?? (() => new Date());
-    this.log = options.log ?? (() => undefined);
+  constructor(
+    @Inject(ART_STORE) store: ArtStore,
+    @Inject(ART_SYNC) sync: SyncDeps,
+    @Inject(FILL_CONCURRENCY) concurrency: number,
+    @Inject(CLOCK) now: Clock,
+  ) {
+    this.store = store;
+    this.sync = sync;
+    this.concurrency = concurrency;
+    this.now = now;
   }
 
   has(slug: string): boolean {
@@ -48,7 +49,7 @@ export class ArtFiller {
     const done = this.slot()
       .then(() => this.run(input))
       .catch((error: unknown) => {
-        this.log(
+        this.logger.error(
           `fill ${input.slug} could not be saved: ${describeError(error)}`,
         );
       })
@@ -94,7 +95,7 @@ export class ArtFiller {
       outcome = await syncTitle(input, this.sync);
     } catch (error) {
       const reason = describeError(error);
-      this.log(`fill ${input.slug} failed: ${reason}`);
+      this.logger.warn(`fill ${input.slug} failed: ${reason}`);
       await store.saveMiss(input.slug, 'failed', reason);
       return;
     }

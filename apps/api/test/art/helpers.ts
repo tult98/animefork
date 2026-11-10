@@ -1,6 +1,11 @@
-import { ArtFiller } from '../../src/art/art.filler.ts';
+import {
+  ArtFiller,
+  DEFAULT_FILL_CONCURRENCY,
+} from '../../src/art/art.filler.ts';
+import { ArtService } from '../../src/art/art.service.ts';
+import { systemClock } from '../../src/common/clock.ts';
 import { BaselineMatcher } from '../../src/art/tmdb/matcher.ts';
-import { MemoryStore } from '../../src/art/art.store.ts';
+import { MemoryArtStore } from '../../src/art/art.store.ts';
 import { createTmdbClient } from '../../src/art/tmdb/tmdb.ts';
 import { mockTmdb } from './tmdb/tmdb-mock.ts';
 
@@ -32,16 +37,19 @@ export function setup(
     now?: () => Date;
   } = {},
 ) {
-  const store = new MemoryStore({ now: options.now });
+  const now = options.now ?? systemClock;
+  const store = new MemoryArtStore(now);
   const tmdb = countingTmdb(options.fetch);
-  const filler = new ArtFiller({
+  const sync = {
+    tmdb: createTmdbClient({ apiKey: 'key', fetch: tmdb.fetch }),
+    matcher: new BaselineMatcher(),
+  };
+  const filler = new ArtFiller(
     store,
-    sync: {
-      tmdb: createTmdbClient({ apiKey: 'key', fetch: tmdb.fetch }),
-      matcher: new BaselineMatcher(),
-    },
-    concurrency: options.concurrency,
-    now: options.now,
-  });
-  return { store, filler, searches: tmdb.searches };
+    sync,
+    options.concurrency ?? DEFAULT_FILL_CONCURRENCY,
+    now,
+  );
+  const service = new ArtService(store, filler, now);
+  return { store, filler, service, sync, searches: tmdb.searches };
 }

@@ -15,7 +15,8 @@
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "experimentalDecorators": true
   },
   "include": ["src", "test", "vitest.config.ts"]
 }
