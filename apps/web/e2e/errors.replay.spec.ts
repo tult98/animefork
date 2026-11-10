@@ -10,6 +10,13 @@ test('a zod-invalid fixture shows the error screen, not garbage', async ({
   await expect(page.getByText('NaN')).toHaveCount(0);
 });
 
+test('the error screen card keeps its max-w-md width', async ({ page }) => {
+  await page.goto('/?transport=replay&fixtures=invalid-title');
+
+  const box = await page.getByTestId('error-screen').boundingBox();
+  expect(box?.width).toBeGreaterThan(300);
+});
+
 test.describe('unreachable source', () => {
   test.use({ allowedConsoleErrors: [/503/] });
 

@@ -438,6 +438,9 @@ importers:
       '@base-ui/react':
         specifier: 1.9.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.1.10(react@19.1.10))(react@19.1.10)
+      '@fontsource/archivo':
+        specifier: 5.3.0
+        version: 5.3.0
       '@tanstack/react-query':
         specifier: 5.105.0
         version: 5.105.0(@types/react@19.3.0)(react@19.1.10)
@@ -1760,6 +1763,9 @@ packages:
   '@fluent/syntax@0.19.0':
     resolution: {integrity: sha512-5D2qVpZrgpjtqU4eNOcWGp1gnUCgjfM+vKGE2y03kKN6z5EBhtx0qdRFbg8QuNNj8wXNoX93KJoYb+NqoxswmQ==}
     engines: {node: '>=14.0.0', npm: '>=7.0.0'}
+
+  '@fontsource/archivo@5.3.0':
+    resolution: {integrity: sha512-5DIMgPVJRi62OqdOVoogCFxP73EkNM/E0YVTSDIQlDEJfDbxqZduwM/YoNZwC9Sx1CDgpKinqf8ckRY1QNIecw==}
 
   '@fontsource/caveat@4.5.10':
     resolution: {integrity: sha512-uTg0I4hBXfOzjpUQlGwdmdlcLUlwSNXlux52IwFq7TCHlyHMAHPEqP1zDyg8lWKD86L7wOyv9jmIK/Iy5erndg==}
@@ -11320,6 +11326,8 @@ snapshots:
   '@floating-ui/utils@0.2.12': {}
 
   '@fluent/syntax@0.19.0': {}
+
+  '@fontsource/archivo@5.3.0': {}
 
   '@fontsource/caveat@4.5.10': {}
 
