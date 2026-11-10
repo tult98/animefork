@@ -14,7 +14,7 @@ export function toSetCookie(cookie: CookieLike): string {
   if (cookie.path) parts.push(`Path=${cookie.path}`);
   if (cookie.expirationDate)
     parts.push(
-      `Expires=${new Date(Date.now() + cookie.expirationDate).toUTCString()}`,
+      `Expires=${new Date(cookie.expirationDate * 1000).toUTCString()}`,
     );
   if (cookie.httpOnly) parts.push('HttpOnly');
   if (cookie.secure) parts.push('Secure');
