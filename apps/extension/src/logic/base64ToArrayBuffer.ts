@@ -1,15 +1,11 @@
-import { atob } from "js-base64"
+import { atob } from 'js-base64';
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  // eslint-disable-next-line camelcase
-  const binary_string = atob(base64)
-  // eslint-disable-next-line camelcase
-  const len = binary_string.length
-  const bytes = new Uint8Array(len)
-  // eslint-disable-next-line functional/no-loop-statements
-  for (let i = 0; i < len; i++)
-    // eslint-disable-next-line camelcase
-    bytes[i] = binary_string.charCodeAt(i)
+  const binary_string = atob(base64);
 
-  return bytes.buffer
+  const len = binary_string.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binary_string.charCodeAt(i);
+
+  return bytes.buffer;
 }

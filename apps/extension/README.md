@@ -53,22 +53,22 @@ The extension exposes `window.AnimeVsubEmbed` on every page:
 
 ```js
 const bridge = window.AnimeVsubEmbed.create({
-  src: "https://animevietsub.id/404",
-  hidden: true
-})
+  src: 'https://animevietsub.id/404',
+  hidden: true,
+});
 
-await bridge.ready
+await bridge.ready;
 
-const res = await bridge.get("/ajax/...", { responseType: "json" })
-console.log(res.status, res.data)
+const res = await bridge.get('/ajax/...', { responseType: 'json' });
+console.log(res.status, res.data);
 
 // POST with form data
-await bridge.post("/ajax/...", { key: "value" }, { responseType: "json" })
+await bridge.post('/ajax/...', { key: 'value' }, { responseType: 'json' });
 
 // Absolute URLs are supported too
-await bridge.get("https://animevietsub.id/ajax/...", {
-  responseType: "arraybuffer"
-})
+await bridge.get('https://animevietsub.id/ajax/...', {
+  responseType: 'arraybuffer',
+});
 ```
 
 A complete demo is available at
@@ -77,16 +77,16 @@ A complete demo is available at
 ### With the npm client
 
 ```ts
-import { createEmbedBridge } from "client-ext-animevsub-helper"
+import { createEmbedBridge } from 'client-ext-animevsub-helper';
 
 const bridge = createEmbedBridge({
-  src: "https://animevietsub.id/404",
-  hidden: true
-})
+  src: 'https://animevietsub.id/404',
+  hidden: true,
+});
 
-const res = await bridge.get<{ data: unknown }>("/ajax/...", {
-  responseType: "json"
-})
+const res = await bridge.get<{ data: unknown }>('/ajax/...', {
+  responseType: 'json',
+});
 ```
 
 ### Restricting parent origins
@@ -98,9 +98,9 @@ iframe URL:
 ```js
 window.AnimeVsubEmbed.create({
   src:
-    "https://animevietsub.id/404?animevsub-embed-origins=" +
-    encodeURIComponent("https://animevsub.eu.org,https://*.animevsub.eu.org")
-})
+    'https://animevietsub.id/404?animevsub-embed-origins=' +
+    encodeURIComponent('https://animevsub.eu.org,https://*.animevsub.eu.org'),
+});
 ```
 
 ### API

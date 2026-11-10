@@ -76,65 +76,65 @@
     <pre id="output">Chưa có request.</pre>
 
     <script>
-      const $ = (id) => document.getElementById(id)
+      const $ = (id) => document.getElementById(id);
 
       function waitForApi(timeout = 15000) {
         return new Promise((resolve, reject) => {
-          const started = Date.now()
+          const started = Date.now();
           const timer = setInterval(() => {
             if (window.AnimeVsubEmbed) {
-              clearInterval(timer)
-              resolve(window.AnimeVsubEmbed)
+              clearInterval(timer);
+              resolve(window.AnimeVsubEmbed);
             } else if (Date.now() - started > timeout) {
-              clearInterval(timer)
-              reject(new Error("Không tìm thấy window.AnimeVsubEmbed."))
+              clearInterval(timer);
+              reject(new Error('Không tìm thấy window.AnimeVsubEmbed.'));
             }
-          }, 100)
-        })
+          }, 100);
+        });
       }
 
-      $("send").addEventListener("click", async () => {
-        const output = $("output")
-        output.textContent = "Đang gửi..."
+      $('send').addEventListener('click', async () => {
+        const output = $('output');
+        output.textContent = 'Đang gửi...';
 
-        let bridge
+        let bridge;
         try {
-          const api = await waitForApi()
-          bridge = api.create({ src: $("src").value, hidden: true })
-          await bridge.ready
+          const api = await waitForApi();
+          bridge = api.create({ src: $('src').value, hidden: true });
+          await bridge.ready;
 
-          const method = $("method").value
+          const method = $('method').value;
           const options = {
-            responseType: $("responseType").value,
-            timeout: 30000
-          }
+            responseType: $('responseType').value,
+            timeout: 30000,
+          };
 
           const res =
-            method === "POST"
-              ? await bridge.post($("url").value, {}, options)
-              : await bridge.get($("url").value, options)
+            method === 'POST'
+              ? await bridge.post($('url').value, {}, options)
+              : await bridge.get($('url').value, options);
 
           const data =
-            options.responseType === "arraybuffer"
+            options.responseType === 'arraybuffer'
               ? `[ArrayBuffer ${res.data.byteLength} bytes]`
-              : res.data
+              : res.data;
 
           output.textContent = JSON.stringify(
             {
               status: res.status,
               url: res.url,
               headers: res.headers,
-              data
+              data,
             },
             null,
-            2
-          )
+            2,
+          );
         } catch (error) {
-          output.textContent = String(error?.stack ?? error)
+          output.textContent = String(error?.stack ?? error);
         } finally {
-          bridge?.destroy()
+          bridge?.destroy();
         }
-      })
+      });
     </script>
   </body>
 </html>

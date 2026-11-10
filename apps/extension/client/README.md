@@ -11,7 +11,7 @@ bun add client-ext-animevsub-helper
 ## Usage
 
 ```ts
-import { Http } from "client-ext-animevsub-helper"
+import { Http } from 'client-ext-animevsub-helper';
 ```
 
 ## Embed bridge
@@ -19,15 +19,15 @@ import { Http } from "client-ext-animevsub-helper"
 Embed an `animevietsub.*` page and run same-origin requests through it:
 
 ```ts
-import { createEmbedBridge } from "client-ext-animevsub-helper"
+import { createEmbedBridge } from 'client-ext-animevsub-helper';
 
 const bridge = createEmbedBridge({
-  src: "https://animevietsub.id/404",
-  hidden: true
-})
+  src: 'https://animevietsub.id/404',
+  hidden: true,
+});
 
-const res = await bridge.get("/ajax/...", { responseType: "json" })
-console.log(res.status, res.data)
+const res = await bridge.get('/ajax/...', { responseType: 'json' });
+console.log(res.status, res.data);
 ```
 
 See the main README for the full API.
