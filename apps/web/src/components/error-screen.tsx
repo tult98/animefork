@@ -1,3 +1,4 @@
+import { Button } from '@base-ui/react/button';
 import { ExtensionMissingError } from '../lib/transport/index.ts';
 
 export function ErrorScreen({
@@ -22,14 +23,13 @@ export function ErrorScreen({
           ? 'Install and enable the AnimeVsub Helper extension, then retry.'
           : 'We could not load or read the data from the source.'}
       </p>
-      <button
-        type="button"
+      <Button
         data-testid="error:retry"
         onClick={onRetry}
         className="min-h-11 rounded-md bg-accent px-5 font-medium text-accent-ink"
       >
         Retry
-      </button>
+      </Button>
     </div>
   );
 }
