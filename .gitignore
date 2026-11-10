@@ -50,3 +50,6 @@ Thumbs.db
 .nx/migrate-runs
 # Serena MCP local index
 .serena/
+
+# local env files
+.env.local
