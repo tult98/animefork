@@ -106,7 +106,6 @@ export function PosterCard({
       const art = el.firstElementChild as HTMLElement;
       const coverX = anchor.left + anchor.width / 2 - left;
       const coverY = anchor.top + anchor.height / 2 - top;
-      // The origin that maps the preview art onto the cover, so the body hangs below it while it grows.
       const originOf = (cover: number, artMid: number) =>
         scale >= 0.99 ? cover : (cover - scale * artMid) / (1 - scale);
       el.style.transformOrigin = `${originOf(coverX, HOVER_WIDTH / 2)}px ${originOf(coverY, art.offsetHeight / 2)}px`;
