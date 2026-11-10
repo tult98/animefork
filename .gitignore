@@ -52,4 +52,5 @@ Thumbs.db
 .serena/
 
 # local env files
+.env
 .env.local
