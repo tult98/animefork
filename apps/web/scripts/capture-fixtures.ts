@@ -35,9 +35,8 @@ const { values } = parseArgs({
 });
 
 if (values.set === 'default') {
-  // `default` is the hand-written synthetic set that the e2e tests assert on.
   throw new Error(
-    'Refusing to overwrite the synthetic "default" fixture set. Pick another --set.',
+    'Refusing to overwrite the excerpt "default" fixture set. Pick another --set.',
   );
 }
 

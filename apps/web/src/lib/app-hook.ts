@@ -2,9 +2,15 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { AnyRouter } from '@tanstack/react-router';
 import type { Transport } from './transport/index.ts';
 
+export interface RenderedShelf {
+  id: string;
+  paths: string[];
+}
+
 export interface AppHook {
   route: () => string;
   queryKeys: () => readonly (readonly unknown[])[];
+  shelves: () => RenderedShelf[];
   transport: Transport;
 }
 
@@ -12,6 +18,12 @@ declare global {
   interface Window {
     __app?: AppHook;
   }
+}
+
+let rendered: RenderedShelf[] = [];
+
+export function publishShelves(shelves: RenderedShelf[]): void {
+  rendered = shelves;
 }
 
 export function installAppHook(deps: {
@@ -26,6 +38,7 @@ export function installAppHook(deps: {
         .getQueryCache()
         .getAll()
         .map((query) => query.queryKey),
+    shelves: () => rendered,
     transport: deps.transport,
   };
 }

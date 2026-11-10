@@ -1,12 +1,29 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { expect, test as base } from '@playwright/test';
+
+const poster = readFileSync(
+  resolve(import.meta.dirname, '../public/fixtures/poster.svg'),
+);
 
 interface Options {
   // Console errors matching any of these are ignored. Empty by default: a console error fails the test.
   allowedConsoleErrors: RegExp[];
 }
 
-export const test = base.extend<Options & { consoleErrors: string[] }>({
+export const test = base.extend<
+  Options & { consoleErrors: string[]; stubCdnImages: void }
+>({
   allowedConsoleErrors: [[], { option: true }],
+  stubCdnImages: [
+    async ({ page }, use) => {
+      await page.route('**/cdn.animevietsub.best/**', (route) =>
+        route.fulfill({ contentType: 'image/svg+xml', body: poster }),
+      );
+      await use();
+    },
+    { auto: true },
+  ],
   consoleErrors: [
     async ({ page, allowedConsoleErrors }, use) => {
       const errors: string[] = [];

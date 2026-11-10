@@ -6,7 +6,7 @@ test('a zod-invalid fixture shows the error screen, not garbage', async ({
   await page.goto('/?transport=replay&fixtures=invalid-title');
 
   await expect(page.getByTestId('error-screen')).toBeVisible();
-  await expect(page.getByTestId('home:titles')).toHaveCount(0);
+  await expect(page.getByTestId('shelf:new-episodes')).toHaveCount(0);
   await expect(page.getByText('NaN')).toHaveCount(0);
 });
 
@@ -33,7 +33,7 @@ test.describe('unreachable source', () => {
 
     reachable = true;
     await page.getByTestId('error:retry').click();
-    await expect(page.getByTestId('home:titles')).toBeVisible();
+    await expect(page.getByTestId('shelf:new-episodes')).toBeVisible();
     await expect(page.getByTestId('error-screen')).toHaveCount(0);
   });
 });
