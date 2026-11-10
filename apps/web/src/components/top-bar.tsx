@@ -34,7 +34,7 @@ export function TopBar() {
     <Header
       solid={solid}
       data-testid="header"
-      className="sticky top-0 z-40 px-(--pad)"
+      className="sticky top-0 z-40 px-(--pad) max-md:gap-2"
       logo={
         <Link
           to="/"
@@ -42,7 +42,7 @@ export function TopBar() {
           aria-label="AnimeFork, trang chủ"
           className="flex min-h-11 flex-none items-center"
         >
-          <Logo className="h-8 w-auto max-w-none" />
+          <Logo className="h-7 w-auto max-w-none md:h-8" />
         </Link>
       }
     >

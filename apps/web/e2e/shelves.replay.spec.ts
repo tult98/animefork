@@ -219,3 +219,15 @@ test.describe('shell', () => {
     }
   });
 });
+
+test('no width overflows horizontally', async ({ page }) => {
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/?transport=replay');
+    await expect(page.getByTestId('shelf:airing-this-season')).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow, `${width}px`).toBeLessThanOrEqual(0);
+  }
+});

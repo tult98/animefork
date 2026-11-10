@@ -2,7 +2,7 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo } from 'react';
 import { ErrorScreen } from '../components/error-screen.tsx';
-import { Hero } from '../components/hero.tsx';
+import { Hero, HeroSkeleton } from '../components/hero.tsx';
 import { Shelf, ShelfSkeleton } from '../components/shelf.tsx';
 import { publishShelves } from '../lib/app-hook.ts';
 import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
@@ -47,9 +47,11 @@ function Home() {
   }
   if (home.isPending) {
     return (
-      <p className="py-16 text-muted" data-testid="home:loading">
-        Loading
-      </p>
+      <div className="pt-4" data-testid="home:loading">
+        <HeroSkeleton />
+        <ShelfSkeleton id="new-episodes" />
+        <ShelfSkeleton id="top-10-today" />
+      </div>
     );
   }
 

@@ -80,6 +80,27 @@ test('image requests are answered locally, never by the CDN', async ({
   expect(failed).toEqual([]);
 });
 
+test('home shows the hero and shelf skeletons while loading', async ({
+  page,
+}) => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/fixtures/default/index.html', async (route) => {
+    await gate;
+    await route.continue();
+  });
+  await page.goto('/?transport=replay');
+
+  const loading = page.getByTestId('home:loading');
+  await expect(loading).toBeVisible();
+  await expect(loading.locator('[aria-busy="true"]')).toHaveCount(3);
+  await expect(page.getByTestId('hero')).toHaveCount(0);
+
+  release();
+  await expect(page.getByTestId('hero')).toBeVisible();
+  await expect(loading).toHaveCount(0);
+});
+
 test('the season shelf shows its own loading state without blocking the rest', async ({
   page,
 }) => {
