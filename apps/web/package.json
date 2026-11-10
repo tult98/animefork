@@ -12,7 +12,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "verify": "node scripts/verify.ts",
-    "capture-fixtures": "node scripts/capture-fixtures.ts"
+    "capture-fixtures": "node scripts/capture-fixtures.ts",
+    "tokens": "node scripts/build-tokens.ts"
   },
   "nx": {
     "targets": {
@@ -65,6 +66,17 @@
         ],
         "outputs": [
           "{projectRoot}/artifacts/e2e"
+        ]
+      },
+      "tokens": {
+        "inputs": [
+          "{projectRoot}/src/design/tokens.json",
+          "{projectRoot}/scripts/build-css.ts",
+          "{projectRoot}/scripts/build-tokens.ts"
+        ],
+        "outputs": [
+          "{projectRoot}/src/design/tokens.css",
+          "{projectRoot}/src/design/theme.css"
         ]
       },
       "verify": {

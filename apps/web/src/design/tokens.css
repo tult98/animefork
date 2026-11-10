@@ -1,0 +1,58 @@
+/* AnimeFork - generated from tokens.json by scripts/build-tokens.ts, do not edit */
+
+:root {
+  --canvas: #141414;
+  --surface: #181818;
+  --surface-alt: #232323;
+  --hero-overlay: #00000080;
+  --pill-active: #FFFFFF33;
+  --pill-quiet: #80808066;
+  --progress-track: #FFFFFF59;
+  --ink: #FFFFFF;
+  --muted: #B3B3B3;
+  --border: #808080;
+  --border-strong: #404040;
+  --brand: #D9381A;
+  --brand-hover: #B92D13;
+  --brand-pressed: #9C2510;
+  --on-brand: #FFFFFF;
+  --on-light: #141414;
+  --white: #FFFFFF;
+  --link: #7FB2FF;
+  --rating: #FFC247;
+  --success: #4CC38A;
+  --warning: #F2B544;
+  --error: #FF7A70;
+  --focus: #FFFFFF;
+  --rank-numeral: #6E6E6E;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-row: 40px;
+  --space-gutter: 60px;
+  --space-section: 56px;
+  --font-sans: "Archivo", "Noto Sans JP", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+}
+
+[data-theme='paper'] {
+  --canvas: #FFFFFF;
+  --surface: #F4F4F4;
+  --surface-alt: #E8E8E8;
+  --hero-overlay: #FFFFFFD9;
+  --pill-active: #00000014;
+  --pill-quiet: #0000001F;
+  --progress-track: #00000040;
+  --ink: #141414;
+  --muted: #5C5C5C;
+  --border: #767676;
+  --border-strong: #C7C7C7;
+  --link: #1F5FD1;
+  --rating: #7A4E00;
+  --success: #1B7A46;
+  --warning: #8A5A00;
+  --error: #B3261E;
+  --focus: #141414;
+  --rank-numeral: #8A8A8A;
+}
