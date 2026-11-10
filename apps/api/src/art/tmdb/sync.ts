@@ -1,4 +1,4 @@
-import { pickBackdrop } from './backdrop.ts';
+import { pickBackdrop, pickPoster } from './images.ts';
 import { decide, type Candidate, type Matcher } from './matcher.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
 import type { TitleInput } from '../contract.ts';
@@ -10,6 +10,8 @@ export interface TitleArtRow {
   tmdb_season: number;
   backdrop_path: string | null;
   backdrop_lang: string | null;
+  poster_path: string | null;
+  poster_lang: string | null;
 }
 
 export interface EpisodeArtRow {
@@ -130,7 +132,8 @@ export async function syncTitle(
     tmdb.tvImages(choice),
     tmdb.seasonDetail(choice, season),
   ]);
-  const backdrop = pickBackdrop(images);
+  const backdrop = pickBackdrop(images.backdrops);
+  const poster = pickPoster(images.posters);
   return {
     kind: 'matched',
     matched: {
@@ -143,6 +146,8 @@ export async function syncTitle(
         tmdb_season: season,
         backdrop_path: backdrop?.path ?? null,
         backdrop_lang: backdrop?.lang ?? null,
+        poster_path: poster?.path ?? null,
+        poster_lang: poster?.lang ?? null,
       },
       episodes: mapEpisodes(
         input.slug,

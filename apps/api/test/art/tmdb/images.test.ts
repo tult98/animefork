@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pickBackdrop } from '../../../src/art/tmdb/backdrop.ts';
+import { pickBackdrop, pickPoster } from '../../../src/art/tmdb/images.ts';
 import type { TmdbImage } from '../../../src/art/tmdb/tmdb.ts';
 
 function image(over: Partial<TmdbImage> & { file_path: string }): TmdbImage {
@@ -58,5 +58,18 @@ describe('pickBackdrop', () => {
       pickBackdrop([image({ file_path: '/ja.jpg', iso_639_1: 'ja' })]),
     ).toBeNull();
     expect(pickBackdrop([])).toBeNull();
+  });
+});
+
+describe('pickPoster', () => {
+  it('uses the same language tiers and ranking as the backdrop', () => {
+    const images = [
+      image({ file_path: '/none.jpg', vote_average: 10 }),
+      image({ file_path: '/en.jpg', iso_639_1: 'en', vote_average: 6 }),
+      image({ file_path: '/vi.jpg', iso_639_1: 'vi', vote_average: 1 }),
+    ];
+    expect(pickPoster(images)).toEqual({ path: '/vi.jpg', lang: 'vi' });
+    expect(pickPoster(images.slice(0, 2))?.path).toBe('/en.jpg');
+    expect(pickPoster([])).toBeNull();
   });
 });

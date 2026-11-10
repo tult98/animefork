@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RETRY_AFTER_MS } from '../../src/art/retry.ts';
+import { MATCHER_VERSION, RETRY_AFTER_MS } from '../../src/art/retry.ts';
 import { NOTHING, setup, TONIKAWA } from './helpers.ts';
 import { mockTmdb } from './tmdb/tmdb-mock.ts';
 
@@ -21,6 +21,7 @@ describe('ArtService.lookup', () => {
       status: 'ready',
       backdropPath: '/en.jpg',
       backdropLang: 'en',
+      posterPath: '/poster-vi.jpg',
     });
   });
 
@@ -77,6 +78,8 @@ describe('ArtService.lookup', () => {
         tmdb_season: 1,
         backdrop_path: '/other.jpg',
         backdrop_lang: null,
+        poster_path: '/other-poster.jpg',
+        poster_lang: null,
       },
       episodes: [],
     });
@@ -96,5 +99,72 @@ describe('ArtService.lookup', () => {
     expect(Object.keys(out.art)).toEqual([TONIKAWA.slug, NOTHING.slug]);
     await filler.idle();
     expect(searches).toEqual(['Tonikaku Kawaii', 'Nothing Here']);
+  });
+
+  describe('a matched row from an older matcher version', () => {
+    const stale = (store: ReturnType<typeof setup>['store']) => {
+      store.titles.set(TONIKAWA.slug, {
+        slug: TONIKAWA.slug,
+        status: 'matched',
+        tmdbId: 100,
+        tmdbSeason: 1,
+        backdropPath: '/old.jpg',
+        backdropLang: null,
+        posterPath: null,
+        posterLang: null,
+        reason: null,
+        matcherVersion: MATCHER_VERSION - 1,
+        attemptedAt: new Date(),
+      });
+    };
+
+    it('answers ready at once with what is stored and refills in the background', async () => {
+      const { service, store, filler, searches } = setup();
+      stale(store);
+      const first = await service.lookup({ titles: [TONIKAWA] });
+      expect(first.art[TONIKAWA.slug]).toEqual({
+        status: 'ready',
+        backdropPath: '/old.jpg',
+        backdropLang: null,
+        posterPath: null,
+      });
+      expect(filler.has(TONIKAWA.slug)).toBe(true);
+      await service.lookup({ titles: [TONIKAWA] });
+      await filler.idle();
+      expect(searches).toHaveLength(1);
+
+      const later = await service.lookup({ titles: [TONIKAWA] });
+      expect(later.art[TONIKAWA.slug]).toMatchObject({
+        status: 'ready',
+        backdropPath: '/en.jpg',
+        posterPath: '/poster-vi.jpg',
+      });
+      await service.lookup({ titles: [TONIKAWA] });
+      expect(filler.has(TONIKAWA.slug)).toBe(false);
+      expect(searches).toHaveLength(1);
+    });
+
+    it('keeps the old row when the refill fails or finds no match', async () => {
+      const failing = mockTmdb({ '/3/tv/100/images': undefined });
+      const { service, store, filler } = setup({ fetch: failing });
+      stale(store);
+      await service.lookup({ titles: [TONIKAWA] });
+      await filler.idle();
+      expect(store.titles.get(TONIKAWA.slug)).toMatchObject({
+        status: 'matched',
+        backdropPath: '/old.jpg',
+        matcherVersion: MATCHER_VERSION - 1,
+      });
+      const out = await service.lookup({ titles: [TONIKAWA] });
+      expect(out.art[TONIKAWA.slug]).toMatchObject({
+        status: 'ready',
+        backdropPath: '/old.jpg',
+        posterPath: null,
+      });
+      await filler.idle();
+
+      await filler.fill({ ...NOTHING, slug: TONIKAWA.slug });
+      expect(store.titles.get(TONIKAWA.slug)?.status).toBe('matched');
+    });
   });
 });

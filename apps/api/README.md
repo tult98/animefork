@@ -24,7 +24,7 @@ A new feature module sits beside `art/` and imports nothing from it. It reads it
 
 `POST /v1/art/lookup` takes `{ titles, episodes? }`. `titles` is 1 to 50 `{ slug, name, seasonName?, year?, episodeCount? }`, and `slug` is the source season slug such as `tonikaku-kawaii-a3860`. Set `episodes: true` to get episode stills as well, which only the watch page needs. The answer is `{ art: { [slug]: entry } }`, where an entry is one of these:
 
-- `{ status: 'ready', backdropPath, backdropLang, stills? }`. Paths are TMDB image paths. The web app adds the size.
+- `{ status: 'ready', backdropPath, backdropLang, posterPath, stills? }`. Paths are TMDB image paths. The web app adds the size. `posterPath` is null for a row that has not been refilled yet or when TMDB has no poster.
 - `{ status: 'pending' }`. A fill is running or queued. Ask again later.
 - `{ status: 'none' }`. TMDB had no confident match, or the last fill failed. The service will not try again until the retry window passes.
 
@@ -44,11 +44,11 @@ The zod schemas in `src/art/contract.ts` are the single source of truth, and `ap
 
 ## How it decides
 
-- **Rows.** `title_art` keeps one row per slug with a status of `matched`, `no_match` or `failed`, and `episode_art` keeps one still per episode. `db/migrations/001_art.sql` creates them.
-- **Retry.** `RETRY_AFTER_MS` in `src/art/retry.ts` sets when a row counts as a miss again. A `matched` row is never retried, `no_match` waits 7 days and `failed` waits 10 minutes.
-- **First write wins.** A fill never overwrites a `matched` row. A `no_match` or `failed` row is replaced when it is retried.
-- **Fills.** `ArtFiller` runs at most 2 TMDB syncs at once and queues the rest in order. Concurrent lookups for the same slug share one fill.
-- **Matching.** `syncTitle` in `src/art/tmdb/sync.ts` searches TMDB for the name without its season marker, scores the candidates in `matcher.ts`, and picks the backdrop in `backdrop.ts` (`vi`, then `en`, then textless).
+- **Rows.** `title_art` keeps one row per slug with a status of `matched`, `no_match` or `failed`, and `episode_art` keeps one still per episode. `db/migrations/001_art.sql` creates them and `002_poster.sql` adds `poster_path` and `poster_lang`.
+- **Retry.** `RETRY_AFTER_MS` in `src/art/retry.ts` sets when a row counts as a miss again. A `matched` row is not retried, `no_match` waits 7 days and `failed` waits 10 minutes. A `matched` row written by an older `MATCHER_VERSION` is stale. It still answers `ready` at once with what it stores (`posterPath` null for version 1 rows), and the lookup schedules a background refill. Version 2 added the poster.
+- **First write wins.** Within the current `MATCHER_VERSION` a fill never overwrites a `matched` row. A `no_match` or `failed` row is replaced when it is retried, and a stale `matched` row is replaced by a successful refill. A refill that fails or finds no match keeps the stale row and records nothing, so the next lookup tries again.
+- **Fills.** `ArtFiller` runs at most 2 TMDB syncs at once and queues the rest in order. Concurrent lookups for the same slug share one fill, refills included, and refills use the same cap. `ArtFiller` skips a slug whose row is settled and current.
+- **Matching.** `syncTitle` in `src/art/tmdb/sync.ts` searches TMDB for the name without its season marker, scores the candidates in `matcher.ts`, and picks the backdrop and the poster in `images.ts` (`vi`, then `en`, then textless, then vote average, vote count and width).
 
 **Run a single replica.** The single-flight map and the rate limit counters live in process memory. Two replicas would each call TMDB for the same new slug, and each would allow the full rate.
 

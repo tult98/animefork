@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, type Clock } from '../common/clock.ts';
 import type { ArtEntry, LookupRequest, LookupResponse } from './contract.ts';
-import { isSettled } from './retry.ts';
+import { isSettled, isStale } from './retry.ts';
 import { ART_STORE, type ArtStore } from './art.store.ts';
 import { ArtFiller } from './art.filler.ts';
 
@@ -37,7 +37,9 @@ export class ArtService {
             status: 'ready',
             backdropPath: row.backdropPath,
             backdropLang: row.backdropLang,
+            posterPath: row.posterPath,
           };
+          if (isStale(row) && !filler.has(slug)) void filler.fill(title);
           ready.push(slug);
         } else {
           art[slug] = { status: 'none' };

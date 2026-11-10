@@ -2,7 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
 import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
 import { PG_POOL } from '../database/migration-runner.ts';
-import { MATCHER_VERSION, type MissStatus, type TitleStatus } from './retry.ts';
+import {
+  isStale,
+  MATCHER_VERSION,
+  type MissStatus,
+  type TitleStatus,
+} from './retry.ts';
 import type { MatchedTitle } from './tmdb/sync.ts';
 
 export interface StoredTitle {
@@ -12,6 +17,8 @@ export interface StoredTitle {
   tmdbSeason: number | null;
   backdropPath: string | null;
   backdropLang: string | null;
+  posterPath: string | null;
+  posterLang: string | null;
   reason: string | null;
   matcherVersion: number;
   attemptedAt: Date;
@@ -52,7 +59,8 @@ export class MemoryArtStore implements ArtStore {
   }
 
   async saveMatched({ title, episodes }: MatchedArt): Promise<void> {
-    if (this.titles.get(title.source_slug)?.status === 'matched') return;
+    const existing = this.titles.get(title.source_slug);
+    if (existing?.status === 'matched' && !isStale(existing)) return;
     this.titles.set(title.source_slug, {
       slug: title.source_slug,
       status: 'matched',
@@ -60,6 +68,8 @@ export class MemoryArtStore implements ArtStore {
       tmdbSeason: title.tmdb_season,
       backdropPath: title.backdrop_path,
       backdropLang: title.backdrop_lang,
+      posterPath: title.poster_path,
+      posterLang: title.poster_lang,
       reason: null,
       matcherVersion: MATCHER_VERSION,
       attemptedAt: this.now(),
@@ -83,6 +93,8 @@ export class MemoryArtStore implements ArtStore {
       tmdbSeason: null,
       backdropPath: null,
       backdropLang: null,
+      posterPath: null,
+      posterLang: null,
       reason,
       matcherVersion: MATCHER_VERSION,
       attemptedAt: this.now(),
@@ -97,6 +109,8 @@ interface TitleRow {
   tmdb_season: number | null;
   backdrop_path: string | null;
   backdrop_lang: string | null;
+  poster_path: string | null;
+  poster_lang: string | null;
   reason: string | null;
   matcher_version: number;
   attempted_at: Date;
@@ -115,7 +129,8 @@ export class PostgresArtStore implements ArtStore {
     if (slugs.length === 0) return found;
     const { rows } = await this.pool.query<TitleRow>(
       `select source_slug, status, tmdb_id, tmdb_season, backdrop_path,
-              backdrop_lang, reason, matcher_version, attempted_at
+              backdrop_lang, poster_path, poster_lang, reason, matcher_version,
+              attempted_at
          from title_art where source_slug = any($1::text[])`,
       [slugs],
     );
@@ -127,6 +142,8 @@ export class PostgresArtStore implements ArtStore {
         tmdbSeason: row.tmdb_season,
         backdropPath: row.backdrop_path,
         backdropLang: row.backdrop_lang,
+        posterPath: row.poster_path,
+        posterLang: row.poster_lang,
         reason: row.reason,
         matcherVersion: row.matcher_version,
         attemptedAt: row.attempted_at,
@@ -154,18 +171,22 @@ export class PostgresArtStore implements ArtStore {
       const written = await client.query(
         `insert into title_art
            (source_slug, status, tmdb_id, tmdb_season, backdrop_path,
-            backdrop_lang, reason, matcher_version, attempted_at)
-         values ($1, 'matched', $2, $3, $4, $5, null, $6, now())
+            backdrop_lang, poster_path, poster_lang, reason, matcher_version,
+            attempted_at)
+         values ($1, 'matched', $2, $3, $4, $5, $6, $7, null, $8, now())
          on conflict (source_slug) do update set
            status = excluded.status,
            tmdb_id = excluded.tmdb_id,
            tmdb_season = excluded.tmdb_season,
            backdrop_path = excluded.backdrop_path,
            backdrop_lang = excluded.backdrop_lang,
+           poster_path = excluded.poster_path,
+           poster_lang = excluded.poster_lang,
            reason = null,
            matcher_version = excluded.matcher_version,
            attempted_at = now()
          where title_art.status <> 'matched'
+            or title_art.matcher_version < excluded.matcher_version
          returning source_slug`,
         [
           title.source_slug,
@@ -173,6 +194,8 @@ export class PostgresArtStore implements ArtStore {
           title.tmdb_season,
           title.backdrop_path,
           title.backdrop_lang,
+          title.poster_path,
+          title.poster_lang,
           MATCHER_VERSION,
         ],
       );

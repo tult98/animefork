@@ -81,6 +81,7 @@ describe('api app', () => {
           status: 'ready',
           backdropPath: '/en.jpg',
           backdropLang: 'en',
+          posterPath: '/poster-vi.jpg',
           stills: { '1': '/e1.jpg', '3': '/e3.jpg' },
         },
       },

@@ -1,6 +1,6 @@
 import type { TmdbImage } from './tmdb.ts';
 
-export interface PickedBackdrop {
+export interface PickedImage {
   path: string;
   lang: 'vi' | 'en' | null;
 }
@@ -20,7 +20,7 @@ function better(a: TmdbImage, b: TmdbImage): number {
   );
 }
 
-export function pickBackdrop(images: TmdbImage[]): PickedBackdrop | null {
+function pickImage(images: TmdbImage[]): PickedImage | null {
   let best: { image: TmdbImage; tier: number } | undefined;
   for (const image of images) {
     const t = tier(image);
@@ -39,3 +39,6 @@ export function pickBackdrop(images: TmdbImage[]): PickedBackdrop | null {
     lang: best.image.iso_639_1 as 'vi' | 'en' | null,
   };
 }
+
+export const pickBackdrop = pickImage;
+export const pickPoster = pickImage;

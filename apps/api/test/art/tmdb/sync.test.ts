@@ -73,7 +73,7 @@ describe('createTmdbClient', () => {
       apiKey: 'key',
       fetch: async (input) => {
         seen = String(input);
-        return Response.json({ backdrops: [] });
+        return Response.json({ backdrops: [], posters: [] });
       },
     });
     await client.tvImages(5);
@@ -84,7 +84,7 @@ describe('createTmdbClient', () => {
 });
 
 describe('syncTitle against a mocked TMDB', () => {
-  it('matches a title with its backdrop and stills', async () => {
+  it('matches a title with its backdrop, poster and stills', async () => {
     const outcome = matched(
       await sync({
         slug: 'tonikaku-kawaii-a3860',
@@ -101,6 +101,8 @@ describe('syncTitle against a mocked TMDB', () => {
       tmdb_season: 1,
       backdrop_path: '/en.jpg',
       backdrop_lang: 'en',
+      poster_path: '/poster-vi.jpg',
+      poster_lang: 'vi',
     });
     expect(outcome.episodes.map((e) => e.episode_number)).toEqual([1, 3]);
   });

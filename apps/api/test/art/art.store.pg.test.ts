@@ -1,6 +1,7 @@
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PostgresArtStore } from '../../src/art/art.store.ts';
+import { MATCHER_VERSION } from '../../src/art/retry.ts';
 import {
   DEFAULT_MIGRATIONS_DIR,
   MigrationRunner,
@@ -33,6 +34,8 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
     tmdb_season: 1,
     backdrop_path: backdrop,
     backdrop_lang: 'en',
+    poster_path: `/poster${backdrop}`,
+    poster_lang: 'vi',
   });
 
   it('stores a matched title with its stills in one write', async () => {
@@ -50,7 +53,9 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
       tmdbId: 100,
       tmdbSeason: 1,
       backdropPath: '/b.jpg',
-      matcherVersion: 1,
+      posterPath: '/poster/b.jpg',
+      posterLang: 'vi',
+      matcherVersion: MATCHER_VERSION,
     });
     expect(row?.attemptedAt).toBeInstanceOf(Date);
     expect([...(await store.episodes(s))]).toEqual([
@@ -73,6 +78,28 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
       reason: null,
     });
     expect((await store.episodes(s)).size).toBe(0);
+  });
+
+  it('overwrites a matched row of an older matcher version once', async () => {
+    const s = slug('stale');
+    await pool.query(
+      `insert into title_art (source_slug, status, tmdb_id, tmdb_season, backdrop_path, matcher_version)
+       values ($1, 'matched', 100, 1, '/old.jpg', $2)`,
+      [s, MATCHER_VERSION - 1],
+    );
+    await store.saveMiss(s, 'failed', 'late');
+    expect((await store.find([s])).get(s)).toMatchObject({
+      status: 'matched',
+      backdropPath: '/old.jpg',
+      posterPath: null,
+    });
+    await store.saveMatched({ title: title(s, '/new.jpg'), episodes: [] });
+    await store.saveMatched({ title: title(s, '/newer.jpg'), episodes: [] });
+    expect((await store.find([s])).get(s)).toMatchObject({
+      backdropPath: '/new.jpg',
+      posterPath: '/poster/new.jpg',
+      matcherVersion: MATCHER_VERSION,
+    });
   });
 
   it('replaces a miss with a later miss or match', async () => {

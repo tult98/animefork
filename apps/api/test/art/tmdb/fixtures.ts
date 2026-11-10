@@ -67,6 +67,32 @@ export const IMAGES_100 = {
       height: 1080,
     },
   ],
+  posters: [
+    {
+      file_path: '/poster-en.jpg',
+      iso_639_1: 'en',
+      vote_average: 9,
+      vote_count: 40,
+      width: 2000,
+      height: 3000,
+    },
+    {
+      file_path: '/poster-vi.jpg',
+      iso_639_1: 'vi',
+      vote_average: 4,
+      vote_count: 2,
+      width: 1000,
+      height: 1500,
+    },
+    {
+      file_path: '/poster-ja.jpg',
+      iso_639_1: 'ja',
+      vote_average: 10,
+      vote_count: 90,
+      width: 2000,
+      height: 3000,
+    },
+  ],
 };
 
 export const SEASON_100_1 = {

@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CLOCK, type Clock } from '../common/clock.ts';
 import type { TitleInput } from './contract.ts';
-import { isSettled } from './retry.ts';
+import { isSettled, isStale } from './retry.ts';
 import { ART_STORE, type ArtStore } from './art.store.ts';
 import { syncTitle, type SyncDeps } from './tmdb/sync.ts';
 
@@ -88,7 +88,7 @@ export class ArtFiller {
   private async run(input: TitleInput): Promise<void> {
     const { store } = this;
     const current = (await store.find([input.slug])).get(input.slug);
-    if (current && isSettled(current, this.now())) return;
+    if (current && isSettled(current, this.now()) && !isStale(current)) return;
 
     let outcome;
     try {

@@ -23,7 +23,10 @@ const ImageSchema = z.object({
   height: z.number(),
 });
 
-const ImagesSchema = z.object({ backdrops: z.array(ImageSchema) });
+const ImagesSchema = z.object({
+  backdrops: z.array(ImageSchema),
+  posters: z.array(ImageSchema),
+});
 
 const DetailSchema = z.object({
   id: z.number().int(),
@@ -66,6 +69,7 @@ const AlternativeTitlesSchema = z.object({
 
 export type TmdbSearchResult = z.infer<typeof SearchResultSchema>;
 export type TmdbImage = z.infer<typeof ImageSchema>;
+export type TmdbImages = z.infer<typeof ImagesSchema>;
 export type TmdbDetail = z.infer<typeof DetailSchema>;
 export type TmdbSeason = z.infer<typeof SeasonSchema>;
 
@@ -81,7 +85,7 @@ export class TmdbError extends Error {
 
 export interface TmdbClient {
   searchTv(query: string): Promise<TmdbSearchResult[]>;
-  tvImages(tvId: number): Promise<TmdbImage[]>;
+  tvImages(tvId: number): Promise<TmdbImages>;
   tvDetail(tvId: number): Promise<TmdbDetail>;
   tvAlternativeTitles(tvId: number): Promise<string[]>;
   seasonDetail(tvId: number, season: number): Promise<TmdbSeason>;
@@ -113,14 +117,12 @@ export function createTmdbClient(options: {
   return {
     searchTv: async (query) =>
       (await get('/search/tv', { query }, SearchSchema)).results,
-    tvImages: async (tvId) =>
-      (
-        await get(
-          `/tv/${tvId}/images`,
-          { include_image_language: 'vi,en,null' },
-          ImagesSchema,
-        )
-      ).backdrops,
+    tvImages: (tvId) =>
+      get(
+        `/tv/${tvId}/images`,
+        { include_image_language: 'vi,en,null' },
+        ImagesSchema,
+      ),
     tvDetail: (tvId) => get(`/tv/${tvId}`, {}, DetailSchema),
     tvAlternativeTitles: async (tvId) =>
       (

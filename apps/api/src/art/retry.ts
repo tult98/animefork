@@ -10,7 +10,15 @@ export const RETRY_AFTER_MS: Record<TitleStatus, number> = {
   failed: 10 * MINUTE,
 };
 
-export const MATCHER_VERSION = 1;
+// Version 2 added the TMDB poster. Matched rows from an older version refill in the background.
+export const MATCHER_VERSION = 2;
+
+export function isStale(row: {
+  status: TitleStatus;
+  matcherVersion: number;
+}): boolean {
+  return row.status === 'matched' && row.matcherVersion < MATCHER_VERSION;
+}
 
 export function isSettled(
   row: { status: TitleStatus; attemptedAt: Date },

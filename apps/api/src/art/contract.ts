@@ -24,6 +24,7 @@ export const ArtEntrySchema = z.discriminatedUnion('status', [
     status: z.literal('ready'),
     backdropPath: z.string().min(1).nullable(),
     backdropLang: z.string().min(1).nullable(),
+    posterPath: z.string().min(1).nullable(),
     stills: z
       .record(z.string().regex(/^[1-9]\d*$/), z.string().min(1))
       .optional(),
@@ -45,10 +46,14 @@ export const LOOKUP_PATH = '/v1/art/lookup';
 export const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 export const BACKDROP_SIZE = 'w1280';
 export const CARD_BACKDROP_SIZE = 'w780';
+export const POSTER_SIZE = 'w342';
 export const STILL_SIZE = 'w300';
 
 export type ImageSize =
-  typeof BACKDROP_SIZE | typeof CARD_BACKDROP_SIZE | typeof STILL_SIZE;
+  | typeof BACKDROP_SIZE
+  | typeof CARD_BACKDROP_SIZE
+  | typeof POSTER_SIZE
+  | typeof STILL_SIZE;
 
 export function tmdbImageUrl(path: string, size: ImageSize): string {
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
