@@ -4,10 +4,7 @@ import { TransportStatusError } from '../transport/index.ts';
 import { StreamUnavailableError } from './errors.ts';
 import { ExtensionPlayerSource } from './extension-player-source.ts';
 import { createPlayerSource } from './select.ts';
-import {
-  ReplayPlayerSource,
-  REPLAY_SAMPLE_URL,
-} from './replay-player-source.ts';
+import { ReplayPlayerSource, REPLAY_SAMPLES } from './replay-player-source.ts';
 
 const episode = { id: '72839', play: 'api', hash: 'abc' };
 
@@ -134,8 +131,20 @@ describe('createPlayerSource', () => {
     const source = createPlayerSource('?transport=replay', {}, transport);
     expect(source).toBeInstanceOf(ReplayPlayerSource);
     await expect(source.resolve(episode)).resolves.toEqual({
-      url: REPLAY_SAMPLE_URL,
+      url: REPLAY_SAMPLES.mp4,
       kind: 'mp4',
+    });
+  });
+
+  it('serves the HLS sample under ?transport=replay&sample=hls', async () => {
+    const source = createPlayerSource(
+      '?transport=replay&sample=hls',
+      {},
+      transport,
+    );
+    await expect(source.resolve(episode)).resolves.toEqual({
+      url: REPLAY_SAMPLES.hls,
+      kind: 'hls',
     });
   });
 

@@ -9,6 +9,7 @@ import {
   EpisodeSchema,
   fetchWatchPage,
   parseWatchPage,
+  selectEpisode,
 } from './watch.ts';
 
 const publicDir = resolve(import.meta.dirname, '../../../public');
@@ -53,13 +54,21 @@ describe('parseWatchPage', () => {
     );
   });
 
-  it('defaults to the first episode and honours an episode id', () => {
+  it('defaults to the first episode', () => {
     expect(parseWatchPage(html, SLUG).currentEpisode.id).toBe('72839');
-    expect(parseWatchPage(html, SLUG, '73386').currentEpisode.id).toBe('73386');
+  });
+
+  it('selects another listed episode without touching the list', () => {
+    const page = parseWatchPage(html, SLUG);
+    const picked = selectEpisode(page, '73386');
+    expect(picked.currentEpisode.id).toBe('73386');
+    expect(picked.episodes).toEqual(page.episodes);
   });
 
   it('throws EpisodeNotFoundError for an id that is not listed', () => {
-    expect(() => parseWatchPage(html, SLUG, '1')).toThrow(EpisodeNotFoundError);
+    expect(() => selectEpisode(parseWatchPage(html, SLUG), '1')).toThrow(
+      EpisodeNotFoundError,
+    );
   });
 
   it('lists the season siblings and marks the one for the slug', () => {
@@ -114,7 +123,7 @@ describe('fetchWatchPage', () => {
           status: 200,
         }),
     });
-    const page = await fetchWatchPage(transport, SLUG, '73010');
-    expect(page.currentEpisode.label).toBe('Tập 2');
+    const page = await fetchWatchPage(transport, SLUG);
+    expect(page.currentEpisode.label).toBe('Tập 1_BD_Full');
   });
 });

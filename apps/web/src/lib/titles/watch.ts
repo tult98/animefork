@@ -87,11 +87,7 @@ function parseSeasons(doc: Document): Season[] {
   return seasons;
 }
 
-export function parseWatchPage(
-  html: string,
-  slug: string,
-  episodeId?: string,
-): WatchPage {
+export function parseWatchPage(html: string, slug: string): WatchPage {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const title = doc.querySelector('h1.Title')?.textContent?.trim();
   const episodes = parseEpisodes(doc);
@@ -100,29 +96,29 @@ export function parseWatchPage(
     slug,
     name: title ?? slug,
   };
-  const currentEpisode = episodeId
-    ? episodes.find((e) => e.id === episodeId)
-    : episodes[0];
-  if (episodeId && !currentEpisode) throw new EpisodeNotFoundError(episodeId);
-
   return WatchPageSchema.parse({
     slug,
     title,
     seasons: seasons.length > 0 ? seasons : [currentSeason],
     currentSeason,
     episodes,
-    currentEpisode,
+    currentEpisode: episodes[0],
   });
+}
+
+export function selectEpisode(page: WatchPage, episodeId: string): WatchPage {
+  const currentEpisode = page.episodes.find((e) => e.id === episodeId);
+  if (!currentEpisode) throw new EpisodeNotFoundError(episodeId);
+  return { ...page, currentEpisode };
 }
 
 export async function fetchWatchPage(
   transport: Transport,
   slug: string,
-  episodeId?: string,
   signal?: AbortSignal,
 ): Promise<WatchPage> {
   const url = `${SEASON_PREFIX}${slug}/xem-phim.html`;
   const res = await transport.get({ url, signal });
   expectOk(res, url);
-  return parseWatchPage(res.data, slug, episodeId);
+  return parseWatchPage(res.data, slug);
 }

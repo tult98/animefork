@@ -16,6 +16,7 @@ import { Route as MyListRouteImport } from './routes/my-list'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as TitleSplatRouteImport } from './routes/title.$'
+import { Route as WatchSlugChar123EpisodeChar125RouteImport } from './routes/watch.$slug.{-$episode}'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,12 @@ const TitleSplatRoute = TitleSplatRouteImport.update({
   path: '/title/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WatchSlugChar123EpisodeChar125Route =
+  WatchSlugChar123EpisodeChar125RouteImport.update({
+    id: '/watch/$slug/{-$episode}',
+    path: '/watch/$slug/{-$episode}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +68,7 @@ export interface FileRoutesByFullPath {
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
   '/title/$': typeof TitleSplatRoute
+  '/watch/$slug/{-$episode}': typeof WatchSlugChar123EpisodeChar125Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +78,7 @@ export interface FileRoutesByTo {
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
   '/title/$': typeof TitleSplatRoute
+  '/watch/$slug/{-$episode}': typeof WatchSlugChar123EpisodeChar125Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +89,7 @@ export interface FileRoutesById {
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
   '/title/$': typeof TitleSplatRoute
+  '/watch/$slug/{-$episode}': typeof WatchSlugChar123EpisodeChar125Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +101,7 @@ export interface FileRouteTypes {
     | '/rankings'
     | '/schedule'
     | '/title/$'
+    | '/watch/$slug/{-$episode}'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +111,7 @@ export interface FileRouteTypes {
     | '/rankings'
     | '/schedule'
     | '/title/$'
+    | '/watch/$slug/{-$episode}'
   id:
     | '__root__'
     | '/'
@@ -109,6 +121,7 @@ export interface FileRouteTypes {
     | '/rankings'
     | '/schedule'
     | '/title/$'
+    | '/watch/$slug/{-$episode}'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +132,7 @@ export interface RootRouteChildren {
   RankingsRoute: typeof RankingsRoute
   ScheduleRoute: typeof ScheduleRoute
   TitleSplatRoute: typeof TitleSplatRoute
+  WatchSlugChar123EpisodeChar125Route: typeof WatchSlugChar123EpisodeChar125Route
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TitleSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/watch/$slug/{-$episode}': {
+      id: '/watch/$slug/{-$episode}'
+      path: '/watch/$slug/{-$episode}'
+      fullPath: '/watch/$slug/{-$episode}'
+      preLoaderRoute: typeof WatchSlugChar123EpisodeChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,6 +204,7 @@ const rootRouteChildren: RootRouteChildren = {
   RankingsRoute: RankingsRoute,
   ScheduleRoute: ScheduleRoute,
   TitleSplatRoute: TitleSplatRoute,
+  WatchSlugChar123EpisodeChar125Route: WatchSlugChar123EpisodeChar125Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

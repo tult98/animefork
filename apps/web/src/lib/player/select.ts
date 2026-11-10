@@ -9,7 +9,9 @@ export function createPlayerSource(
   env: TransportEnv,
   transport: Transport,
 ): PlayerSource {
-  return selectTransportKind(search, env) === 'replay'
-    ? new ReplayPlayerSource()
-    : new ExtensionPlayerSource({ transport });
+  if (selectTransportKind(search, env) !== 'replay') {
+    return new ExtensionPlayerSource({ transport });
+  }
+  const sample = new URLSearchParams(search).get('sample');
+  return new ReplayPlayerSource(sample === 'hls' ? 'hls' : 'mp4');
 }

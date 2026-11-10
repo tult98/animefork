@@ -1,0 +1,169 @@
+.pl-ib {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.pl-ib:hover:not(:disabled) {
+  background: var(--pill-active);
+}
+.pl-ib:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.pl-ib svg {
+  width: 28px;
+  height: 28px;
+}
+.pl-ib--sm {
+  width: 44px;
+  height: 44px;
+}
+
+.pl-timeline {
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s;
+}
+.pl-bar:has(.pl-pw:hover) .pl-timeline,
+.pl-bar:has(.pl-vw:hover) .pl-timeline,
+.pl-bar:has(.pl-pw[data-open='true']) .pl-timeline,
+.pl-bar:has(.pl-pw :focus-visible) .pl-timeline,
+.pl-bar:has(.pl-vw :focus-visible) .pl-timeline {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.pl-scrub {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  cursor: pointer;
+}
+.pl-scrub:has(:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+.pl-hit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.pl-knob {
+  transform: scale(0);
+  transition: transform 0.12s ease;
+}
+.pl-scrub:hover .pl-knob,
+.pl-scrub:has(:focus-visible) .pl-knob {
+  transform: scale(1);
+}
+
+.pl-vw,
+.pl-pw {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pl-vs,
+.pl-pop {
+  position: absolute;
+  bottom: 100%;
+  padding-bottom: 12px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    visibility 0.15s;
+}
+.pl-vs {
+  left: 50%;
+  transform: translate(-50%, 6px);
+}
+.pl-pop {
+  right: -8px;
+  max-width: calc(100vw - 32px);
+  transform: translateY(6px);
+}
+.pl-vw:hover .pl-vs,
+.pl-vw:has(:focus-visible) .pl-vs {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+.pl-pw:hover .pl-pop,
+.pl-pw:has(:focus-visible) .pl-pop,
+.pl-pw[data-open='true'] .pl-pop {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+}
+
+.pl-vtrack {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 24px;
+  height: 120px;
+  cursor: pointer;
+}
+.pl-vtrack:has(:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+.pl-vtrack .pl-hit {
+  writing-mode: vertical-lr;
+  direction: rtl;
+}
+
+.pl-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.pl-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.pl-row:hover,
+.pl-row[data-current='true'] {
+  background: var(--surface-alt);
+}
+.pl-glyph {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.pl-row:hover .pl-glyph,
+.pl-row[data-current='true'] .pl-glyph {
+  opacity: 1;
+}
+.pl-row[data-current='true'] .pl-glyph {
+  color: var(--brand);
+}
