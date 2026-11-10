@@ -1,28 +1,23 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "target": "es2016",
-    "lib": [
-      "DOM",
-      "ESNext"
-    ],
-    "strict": true,
-    "esModuleInterop": true,
-    "incremental": false,
-    "skipLibCheck": true,
-    "jsx": "preserve",
-    "moduleResolution": "node",
+    "outDir": "out-tsc",
+    "tsBuildInfoFile": "out-tsc/tsconfig.tsbuildinfo",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": ["chrome", "node"],
     "resolveJsonModule": true,
-    "noUnusedLocals": true,
-    "forceConsistentCasingInFileNames": true,
-    "types": [
-      "vite/client",
-      "@modyfi/vite-plugin-yaml/modules",
-	    "@types/chrome"
-    ]
+    "allowImportingTsExtensions": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "exclude": [
-    "dist",
-    "node_modules"
+  "include": [
+    "src",
+    "tsdown.config.ts",
+    "package.json",
+    "client/package.json",
+    "allowlist.json",
+    "map-referer.json",
+    "fixtures/*.json"
   ]
 }

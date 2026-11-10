@@ -1,49 +1,75 @@
 {
   "name": "extension-animevsub-helper",
+  "displayName": "AnimeVsub Helper",
+  "description": "Extension add API helper for AnimeVsub",
   "version": "1.0.50",
-  "workspaces": [
-    "manifest-v2",
-    "manifest-v3",
-    "lib",
-    "npm"
-  ],
-  "trustedDependencies": [
-    "core-js",
-    "spawn-sync"
-  ],
+  "private": true,
+  "type": "module",
   "scripts": {
-    "lint": "eslint lib/ --ext ts",
-    "format": "prettier -w lib/",
-    "test": "bun run --workspaces --if-present test",
-    "build": "bun run --workspaces --if-present build",
-    "pack": "bun run build && bun run --workspaces --if-present pack",
-    "release:mv2": "bun run --cwd manifest-v2 release",
-    "release:mv3": "bun run --cwd manifest-v3 release",
-    "npm": "cd npm && bun publish",
-    "release": "bumpp package.json manifest-v2/package.json manifest-v3/package.json npm/package.json --commit --push --tag --all --execute \"bun install --lockfile-only\" && bun run npm"
+    "build": "tsdown",
+    "watch": "tsdown --watch",
+    "dev": "web-ext run --source-dir dist/chrome-mv3 --target chromium",
+    "dev:firefox": "web-ext run --source-dir dist/firefox-mv3 --target firefox-desktop",
+    "test": "vitest run",
+    "pack": "web-ext build --source-dir dist/chrome-mv3 --artifacts-dir artifacts --filename animevsub-helper-chrome-mv3-{version}.zip --overwrite-dest && web-ext build --source-dir dist/firefox-mv3 --artifacts-dir artifacts --filename animevsub-helper-firefox-mv3-{version}.xpi --overwrite-dest && crx pack dist/chrome-mv3 -o artifacts/animevsub-helper-chrome-mv3.crx"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "cache": true,
+        "inputs": [
+          "production"
+        ],
+        "outputs": [
+          "{projectRoot}/dist",
+          "{projectRoot}/client/dist"
+        ]
+      },
+      "watch": {
+        "continuous": true
+      },
+      "dev": {
+        "continuous": true,
+        "dependsOn": [
+          "build",
+          "watch"
+        ]
+      },
+      "dev:firefox": {
+        "continuous": true,
+        "dependsOn": [
+          "build",
+          "watch"
+        ]
+      },
+      "test": {
+        "cache": true,
+        "inputs": [
+          "default"
+        ]
+      },
+      "pack": {
+        "dependsOn": [
+          "build"
+        ],
+        "outputs": [
+          "{projectRoot}/artifacts"
+        ]
+      }
+    }
   },
   "devDependencies": {
-    "@ffflorian/jszip-cli": "^3.4.1",
-    "@tachibana-shin/eslint-config": "^1.1.1",
-    "@types/chrome": "^0.0.248",
-    "@types/node": "^20.8.7",
-    "@types/semver": "^7.5.4",
-    "chokidar": "^3.5.3",
-    "cross-env": "^7.0.3",
-    "crx": "^5.0.1",
-    "eslint": "^8.51.0",
-    "jsdom": "^22.1.0",
-    "kolorist": "^1.8.0",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^3.0.3",
-    "rimraf": "^4.4.1",
-    "tsx": "^3.14.0",
-    "typescript": "^5.2.2",
-    "vite": "4.5.0",
-    "vitest": "^0.34.6",
-    "web-ext": "^7.2.0"
-  },
-  "dependencies": {
-    "bumpp": "^10.1.0"
+    "@tachibana-shin/webext-bridge": "6.0.0-rc3",
+    "@types/chrome": "0.3.6",
+    "@types/cookie": "0.5.1",
+    "@types/webextension-polyfill": "0.12.6",
+    "cookie": "0.5.0",
+    "crx": "5.0.1",
+    "js-base64": "3.7.8",
+    "tsdown": "0.23.2",
+    "vite": "8.3.5",
+    "vitest": "5.0.5",
+    "web-ext": "10.8.0",
+    "webextension-polyfill": "0.9.0"
   }
 }

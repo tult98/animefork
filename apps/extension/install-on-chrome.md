@@ -1,4 +1,5 @@
 Install for
+
 - [Desktop](#desktop) - Chrome, Edge, Vilvadi, Firefox...
 - [Android](#android) - Lemur, Kiwi, Flow, Mies, Yandex, Optima...
 
@@ -14,7 +15,6 @@ Video tutorial install on Chrome:
 
 ## Mobile: Install extension for Lemur, Kiwi, Flow, Mises, Yandex, Optima... <span id="android"></span>
 
-> Note: Chrome-based browsers like `Lemur`, `Kiwi` make a silly mistake: they remove extensions installed from `.zip` themselves so choose `.crx` format to replace `mv3- extension.crx`
+> Note: Chrome-based browsers like `Lemur`, `Kiwi` make a silly mistake: they remove extensions installed from `.zip` themselves so choose `.crx` format to replace `animevsub-helper-chrome-mv3.crx`
 
 https://github.com/anime-vsub/extension-animevsub-helper/assets/45375496/2da45a8b-225e-4bd5-9774-ae32690d47a0
-
