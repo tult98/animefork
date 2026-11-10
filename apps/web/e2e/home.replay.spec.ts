@@ -20,9 +20,11 @@ test('home renders the hero and the three shelves in order', async ({
     'airing-this-season',
   ]);
   for (const shelf of rendered) {
-    await expect(
-      page.getByTestId(`shelf:${shelf.id}`).getByRole('listitem'),
-    ).toHaveCount(shelf.paths.length);
+    const rows =
+      shelf.id === 'hero'
+        ? page.locator('[data-testid^="hero:slide:"]')
+        : page.getByTestId(`shelf:${shelf.id}`).getByRole('listitem');
+    await expect(rows).toHaveCount(shelf.paths.length);
   }
   await expect(page.getByTestId('error-screen')).toHaveCount(0);
 });
@@ -45,24 +47,36 @@ test('shelf contents follow the dedupe rules', async ({ page }) => {
   expect(byId['hero']!.some((p) => top.has(p))).toBe(true);
 });
 
-test('cards show name, episode label and rating', async ({ page }) => {
+test('a card is the art and its badge, with the details in the accessible name', async ({
+  page,
+}) => {
   await page.goto('/?transport=replay');
   const card = page
     .getByTestId('shelf:new-episodes')
     .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/');
 
-  await expect(card).toContainText('Ushiro no Shoumen Kamui-san');
-  await expect(card).toContainText('TẬP19');
-  await expect(card).toContainText('8.8');
+  await expect(
+    card.getByRole('link', { name: 'Ushiro no Shoumen Kamui-san, Tập 19' }),
+  ).toBeVisible();
+  await expect(card).toContainText('Tập mới');
+  await expect(card).toContainText('Tập 19');
+  await expect(card).not.toContainText('Ushiro no Shoumen Kamui-san');
+  await expect(card).not.toContainText('8.8');
   await expect(page.locator('body')).not.toContainText(/\bNaN\b/);
 });
 
-test('top 10 numbers its cards from 1', async ({ page }) => {
+test('a card opens the English title route', async ({ page }) => {
   await page.goto('/?transport=replay');
-  const items = page.getByTestId('shelf:top-10-today').getByRole('listitem');
+  await page
+    .getByTestId('shelf:new-episodes')
+    .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/')
+    .getByRole('link')
+    .click();
 
-  await expect(items.first()).toContainText('1. Black Clover 2nd Season');
-  await expect(items.last()).toContainText('10. ');
+  await expect(page).toHaveURL(
+    /\/title\/ushiro-no-shoumen-kamui-san-a6084\/?$/,
+  );
+  await expect(page.getByTestId('page:Title')).toBeVisible();
 });
 
 test('image requests are answered locally, never by the CDN', async ({
@@ -84,6 +98,27 @@ test('image requests are answered locally, never by the CDN', async ({
 
   expect(cdnRequests.length).toBeGreaterThan(0);
   expect(failed).toEqual([]);
+});
+
+test('home shows the hero and shelf skeletons while loading', async ({
+  page,
+}) => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/fixtures/default/index.html', async (route) => {
+    await gate;
+    await route.continue();
+  });
+  await page.goto('/?transport=replay');
+
+  const loading = page.getByTestId('home:loading');
+  await expect(loading).toBeVisible();
+  await expect(loading.locator('[aria-busy="true"]')).toHaveCount(3);
+  await expect(page.getByTestId('hero')).toHaveCount(0);
+
+  release();
+  await expect(page.getByTestId('hero')).toBeVisible();
+  await expect(loading).toHaveCount(0);
 });
 
 test('the season shelf shows its own loading state without blocking the rest', async ({

@@ -47,3 +47,16 @@ Full pages must be captured from a real browser with the extension. The upstream
 - `shelves.ts` is the pure `buildHome`. It orders the shelves, dedupes new episodes against airing this season, drops a shelf under 8 titles and caps airing at 12.
 
 The home route runs two queries, `['home']` and `['season', seasonPath]`. A slow or failed season request only affects its own shelf.
+
+## Home page
+
+`src/routes/index.tsx` renders what `buildHome` returns, in order, inside the app shell (`src/routes/__root.tsx`: header, `<main>`, footer, and a tab bar below 1100px).
+
+- `components/hero.tsx` is the carousel over the hero shelf. It cross-fades in 600 ms, advances every 7 s, and holds still on hover, on keyboard focus inside it, after the pause button, and always under `prefers-reduced-motion` (the pause button is not rendered then).
+- `components/shelf.tsx` is one shelf: a snap scroller, arrows from 1100px up (44px wide pills, at most 88px and never taller than the card art, which fade in while the row is hovered or has keyboard focus), arrow keys between covers, and a skeleton while loading.
+- `components/poster-card.tsx` is one card. After 250 ms of hover or keyboard focus it opens a 340px preview, clamped to the viewport, that grows out of the cover in 220 ms and shrinks back in 140 ms (`data-state` is `open` then `closing`, and there is no motion under `prefers-reduced-motion`). Touch devices get no preview. Only the new episodes shelf shows the `Tập mới` badge.
+- The art of a default card is cropped to `--card-art-ratio` (`src/styles.css`, 16:9). Change that one variable to change the crop. Portrait posters keep their top (`object-top`).
+
+The search, notification and account buttons in the header are rendered but disabled until those features exist. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/title/$`.
+
+The `data-testid` names the e2e tests use: `hero`, `hero:slide:<index>`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.

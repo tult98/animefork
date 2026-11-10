@@ -15,6 +15,7 @@ import { Route as DesignRouteImport } from './routes/design'
 import { Route as MyListRouteImport } from './routes/my-list'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as TitleSplatRouteImport } from './routes/title.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const ScheduleRoute = ScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TitleSplatRoute = TitleSplatRouteImport.update({
+  id: '/title/$',
+  path: '/title/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/my-list': typeof MyListRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
+  '/title/$': typeof TitleSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/my-list': typeof MyListRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
+  '/title/$': typeof TitleSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,13 +79,27 @@ export interface FileRoutesById {
   '/my-list': typeof MyListRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
+  '/title/$': typeof TitleSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/browse' | '/design' | '/my-list' | '/rankings' | '/schedule'
+    | '/'
+    | '/browse'
+    | '/design'
+    | '/my-list'
+    | '/rankings'
+    | '/schedule'
+    | '/title/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/browse' | '/design' | '/my-list' | '/rankings' | '/schedule'
+  to:
+    | '/'
+    | '/browse'
+    | '/design'
+    | '/my-list'
+    | '/rankings'
+    | '/schedule'
+    | '/title/$'
   id:
     | '__root__'
     | '/'
@@ -86,6 +108,7 @@ export interface FileRouteTypes {
     | '/my-list'
     | '/rankings'
     | '/schedule'
+    | '/title/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,6 +118,7 @@ export interface RootRouteChildren {
   MyListRoute: typeof MyListRoute
   RankingsRoute: typeof RankingsRoute
   ScheduleRoute: typeof ScheduleRoute
+  TitleSplatRoute: typeof TitleSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/title/$': {
+      id: '/title/$'
+      path: '/title/$'
+      fullPath: '/title/$'
+      preLoaderRoute: typeof TitleSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -151,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyListRoute: MyListRoute,
   RankingsRoute: RankingsRoute,
   ScheduleRoute: ScheduleRoute,
+  TitleSplatRoute: TitleSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

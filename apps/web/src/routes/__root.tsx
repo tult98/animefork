@@ -1,15 +1,19 @@
 import { Outlet, createRootRoute } from '@tanstack/react-router';
+import { Footer } from '../components/footer.tsx';
+import { TabBar } from '../components/tab-bar.tsx';
 import { TopBar } from '../components/top-bar.tsx';
 
 export const Route = createRootRoute({ component: RootLayout });
 
 function RootLayout() {
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <TopBar />
-      <main className="mx-auto max-w-[1600px] px-4 md:px-8">
+      <main className="flex-1">
         <Outlet />
       </main>
-    </>
+      <Footer />
+      <TabBar />
+    </div>
   );
 }

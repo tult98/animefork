@@ -34,3 +34,18 @@ test('home renders on the stage theme with Archivo loaded', async ({
     true,
   );
 });
+
+test('the tab icon is the app icon, which has its own background', async ({
+  page,
+}) => {
+  await page.goto('/?transport=replay');
+  const href = await page.locator('link[rel="icon"]').getAttribute('href');
+  expect(href).toBe('/brand/animefork-app-icon.svg');
+
+  const res = await page.request.get(href ?? '');
+  expect(res.ok()).toBe(true);
+  expect(
+    await res.text(),
+    'a filled rect keeps the icon visible on a light tab',
+  ).toContain('<rect');
+});

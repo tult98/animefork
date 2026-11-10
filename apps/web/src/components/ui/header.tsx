@@ -4,7 +4,6 @@ import type { LucideIcon } from './icons.ts';
 import { Logo } from './logo.tsx';
 
 type HeaderProps = ComponentProps<'header'> & {
-  // Solid on canvas with the masthead shadow, for a scrolled page or marketing pages.
   solid?: boolean;
   logo?: ReactNode;
 };
@@ -35,7 +34,6 @@ export function HeaderNav({ className, ...rest }: ComponentProps<'nav'>) {
   );
 }
 
-// For router links that set their own aria-current, such as TanStack Link.
 export const NAV_PILL_CLASS = 'af-navpill';
 
 type NavPillProps = ComponentProps<'a'> & { current?: boolean };
@@ -74,6 +72,20 @@ export function HeaderIconButton({
   return (
     <BaseButton aria-label={label} className="cursor-pointer" {...rest}>
       <Icon className="af-icon" />
+    </BaseButton>
+  );
+}
+
+export function HeaderAvatarButton({
+  label,
+  className,
+  ...rest
+}: Omit<ComponentProps<typeof BaseButton>, 'children' | 'aria-label'> & {
+  label: string;
+}) {
+  return (
+    <BaseButton aria-label={label} className={className} {...rest}>
+      <span className="af-avatar" />
     </BaseButton>
   );
 }

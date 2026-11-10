@@ -1,7 +1,23 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { parseCard, parseCards } from './card-parser.ts';
+import { formatEpisodeLabel, parseCard, parseCards } from './card-parser.ts';
 import { TitleSchema } from './title.ts';
+
+describe('formatEpisodeLabel', () => {
+  it.each([
+    ['TẬP19', 'Tập 19'],
+    ['TẬP05', 'Tập 5'],
+    ['TẬP 7', 'Tập 7'],
+    ['tập100', 'Tập 100'],
+    ['TẬP1219', 'Tập 1219'],
+  ])('puts a space after the prefix: %s becomes %s', (raw, expected) => {
+    expect(formatEpisodeLabel(raw)).toBe(expected);
+  });
+
+  it.each(['TẤT', '05/12', '', 'FULL'])('leaves %j alone', (raw) => {
+    expect(formatEpisodeLabel(raw)).toBe(raw);
+  });
+});
 
 function card(html: string): Element {
   const root = document.createElement('div');
@@ -19,7 +35,7 @@ describe('parseCard', () => {
       name: 'Psyren',
       image: 'https://cdn.example/poster/p.jpg',
       rating: 8.4,
-      episodeLabel: 'TẬP05',
+      episodeLabel: 'Tập 5',
       year: 2026,
       genres: ['Shounen', 'Sci-Fi'],
       description: 'Ageha Yoshina.',

@@ -63,7 +63,7 @@ describe('parseHome on the captured excerpt', () => {
 
   it('reads the episode label and views where the card has them', () => {
     expect(home.newEpisodes[0]).toMatchObject({
-      episodeLabel: 'TẬP19',
+      episodeLabel: 'Tập 19',
       views: 315099,
       rating: 8.8,
       year: 2026,
