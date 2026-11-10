@@ -369,3 +369,16 @@ test('clicking an episode expands it and collapses the playing one, and its play
   await third.getByTestId('episode:3:play').click();
   await expect(page).toHaveURL(new RegExp(`/watch/${SLUG}/${EPISODES[2]}`));
 });
+
+test('hovering a collapsed episode row changes its background', async ({
+  page,
+}) => {
+  await paused(page);
+  await page.getByTestId('player:episodes').hover();
+  const row = page.getByTestId('episode:4');
+  const background = () =>
+    row.evaluate((el) => getComputedStyle(el).backgroundColor);
+  const before = await background();
+  await row.hover();
+  await expect.poll(background).not.toBe(before);
+});

@@ -168,5 +168,8 @@
   color: var(--brand);
 }
 .pl-er:not([data-expanded='true']):hover {
-  background: var(--surface-alt);
+  background: var(--border-strong);
+}
+.pl-er .pl-row:hover {
+  background: transparent;
 }
