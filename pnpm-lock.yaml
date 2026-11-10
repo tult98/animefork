@@ -447,6 +447,9 @@ importers:
       client-ext-animevsub-helper:
         specifier: workspace:*
         version: link:../extension/client
+      hls.js:
+        specifier: 1.5.9
+        version: 1.5.9
       lucide-react:
         specifier: 1.61.0
         version: 1.61.0(@types/react@19.3.0)(react@19.1.10)
