@@ -28,7 +28,7 @@ function useReducedMotion() {
 }
 
 const CONTROL_CLASS =
-  'grid size-11 cursor-pointer place-items-center rounded-full border-2 border-border bg-canvas/80 p-0 text-ink hover:bg-pill-active';
+  'grid size-11 cursor-pointer place-items-center rounded-full border-2 border-border bg-hero-overlay p-0 text-ink hover:bg-pill-active';
 
 export function Hero({ items }: { items: Title[] }) {
   const reducedMotion = useReducedMotion();
@@ -120,7 +120,7 @@ export function Hero({ items }: { items: Title[] }) {
       <div className="absolute right-4 bottom-4 z-3 flex items-center gap-2 max-md:top-2 max-md:right-2 max-md:bottom-auto">
         <span
           data-testid="hero:counter"
-          className="rounded-md bg-canvas/80 px-2.5 py-2 text-badge"
+          className="rounded-md bg-hero-overlay px-2.5 py-2 text-badge"
         >
           {counterLabel(index, length)}
         </span>

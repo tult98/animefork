@@ -34,7 +34,7 @@ export function TopBar() {
     <Header
       solid={solid}
       data-testid="header"
-      className="sticky top-0 z-40 px-(--pad) max-md:gap-2"
+      className="sticky top-0 z-40 bg-canvas bg-none px-(--pad) shadow-masthead max-md:gap-2"
       logo={
         <Link
           to="/"

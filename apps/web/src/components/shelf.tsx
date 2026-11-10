@@ -69,7 +69,9 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
       className={`relative mt-row ${top ? 'shelf--top' : ''}`}
     >
       <div className="mb-2 flex items-center gap-4 px-(--pad)">
-        <h2 className="text-xl font-bold md:text-rail-title">{shelf.title}</h2>
+        <h2 className="text-xl/[1.3] font-bold md:text-rail-title">
+          {shelf.title}
+        </h2>
         {SEE_ALL_SHELVES.has(shelf.id) ? (
           <Link
             to="/browse"
