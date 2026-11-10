@@ -65,6 +65,20 @@ test('a card is the art and its badge, with the details in the accessible name',
   await expect(page.locator('body')).not.toContainText(/\bNaN\b/);
 });
 
+test('a card opens the English title route', async ({ page }) => {
+  await page.goto('/?transport=replay');
+  await page
+    .getByTestId('shelf:new-episodes')
+    .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/')
+    .getByRole('link')
+    .click();
+
+  await expect(page).toHaveURL(
+    /\/title\/ushiro-no-shoumen-kamui-san-a6084\/?$/,
+  );
+  await expect(page.getByTestId('page:Title')).toBeVisible();
+});
+
 test('image requests are answered locally, never by the CDN', async ({
   page,
 }) => {

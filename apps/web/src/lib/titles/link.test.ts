@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { titleLink } from './link.ts';
 
 describe('titleLink', () => {
-  it('turns a title path into the splat of the /phim/$ route', () => {
+  it('turns an upstream title path into the splat of the /title/$ route', () => {
     expect(
       titleLink({ path: '/phim/ushiro-no-shoumen-kamui-san-a6084/' }),
     ).toEqual({
-      to: '/phim/$',
+      to: '/title/$',
       params: { _splat: 'ushiro-no-shoumen-kamui-san-a6084/' },
     });
   });

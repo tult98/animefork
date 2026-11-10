@@ -57,6 +57,6 @@ The home route runs two queries, `['home']` and `['season', seasonPath]`. A slow
 - `components/poster-card.tsx` is one card. After 250 ms of hover or keyboard focus it opens a 340px preview, clamped to the viewport, that grows out of the cover in 220 ms and shrinks back in 140 ms (`data-state` is `open` then `closing`, and there is no motion under `prefers-reduced-motion`). Touch devices get no preview. Only the new episodes shelf shows the `Tập mới` badge.
 - The art of a default card is cropped to `--card-art-ratio` (`src/styles.css`, 16:9). Change that one variable to change the crop. Portrait posters keep their top (`object-top`).
 
-The search, notification and account buttons in the header are rendered but disabled until those features exist. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/phim/$`.
+The search, notification and account buttons in the header are rendered but disabled until those features exist. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/title/$`.
 
 The `data-testid` names the e2e tests use: `hero`, `hero:slide:<index>`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.

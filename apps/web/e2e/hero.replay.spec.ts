@@ -109,7 +109,7 @@ test('a slide shows the name, the meta line, a clamped description and a Play li
   await expect(slide).not.toContainText(/\d\d\/(\d\d|\?\?)/);
   await expect(slide.getByRole('link', { name: 'Phát' })).toHaveAttribute(
     'href',
-    /^\/phim\//,
+    /^\/title\//,
   );
   const lines = await slide
     .locator('.af-billboard-text')

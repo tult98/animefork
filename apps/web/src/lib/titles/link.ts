@@ -1,13 +1,13 @@
 import type { Title } from './title.ts';
 
-const TITLE_PREFIX = '/phim/';
+const UPSTREAM_TITLE_PREFIX = '/phim/';
 
 export function titleLink(title: Pick<Title, 'path'>) {
   return {
-    to: '/phim/$',
+    to: '/title/$',
     params: {
-      _splat: title.path.startsWith(TITLE_PREFIX)
-        ? title.path.slice(TITLE_PREFIX.length)
+      _splat: title.path.startsWith(UPSTREAM_TITLE_PREFIX)
+        ? title.path.slice(UPSTREAM_TITLE_PREFIX.length)
         : title.path,
     },
   } as const;

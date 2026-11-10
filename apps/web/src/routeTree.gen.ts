@@ -15,7 +15,7 @@ import { Route as DesignRouteImport } from './routes/design'
 import { Route as MyListRouteImport } from './routes/my-list'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
-import { Route as PhimSplatRouteImport } from './routes/phim.$'
+import { Route as TitleSplatRouteImport } from './routes/title.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,9 +47,9 @@ const ScheduleRoute = ScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PhimSplatRoute = PhimSplatRouteImport.update({
-  id: '/phim/$',
-  path: '/phim/$',
+const TitleSplatRoute = TitleSplatRouteImport.update({
+  id: '/title/$',
+  path: '/title/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -60,7 +60,7 @@ export interface FileRoutesByFullPath {
   '/my-list': typeof MyListRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
-  '/phim/$': typeof PhimSplatRoute
+  '/title/$': typeof TitleSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,7 +69,7 @@ export interface FileRoutesByTo {
   '/my-list': typeof MyListRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
-  '/phim/$': typeof PhimSplatRoute
+  '/title/$': typeof TitleSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,7 +79,7 @@ export interface FileRoutesById {
   '/my-list': typeof MyListRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
-  '/phim/$': typeof PhimSplatRoute
+  '/title/$': typeof TitleSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,7 +90,7 @@ export interface FileRouteTypes {
     | '/my-list'
     | '/rankings'
     | '/schedule'
-    | '/phim/$'
+    | '/title/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -99,7 +99,7 @@ export interface FileRouteTypes {
     | '/my-list'
     | '/rankings'
     | '/schedule'
-    | '/phim/$'
+    | '/title/$'
   id:
     | '__root__'
     | '/'
@@ -108,7 +108,7 @@ export interface FileRouteTypes {
     | '/my-list'
     | '/rankings'
     | '/schedule'
-    | '/phim/$'
+    | '/title/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,7 +118,7 @@ export interface RootRouteChildren {
   MyListRoute: typeof MyListRoute
   RankingsRoute: typeof RankingsRoute
   ScheduleRoute: typeof ScheduleRoute
-  PhimSplatRoute: typeof PhimSplatRoute
+  TitleSplatRoute: typeof TitleSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -165,11 +165,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/phim/$': {
-      id: '/phim/$'
-      path: '/phim/$'
-      fullPath: '/phim/$'
-      preLoaderRoute: typeof PhimSplatRouteImport
+    '/title/$': {
+      id: '/title/$'
+      path: '/title/$'
+      fullPath: '/title/$'
+      preLoaderRoute: typeof TitleSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -182,7 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyListRoute: MyListRoute,
   RankingsRoute: RankingsRoute,
   ScheduleRoute: ScheduleRoute,
-  PhimSplatRoute: PhimSplatRoute,
+  TitleSplatRoute: TitleSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
