@@ -22,11 +22,12 @@ export const EPISODE_ART_TABLE = 'episode_art';
 
 export const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 export const BACKDROP_SIZE = 'w1280';
+export const CARD_BACKDROP_SIZE = 'w780';
 export const STILL_SIZE = 'w300';
 
 export function tmdbImageUrl(
   path: string,
-  size: typeof BACKDROP_SIZE | typeof STILL_SIZE,
+  size: typeof BACKDROP_SIZE | typeof CARD_BACKDROP_SIZE | typeof STILL_SIZE,
 ): string {
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
 }

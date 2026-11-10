@@ -48,3 +48,56 @@ test('TMDB episode stills replace the source thumbnail where a still exists', as
     page.getByTestId('episode:2:play').locator('img'),
   ).toHaveAttribute('src', 'https://image.tmdb.org/t/p/w1280/backdrop.jpg');
 });
+
+const HERO_SLUG =
+  'shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku-a6137';
+
+test('the home hero shows a TMDB backdrop for a stubbed slug and keeps the source image for the others', async ({
+  page,
+}) => {
+  await page.route('**/image.tmdb.org/**', (route) =>
+    route.fulfill({ contentType: 'image/svg+xml', body: poster }),
+  );
+  const requested: string[] = [];
+  await page.route('**/art.test/title_art*', (route) => {
+    requested.push(route.request().url());
+    return route.fulfill({
+      json: [
+        {
+          source_slug: HERO_SLUG,
+          backdrop_path: '/hero.jpg',
+        },
+      ],
+    });
+  });
+
+  await page.goto('/?transport=replay');
+  await expect(page.getByTestId('hero:slide:0').locator('img')).toHaveAttribute(
+    'src',
+    'https://image.tmdb.org/t/p/w1280/hero.jpg',
+  );
+  await expect(page.getByTestId('hero:slide:1').locator('img')).toHaveAttribute(
+    'src',
+    /^https:\/\/cdn\.animevietsub\.best\//,
+  );
+
+  expect(requested.length).toBeGreaterThan(0);
+  for (const url of requested) {
+    expect(url).toContain('source_slug=in.');
+    expect(decodeURIComponent(url)).toContain(`"${HERO_SLUG}"`);
+  }
+});
+
+test.describe('a failing art API', () => {
+  test.use({ allowedConsoleErrors: [/status of 500/] });
+
+  test('keeps the source images on the home page', async ({ page }) => {
+    await page.route('**/art.test/title_art*', (route) =>
+      route.fulfill({ status: 500, body: 'nope' }),
+    );
+    await page.goto('/?transport=replay');
+    await expect(
+      page.getByTestId('hero:slide:0').locator('img'),
+    ).toHaveAttribute('src', /^https:\/\/cdn\.animevietsub\.best\//);
+  });
+});

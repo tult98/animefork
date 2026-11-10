@@ -1,10 +1,15 @@
-import { skipToken, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo } from 'react';
 import { ErrorScreen } from '../components/error-screen.tsx';
 import { Hero, HeroSkeleton } from '../components/hero.tsx';
 import { Shelf, ShelfSkeleton } from '../components/shelf.tsx';
 import { publishShelves } from '../lib/app-hook.ts';
+import {
+  applyHomeArt,
+  backdropSlugs,
+  fetchBackdrops,
+} from '../lib/titles/art.ts';
 import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
 import { buildHome } from '../lib/titles/shelves.ts';
 import { useTransport } from '../lib/transport/index.ts';
@@ -25,9 +30,21 @@ function Home() {
       : skipToken,
   });
 
-  const shelves = useMemo(
+  const built = useMemo(
     () => (home.data ? buildHome({ ...home.data, season: season.data }) : []),
     [home.data, season.data],
+  );
+  const slugs = useMemo(() => backdropSlugs(built), [built]);
+  const art = useQuery({
+    queryKey: ['home-art', slugs],
+    queryFn: ({ signal }) =>
+      fetchBackdrops(slugs, { env: import.meta.env, signal }),
+    enabled: slugs.length > 0 && Boolean(import.meta.env.VITE_ART_API_URL),
+    placeholderData: keepPreviousData,
+  });
+  const shelves = useMemo(
+    () => (art.data ? applyHomeArt(built, art.data) : built),
+    [built, art.data],
   );
 
   useEffect(() => {
