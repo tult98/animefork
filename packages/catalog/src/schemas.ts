@@ -34,10 +34,10 @@ export const TitleSchema = z.object({
   description: NonEmpty.optional(),
   studio: NonEmpty.optional(),
   quality: NonEmpty.optional(),
-  /** Absolute release date (`YYYY-MM-DD`) from a pre-release card. */
+  /** Release date (`YYYY-MM-DD`) from a pre-release card, or just the year (`YYYY`) when the date is not announced. */
   releaseTime: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .regex(/^\d{4}(?:-\d{2}-\d{2})?$/)
     .optional(),
 });
 export type Title = z.infer<typeof TitleSchema>;
