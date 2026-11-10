@@ -34,7 +34,6 @@ function toCandidate(detail: TmdbDetail, season: number): Candidate {
     id: detail.id,
     name: detail.name,
     originalName: detail.original_name,
-    // A later season airs after the show began, so its own date is the better year signal.
     firstAirDate:
       (season > 1 ? entry?.air_date : undefined) ??
       detail.first_air_date ??
@@ -43,7 +42,6 @@ function toCandidate(detail: TmdbDetail, season: number): Candidate {
   };
 }
 
-// Applying the offset here keeps every row keyed by the source site's episode number, which is what the web app looks up.
 export function mapEpisodes(
   slug: string,
   episodes: { episode_number: number; still_path: string | null }[],

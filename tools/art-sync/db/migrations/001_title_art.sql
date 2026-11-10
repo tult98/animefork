@@ -1,5 +1,3 @@
--- Plain Postgres, safe to re-run. Login roles and passwords belong to the deployment, not to this file.
-
 do $$
 begin
   if not exists (select from pg_roles where rolname = 'web_anon') then

@@ -32,7 +32,7 @@ Init scripts run only on an empty data directory, so `down -v` is how a changed 
 
 ## How it decides
 
-- **Matching.** The `Matcher` interface in `src/matcher.ts` takes a question (source title, season name, year, episode count, TMDB candidates) and answers `{ choice, probability, episodeOffset? }`. `BaselineMatcher` scores title similarity, year and episode count. A probability under `MIN_MATCH_PROBABILITY` writes no row, as does a near tie between two candidates. `createJevMatcher` is the placeholder where a Jev (typesafe.ai) adapter will plug in. It is not implemented.
+- **Matching.** The `Matcher` interface in `src/matcher.ts` takes a question (source title, season name, year, episode count, TMDB candidates) and answers `{ choice, probability, episodeOffset? }`. `BaselineMatcher` scores title similarity, year and episode count. A probability under `MIN_MATCH_PROBABILITY` writes no row, as does a near tie between two candidates. A Jev (typesafe.ai) adapter would implement `Matcher`. None exists yet.
 - **Backdrop.** Art with a language wins over textless art. Tier 1 is `vi`, tier 2 is `en`, tier 3 is textless. Inside a tier the order is vote average, vote count, width. Other languages are ignored.
 - **Season.** `seasonName` such as `Season 2` or `Mùa 2` picks the TMDB season. No match means season 1. A season TMDB lacks skips the title.
 - **Episodes.** Source episode `n` is TMDB episode `n - episodeOffset`. A missing still writes no row for that episode, and the web app keeps the source thumbnail.

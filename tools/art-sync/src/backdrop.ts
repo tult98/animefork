@@ -5,7 +5,6 @@ export interface PickedBackdrop {
   lang: 'vi' | 'en' | null;
 }
 
-// Art that carries a language always beats textless art, so a textless image never outranks a vi or en one.
 function tier(image: TmdbImage): number | undefined {
   if (image.iso_639_1 === 'vi') return 0;
   if (image.iso_639_1 === 'en') return 1;

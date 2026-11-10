@@ -28,7 +28,6 @@ export const test = base.extend<
     },
     { auto: true },
   ],
-  // The dev server is started with a fake art API origin (playwright.config.ts), so every page needs an answer for it.
   stubArtApi: [
     async ({ page }, use) => {
       await page.route('**/art.test/**', (route) =>

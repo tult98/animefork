@@ -17,13 +17,11 @@ export interface ArtEnv {
 
 export interface TitleArt {
   backdrop?: string;
-  // Keyed by the source site's episode number.
   stills: Map<number, string>;
 }
 
 export const NO_ART: TitleArt = { stills: new Map() };
 
-// The art is decoration, so a slow database must not hold the player back.
 const TIMEOUT_MS = 3000;
 
 async function select<T>(

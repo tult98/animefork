@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Single source of truth for the art tables (tools/art-sync/db/migrations). The sync tool writes these rows and apps/web reads them.
 export const TitleArtRowSchema = z.object({
   source_slug: z.string().min(1),
   tmdb_id: z.number().int(),

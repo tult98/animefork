@@ -13,7 +13,6 @@ export function createPostgresSink(connectionString: string): ArtSink {
       const client = new pg.Client({ connectionString });
       await client.connect();
       try {
-        // One transaction so a failed run never leaves a title without its episodes.
         await client.query('begin');
         if (titles.length > 0) {
           await client.query(

@@ -1,4 +1,3 @@
-// Hand-written from TMDB's documented response shapes. Unverified against the live API.
 export const SEARCH_TONIKAWA = {
   page: 1,
   results: [

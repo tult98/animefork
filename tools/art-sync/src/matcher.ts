@@ -17,7 +17,6 @@ export interface MatchQuestion {
 export interface MatchAnswer {
   choice: number | null;
   probability: number;
-  // Source episode n is TMDB episode n - episodeOffset, for sites that number episodes across seasons.
   episodeOffset?: number;
 }
 
@@ -25,9 +24,7 @@ export interface Matcher {
   match(question: MatchQuestion): Promise<MatchAnswer>;
 }
 
-// A wrong match is worse than no match, so anything below this writes no row.
 export const MIN_MATCH_PROBABILITY = 0.85;
-// The best candidate must beat the runner-up by this much, or the title is ambiguous.
 const MIN_MARGIN = 0.05;
 
 const SEASON_MARKERS = [
@@ -68,7 +65,6 @@ export function titleSimilarity(a: string, b: string): number {
   return total > 0 ? (2 * overlap) / total : 0;
 }
 
-// A signal the source does not know yet earns partial credit, so an exact title alone clears the threshold.
 const UNKNOWN_CREDIT = 0.6;
 const WEIGHTS = { title: 0.7, year: 0.15, episodes: 0.15 };
 
@@ -115,11 +111,6 @@ export class BaselineMatcher implements Matcher {
     }
     return { choice: best.id, probability: best.score, episodeOffset: 0 };
   }
-}
-
-// Seam for the Jev (typesafe.ai) matcher. Implement Matcher here once its API is known; the sync only depends on the interface.
-export function createJevMatcher(): Matcher {
-  throw new Error('The Jev matcher is not implemented yet.');
 }
 
 export function decide(answer: MatchAnswer): number | null {
