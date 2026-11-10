@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { compile } from '@tailwindcss/node';
 import { describe, expect, it } from 'vitest';
 import {
   buildCss,
@@ -74,6 +75,23 @@ describe('buildCss', () => {
     expect(themeCss).toContain('--spacing-gutter: var(--space-gutter);');
   });
 
+  it('skips --spacing-* for names that collide with Tailwind size keys', () => {
+    const { themeCss: css, tokensCss: vars } = buildCss({
+      ...fixture,
+      spacing: {
+        tokens: ['xs', 'sm', 'md', 'lg', 'xl', 'row', 'gutter', 'section'].map(
+          (key) => ({ name: `space-${key}`, value: '8px' }),
+        ),
+      },
+    });
+    for (const key of ['xs', 'sm', 'md', 'lg', 'xl']) {
+      expect(css).not.toContain(`--spacing-${key}:`);
+      expect(vars).toContain(`--space-${key}: 8px;`);
+    }
+    for (const key of ['row', 'gutter', 'section'])
+      expect(css).toContain(`--spacing-${key}: var(--space-${key});`);
+  });
+
   it('keeps colors as var() aliases so they switch with data-theme', () => {
     const inline = themeCss.slice(
       themeCss.indexOf('@theme inline'),
@@ -96,6 +114,22 @@ describe('buildCss', () => {
     expect(literal).toContain('--shadow-card: 0 8px 24px #000;');
     expect(literal).toContain('--font-sans: "Archivo", sans-serif;');
     expect(literal).not.toContain('var(');
+  });
+});
+
+describe('committed theme.css under Tailwind', () => {
+  it('keeps container sizes and exposes the non-colliding spacing', async () => {
+    const compiler = await compile(
+      `@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+${read('theme.css')}`,
+      { base: here, onDependency: () => {} },
+    );
+    const css = compiler.build(['max-w-md', 'w-lg', 'px-gutter']);
+    expect(css).toMatch(/--container-md:\s*28rem/);
+    expect(css).toMatch(/max-width:\s*var\(--container-md\)/);
+    expect(css).not.toMatch(/width:\s*var\(--space-(md|lg)\)/);
+    expect(css).toMatch(/padding-inline:\s*var\(--space-gutter\)/);
   });
 });
 
