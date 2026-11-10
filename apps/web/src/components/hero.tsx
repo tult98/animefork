@@ -83,7 +83,7 @@ export function Hero({ items }: { items: Title[] }) {
                 alt=""
                 loading={slide === 0 ? 'eager' : 'lazy'}
                 decoding="async"
-                className="af-billboard-art object-cover object-center"
+                className="af-billboard-art object-cover object-[50%_15%]"
               />
               <div className="hero-scrim absolute inset-0" />
               <div className="af-billboard-body absolute bottom-0 left-0 pb-8 max-md:right-0 max-md:max-w-none max-md:p-4">
