@@ -1,0 +1,40 @@
+{
+  "name": "client-ext-animevsub-helper",
+  "version": "1.0.50",
+  "description": "This package is a client that includes connections to the AnimeVsub Helper utility",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/anime-vsub/extension-animevsub-helper"
+  },
+  "keywords": [
+    "animevsub-helper"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "nx": {
+    "targets": {
+      "nx-release-publish": {
+        "dependsOn": [
+          {
+            "projects": [
+              "extension-animevsub-helper"
+            ],
+            "target": "build"
+          }
+        ]
+      }
+    }
+  }
+}

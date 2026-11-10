@@ -17,7 +17,7 @@ Recipes for driving each user-facing feature with `../scripts/pw.cjs` (Playwrigh
 
 ## Proof and skip reporting
 
-A journey passes only if the observable named in its bullets happened. If a precondition is missing (upstream down, extension not built, playback 403), report that journey as **BLOCKED** with the reason and the evidence, never weaken the journey to make it pass. State what was mocked (nothing is mocked by default). List every bullet you did not drive as *skipped* in the report.
+A journey passes only if the observable named in its bullets happened. If a precondition is missing (upstream down, extension not built, playback 403), report that journey as **BLOCKED** with the reason and the evidence, never weaken the journey to make it pass. State what was mocked (nothing is mocked by default). List every bullet you did not drive as _skipped_ in the report.
 
 ## Feature-file contract
 
@@ -25,15 +25,15 @@ An H1 and one paragraph of user-visible behavior, then exactly four H2s in this 
 
 ## Index
 
-| feature | file | status |
-|---|---|---|
-| Home (trending, new, schedule teasers) | [home.md](home.md) | mapped |
-| Search | [search.md](search.md) | mapped, proved end to end |
-| Watch an anime / episode page | [watch-anime.md](watch-anime.md) | mapped (playback BLOCKED by upstream 403) |
-| Showtimes (weekly schedule) | [showtimes.md](showtimes.md) | mapped |
-| Rankings | [rankings.md](rankings.md) | mapped |
-| Browse by genre / country / tag / list (`/the-loai/:v`, `/danh-sach/:v`, `/quoc-gia/:v`, `/tag/:v`, season) | - | _not yet mapped_ |
-| Account: log in, follow, history, notifications, edit profile (`/tai-khoan/*`, `/notification`) | - | _not yet mapped_ (needs real credentials) |
-| Settings, player settings (`/tai-khoan/settings*`) | - | _not yet mapped_ |
-| Playlists (`/playlist/:id`), Feed (`/feed`), News (`/news`) | - | _not yet mapped_ |
-| Task manager / downloads (`/task-manager`) | - | _not yet mapped_ |
+| feature                                                                                                     | file                             | status                                    |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------- |
+| Home (trending, new, schedule teasers)                                                                      | [home.md](home.md)               | mapped                                    |
+| Search                                                                                                      | [search.md](search.md)           | mapped, proved end to end                 |
+| Watch an anime / episode page                                                                               | [watch-anime.md](watch-anime.md) | mapped (playback BLOCKED by upstream 403) |
+| Showtimes (weekly schedule)                                                                                 | [showtimes.md](showtimes.md)     | mapped                                    |
+| Rankings                                                                                                    | [rankings.md](rankings.md)       | mapped                                    |
+| Browse by genre / country / tag / list (`/the-loai/:v`, `/danh-sach/:v`, `/quoc-gia/:v`, `/tag/:v`, season) | -                                | _not yet mapped_                          |
+| Account: log in, follow, history, notifications, edit profile (`/tai-khoan/*`, `/notification`)             | -                                | _not yet mapped_ (needs real credentials) |
+| Settings, player settings (`/tai-khoan/settings*`)                                                          | -                                | _not yet mapped_                          |
+| Playlists (`/playlist/:id`), Feed (`/feed`), News (`/news`)                                                 | -                                | _not yet mapped_                          |
+| Task manager / downloads (`/task-manager`)                                                                  | -                                | _not yet mapped_                          |
