@@ -1,0 +1,98 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parseList (synthetic fixture) > matches the snapshot 1`] = `
+{
+  "filters": {
+    "genre": [
+      {
+        "checked": false,
+        "label": "Hài Hước",
+        "value": "hai-huoc",
+      },
+    ],
+    "quality": [
+      {
+        "checked": false,
+        "label": "HD",
+        "value": "hd",
+      },
+    ],
+    "release": [
+      {
+        "checked": false,
+        "label": "2022",
+        "value": "2022",
+      },
+    ],
+    "type": [
+      {
+        "checked": true,
+        "label": "Anime bộ",
+        "value": "series",
+      },
+      {
+        "checked": false,
+        "label": "Anime lẻ",
+        "value": "movie",
+      },
+    ],
+  },
+  "page": 2,
+  "pageCount": 76,
+  "sorts": [
+    {
+      "label": "Mới nhất",
+      "value": "new",
+    },
+    {
+      "label": "Xem nhiều",
+      "value": "views",
+    },
+  ],
+  "title": "Thể loại Hài Hước",
+  "titles": [
+    {
+      "description": "Cường giả bị tập kích, phản lão hoàn đồng.",
+      "episodeLabel": "315",
+      "genres": [
+        {
+          "name": "Fantasy",
+          "path": "/the-loai/phep-thuat/",
+        },
+        {
+          "name": "Comedy",
+          "path": "/the-loai/hai-huoc/",
+        },
+      ],
+      "id": "a3396",
+      "image": "http://cdn.example.test/linh-kiem-ton.jpg",
+      "name": "Linh Kiếm Tôn",
+      "path": "/phim/linh-kiem-ton-a3396/",
+      "quality": "HD",
+      "rating": 7.4,
+      "releaseTime": undefined,
+      "studio": undefined,
+      "year": 2019,
+    },
+    {
+      "description": "Thể loại: Comedy",
+      "episodeLabel": "11",
+      "genres": [
+        {
+          "name": "Comedy",
+          "path": "/the-loai/hai-huoc/",
+        },
+      ],
+      "id": "a4536",
+      "image": "http://cdn.example.test/call-of-the-night.jpg",
+      "name": "Yofukashi no Uta",
+      "path": "/phim/call-of-the-night-a4536/",
+      "quality": undefined,
+      "rating": 9.4,
+      "releaseTime": undefined,
+      "studio": undefined,
+      "year": undefined,
+    },
+  ],
+}
+`;

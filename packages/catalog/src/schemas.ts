@@ -127,3 +127,31 @@ export const SearchSuggestionSchema = z.object({
   status: NonEmpty.optional(),
 });
 export type SearchSuggestion = z.infer<typeof SearchSuggestionSchema>;
+
+export const FilterOptionSchema = z.object({
+  label: NonEmpty,
+  value: NonEmpty,
+  checked: z.boolean(),
+});
+export type FilterOption = z.infer<typeof FilterOptionSchema>;
+
+/** A genre, country, season or tag list page: one page of cards plus the filter chips and page count. */
+export const ListPageSchema = z
+  .object({
+    title: NonEmpty,
+    titles: z.array(TitleSchema),
+    page: z.number().int().min(1),
+    pageCount: z.number().int().min(1),
+    sorts: z.array(z.object({ label: NonEmpty, value: NonEmpty })),
+    filters: z.object({
+      type: z.array(FilterOptionSchema),
+      quality: z.array(FilterOptionSchema),
+      genre: z.array(FilterOptionSchema),
+      release: z.array(FilterOptionSchema),
+    }),
+  })
+  .refine((l) => l.pageCount >= l.page, {
+    path: ['pageCount'],
+    message: 'page count is below the current page',
+  });
+export type ListPage = z.infer<typeof ListPageSchema>;
