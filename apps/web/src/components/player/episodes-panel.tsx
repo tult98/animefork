@@ -1,6 +1,6 @@
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import type { Episode, Season } from '../../lib/titles/watch.ts';
-import { ArrowLeft, AudioLines, Check, Play } from '../ui/icons.ts';
+import { ArrowLeft, AudioLines, Check } from '../ui/icons.ts';
 import { IconButton } from './icon-button.tsx';
 
 export type EpisodesView = 'episodes' | 'seasons';
@@ -112,7 +112,7 @@ function EpisodesView({
                   <ProgressLine percent={current ? playingProgress : 0} />
                 </span>
                 <span
-                  className="hidden gap-5 group-hover:flex group-focus-visible:flex group-data-[current=true]:flex"
+                  className="hidden gap-5 group-data-[current=true]:flex"
                   data-testid={current ? 'episode:now-playing' : undefined}
                 >
                   <span className="relative grid h-[94px] w-42 flex-none place-items-center overflow-hidden rounded-md bg-surface">
@@ -124,20 +124,8 @@ function EpisodesView({
                       />
                     ) : null}
                     <span className="relative flex items-center gap-2 text-body-strong">
-                      {current ? (
-                        <>
-                          <AudioLines aria-hidden="true" className="size-5" />
-                          {PLAYER_COPY.nowPlaying}
-                        </>
-                      ) : (
-                        <>
-                          <Play
-                            aria-hidden="true"
-                            className="size-5 fill-current"
-                          />
-                          {PLAYER_COPY.play}
-                        </>
-                      )}
+                      <AudioLines aria-hidden="true" className="size-5" />
+                      {PLAYER_COPY.nowPlaying}
                     </span>
                   </span>
                   {episode.synopsis ? (

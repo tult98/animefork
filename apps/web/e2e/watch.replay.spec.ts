@@ -315,15 +315,18 @@ test('hovering next episode shows the next episode card, and clicking it plays i
   await expect(page.getByTestId('player:episode-label')).toHaveText('Tập 2');
 });
 
-test('hovering an episode row reveals its thumbnail with a play label', async ({
+test('hovering an episode row only highlights it, and only the playing row expands', async ({
   page,
 }) => {
   await paused(page);
   await page.getByTestId('player:episodes').hover();
   const row = page.getByTestId('episode:4');
-  await expect(row.getByText('Phát', { exact: true })).toBeHidden();
   await row.hover();
-  await expect(row.getByText('Phát', { exact: true })).toBeVisible();
+  await expect(row.locator('img')).toBeHidden();
+  await expect(row.getByText('Đang phát')).toBeHidden();
+  await expect(
+    page.getByTestId('episode:1').getByText('Đang phát'),
+  ).toBeVisible();
 });
 
 test('episode rows and the next card are left-aligned to their padding', async ({
