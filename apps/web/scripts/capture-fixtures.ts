@@ -19,7 +19,7 @@ import { parseArgs } from 'node:util';
 import { fixtureFileFor } from '../src/lib/transport/fixture-path.ts';
 
 // Add a route here when a parser needs a new fixture.
-const TARGETS = ['/'];
+const TARGETS = ['/', '/phim/tonikaku-kawaii-a3860/xem-phim.html'];
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const { values } = parseArgs({
