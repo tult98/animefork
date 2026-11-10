@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import type { Episode, Season } from '../../lib/titles/watch.ts';
-import { ArrowLeft, AudioLines, Check } from '../ui/icons.ts';
+import { ArrowLeft, AudioLines, Check, Play } from '../ui/icons.ts';
 import { IconButton } from './icon-button.tsx';
 
 export type EpisodesView = 'episodes' | 'seasons';
@@ -65,6 +66,9 @@ function EpisodesView({
   onPickEpisode,
 }: EpisodesPanelProps) {
   const season = seasons.find((s) => s.slug === browseSlug);
+  const [chosenId, setChosenId] = useState<string>();
+  const expandedId =
+    chosenId ?? (browseSlug === playingSlug ? playingEpisodeId : undefined);
   return (
     <div className={PANEL} data-testid="player:episodes-panel">
       <div className="flex items-center gap-3 px-3 py-4">
@@ -92,49 +96,76 @@ function EpisodesView({
             const current =
               browseSlug === playingSlug && episode.id === playingEpisodeId;
             const name = episode.name ?? episode.label;
+            const expanded = episode.id === expandedId;
+            const n = index + 1;
             return (
-              <button
+              <div
                 key={episode.id}
-                type="button"
-                className="pl-row group flex-col items-stretch! gap-4 px-6 py-4"
+                className={`pl-er ${expanded ? 'bg-canvas outline-2 -outline-offset-2 outline-ink' : ''}`}
                 data-current={current}
-                aria-current={current ? 'true' : undefined}
-                data-testid={`episode:${index + 1}`}
-                onClick={() => onPickEpisode(browseSlug, episode)}
+                data-expanded={expanded}
+                data-testid={`episode:${n}`}
               >
-                <span className="flex items-center gap-5">
+                <button
+                  type="button"
+                  className="pl-row items-center! gap-5 px-6 py-4"
+                  aria-expanded={expanded}
+                  aria-current={current ? 'true' : undefined}
+                  data-testid={`episode:${n}:toggle`}
+                  onClick={() => setChosenId(episode.id)}
+                >
                   <span className="w-6 flex-none text-center text-title-sm font-medium tabular-nums">
-                    {index + 1}
+                    {n}
                   </span>
                   <span className="min-w-0 flex-1 text-title-sm font-medium">
                     {name}
                   </span>
                   <ProgressLine percent={current ? playingProgress : 0} />
-                </span>
-                <span
-                  className="hidden gap-5 group-data-[current=true]:flex"
-                  data-testid={current ? 'episode:now-playing' : undefined}
-                >
-                  <span className="relative grid h-[94px] w-42 flex-none place-items-center overflow-hidden rounded-md bg-surface">
-                    {episode.thumbnail || image ? (
-                      <img
-                        src={episode.thumbnail ?? image}
-                        alt=""
-                        className="absolute inset-0 size-full object-cover opacity-60"
-                      />
+                </button>
+                {expanded ? (
+                  <div
+                    className="flex gap-5 px-6 pb-5"
+                    data-testid={current ? 'episode:now-playing' : undefined}
+                  >
+                    <button
+                      type="button"
+                      className="relative grid h-[94px] w-42 flex-none place-items-center overflow-hidden rounded-md bg-surface text-ink"
+                      aria-label={`${PLAYER_COPY.play} ${name}`}
+                      data-testid={`episode:${n}:play`}
+                      onClick={() => {
+                        setChosenId(undefined);
+                        if (!current) onPickEpisode(browseSlug, episode);
+                      }}
+                    >
+                      {episode.thumbnail || image ? (
+                        <img
+                          src={episode.thumbnail ?? image}
+                          alt=""
+                          className="absolute inset-0 size-full object-cover opacity-60"
+                        />
+                      ) : null}
+                      {current ? (
+                        <span className="relative flex items-center gap-2 text-body-strong">
+                          <AudioLines aria-hidden="true" className="size-5" />
+                          {PLAYER_COPY.nowPlaying}
+                        </span>
+                      ) : (
+                        <span className="relative grid size-11 place-items-center rounded-full bg-hero-overlay shadow-[inset_0_0_0_2px_var(--ink)]">
+                          <Play
+                            aria-hidden="true"
+                            className="ml-0.5 size-5 fill-current"
+                          />
+                        </span>
+                      )}
+                    </button>
+                    {episode.synopsis ? (
+                      <span className="line-clamp-4 text-sm">
+                        {episode.synopsis}
+                      </span>
                     ) : null}
-                    <span className="relative flex items-center gap-2 text-body-strong">
-                      <AudioLines aria-hidden="true" className="size-5" />
-                      {PLAYER_COPY.nowPlaying}
-                    </span>
-                  </span>
-                  {episode.synopsis ? (
-                    <span className="line-clamp-4 text-sm">
-                      {episode.synopsis}
-                    </span>
-                  ) : null}
-                </span>
-              </button>
+                  </div>
+                ) : null}
+              </div>
             );
           })
         )}

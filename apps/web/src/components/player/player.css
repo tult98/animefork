@@ -167,3 +167,6 @@
 .pl-row[data-current='true'] .pl-glyph {
   color: var(--brand);
 }
+.pl-er:not([data-expanded='true']):hover {
+  background: var(--surface-alt);
+}

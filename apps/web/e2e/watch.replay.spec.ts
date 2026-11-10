@@ -196,7 +196,8 @@ test('the episodes popup lists the season and switching plays the pick', async (
     page.getByTestId('episode:now-playing').locator('img'),
   ).toBeVisible();
 
-  await page.getByTestId('episode:3').click();
+  await page.getByTestId('episode:3:toggle').click();
+  await page.getByTestId('episode:3:play').click();
   await expect(page).toHaveURL(new RegExp(`/watch/${SLUG}/${EPISODES[2]}`));
   await expect(page.getByTestId('player:episode-label')).toHaveText('Tập 3');
   await expect(page.getByTestId('player:title')).toHaveText(
@@ -239,7 +240,8 @@ test('the seasons view opens from the back button and opens another season', asy
     'false',
   );
 
-  await page.getByTestId('episode:2').click();
+  await page.getByTestId('episode:2:toggle').click();
+  await page.getByTestId('episode:2:play').click();
   await expect(page).toHaveURL(new RegExp(`/watch/${SEASON_2}/91102`));
   await expect(page.getByTestId('player:episode-label')).toHaveText('Tập 2');
 });
@@ -336,17 +338,10 @@ test('episode rows and the next card are left-aligned to their padding', async (
   await page.getByTestId('player:episodes').hover();
   const row = page.getByTestId('episode:2');
   const rowBox = await row.boundingBox();
-  const numberBox = await row
-    .locator('span')
-    .first()
-    .locator('span')
-    .first()
-    .boundingBox();
+  const toggle = row.getByTestId('episode:2:toggle');
+  const numberBox = await toggle.locator('span').first().boundingBox();
   expect(numberBox!.x - rowBox!.x).toBeLessThan(64);
-  const lineBox = await row
-    .getByTestId('episode:progress')
-    .or(row.locator('[aria-hidden="true"]').first())
-    .boundingBox();
+  const lineBox = await toggle.locator('span').last().boundingBox();
   expect(
     rowBox!.x + rowBox!.width - (lineBox!.x + lineBox!.width),
   ).toBeLessThan(64);
@@ -357,4 +352,20 @@ test('episode rows and the next card are left-aligned to their padding', async (
   const cardBox = await card.boundingBox();
   const thumb = await card.locator('span').first().boundingBox();
   expect(thumb!.x - cardBox!.x).toBeLessThan(64);
+});
+
+test('clicking an episode expands it and collapses the playing one, and its play button plays it', async ({
+  page,
+}) => {
+  await paused(page);
+  await page.getByTestId('player:episodes').hover();
+  const first = page.getByTestId('episode:1');
+  const third = page.getByTestId('episode:3');
+  await expect(first).toHaveAttribute('data-expanded', 'true');
+  await third.getByTestId('episode:3:toggle').click();
+  await expect(third).toHaveAttribute('data-expanded', 'true');
+  await expect(first).toHaveAttribute('data-expanded', 'false');
+  await expect(page).not.toHaveURL(new RegExp(`/${EPISODES[2]}`));
+  await third.getByTestId('episode:3:play').click();
+  await expect(page).toHaveURL(new RegExp(`/watch/${SLUG}/${EPISODES[2]}`));
 });
