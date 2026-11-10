@@ -119,7 +119,7 @@ function HeaderDemo({ solid }: { solid?: boolean }) {
 
 function Gallery() {
   return (
-    <div>
+    <div className="px-(--pad)">
       <h1 className="pt-8 text-2xl font-semibold">Design system</h1>
       <Section id="buttons" title="Buttons">
         <Buttons />

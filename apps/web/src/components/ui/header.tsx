@@ -77,3 +77,17 @@ export function HeaderIconButton({
     </BaseButton>
   );
 }
+
+export function HeaderAvatarButton({
+  label,
+  className,
+  ...rest
+}: Omit<ComponentProps<typeof BaseButton>, 'children' | 'aria-label'> & {
+  label: string;
+}) {
+  return (
+    <BaseButton aria-label={label} className={className} {...rest}>
+      <span className="af-avatar" />
+    </BaseButton>
+  );
+}

@@ -36,3 +36,24 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Layout variables shared by the shell, the hero and the shelves. */
+@theme {
+  --breakpoint-desk: 1100px;
+}
+
+:root {
+  --pad: var(--space-gutter);
+}
+
+@media (max-width: 1099px) {
+  :root {
+    --pad: 32px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --pad: 16px;
+  }
+}
