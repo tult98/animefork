@@ -3,4 +3,5 @@ packages:
   - apps/extension
   - apps/extension/client
   - apps/web
+  - packages/catalog
   - tools/avs-loader
