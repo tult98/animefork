@@ -1,67 +1,67 @@
 /* eslint-disable no-undef */
-import allowlist from "../../../allowlist.json"
-import { EXTRA } from "../../env"
+import allowlist from '../../../allowlist.json';
+import { EXTRA } from '../../env';
 
 const mapUa = {
   firefox:
-    "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
+    'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0',
   chrome:
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-  edge: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.41",
-  gbot: "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-  ybot: "Mozilla/5.0 (compatible; YandexAccessibilityBot/3.0; +http://yandex.com/bots)",
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+  edge: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.41',
+  gbot: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+  ybot: 'Mozilla/5.0 (compatible; YandexAccessibilityBot/3.0; +http://yandex.com/bots)',
   achrome:
-    "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+    'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
   aedge:
-    "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.41"
-} as const
+    'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.41',
+} as const;
 
 // eslint-disable-next-line functional/no-let
-let addedGoogleUserContent = false
+let addedGoogleUserContent = false;
 const RuleActionType =
-  typeof chrome?.declarativeNetRequest !== "undefined"
+  typeof chrome?.declarativeNetRequest !== 'undefined'
     ? chrome.declarativeNetRequest.RuleActionType
     : ({
-        BLOCK: "block",
-        REDIRECT: "redirect",
-        ALLOW: "allow",
-        UPGRADE_SCHEME: "upgradeScheme",
-        MODIFY_HEADERS: "modifyHeaders",
-        ALLOW_ALL_REQUESTS: "allowAllRequests"
-      } as typeof chrome.declarativeNetRequest.RuleActionType)
+        BLOCK: 'block',
+        REDIRECT: 'redirect',
+        ALLOW: 'allow',
+        UPGRADE_SCHEME: 'upgradeScheme',
+        MODIFY_HEADERS: 'modifyHeaders',
+        ALLOW_ALL_REQUESTS: 'allowAllRequests',
+      } as typeof chrome.declarativeNetRequest.RuleActionType);
 const HeaderOperation =
-  typeof chrome?.declarativeNetRequest !== "undefined"
+  typeof chrome?.declarativeNetRequest !== 'undefined'
     ? chrome.declarativeNetRequest.HeaderOperation
     : ({
-        APPEND: "append",
-        SET: "set",
-        REMOVE: "remove"
-      } as typeof chrome.declarativeNetRequest.HeaderOperation)
+        APPEND: 'append',
+        SET: 'set',
+        REMOVE: 'remove',
+      } as typeof chrome.declarativeNetRequest.HeaderOperation);
 const ResourceType =
-  typeof chrome?.declarativeNetRequest !== "undefined"
+  typeof chrome?.declarativeNetRequest !== 'undefined'
     ? chrome.declarativeNetRequest.ResourceType
     : ({
-        MAIN_FRAME: "main_frame",
-        SUB_FRAME: "sub_frame",
-        STYLESHEET: "stylesheet",
-        SCRIPT: "script",
-        IMAGE: "image",
-        FONT: "font",
-        OBJECT: "object",
-        XMLHTTPREQUEST: "xmlhttprequest",
-        PING: "ping",
-        CSP_REPORT: "csp_report",
-        MEDIA: "media",
-        WEBSOCKET: "websocket",
-        OTHER: "other"
-      } as typeof chrome.declarativeNetRequest.ResourceType)
+        MAIN_FRAME: 'main_frame',
+        SUB_FRAME: 'sub_frame',
+        STYLESHEET: 'stylesheet',
+        SCRIPT: 'script',
+        IMAGE: 'image',
+        FONT: 'font',
+        OBJECT: 'object',
+        XMLHTTPREQUEST: 'xmlhttprequest',
+        PING: 'ping',
+        CSP_REPORT: 'csp_report',
+        MEDIA: 'media',
+        WEBSOCKET: 'websocket',
+        OTHER: 'other',
+      } as typeof chrome.declarativeNetRequest.ResourceType);
 
-const typesUa = Object.keys(mapUa) as (keyof typeof mapUa)[]
+const typesUa = Object.keys(mapUa) as (keyof typeof mapUa)[];
 // eslint-disable-next-line functional/no-let
-let currentId = 1
+let currentId = 1;
 
 export function createRule(endsWith: string, referer: string) {
-  if (__DEV__) console.log(endsWith, referer)
+  if (__DEV__) console.log(endsWith, referer);
   // endsWith = `${HASH}${endsWith}`
   const rules: chrome.declarativeNetRequest.Rule[] = [
     {
@@ -71,16 +71,16 @@ export function createRule(endsWith: string, referer: string) {
         type: RuleActionType.MODIFY_HEADERS,
         requestHeaders: [
           {
-            header: "Referer",
+            header: 'Referer',
             operation: HeaderOperation.SET,
-            value: referer
-          }
-        ]
+            value: referer,
+          },
+        ],
       },
       condition: {
-        urlFilter: endsWith + "|",
-        resourceTypes: [ResourceType.XMLHTTPREQUEST] // see available https://developer.chrome.com/docs/extensions/reference/declarativeNetRequest/#type-ResourceType
-      }
+        urlFilter: endsWith + '|',
+        resourceTypes: [ResourceType.XMLHTTPREQUEST], // see available https://developer.chrome.com/docs/extensions/reference/declarativeNetRequest/#type-ResourceType
+      },
     },
     {
       id: currentId++,
@@ -89,35 +89,35 @@ export function createRule(endsWith: string, referer: string) {
         type: RuleActionType.MODIFY_HEADERS,
         requestHeaders: [
           {
-            header: "Referer",
+            header: 'Referer',
             operation: HeaderOperation.SET,
-            value: referer
-          }
+            value: referer,
+          },
         ],
         responseHeaders: [
           {
-            header: "Access-Control-Allow-Origin",
+            header: 'Access-Control-Allow-Origin',
             operation: HeaderOperation.SET,
-            value: "*"
+            value: '*',
           },
           {
-            header: "Access-Control-Allow-Methods",
+            header: 'Access-Control-Allow-Methods',
             operation: HeaderOperation.SET,
-            value: "PUT, GET, HEAD, POST, DELETE, OPTIONS"
-          }
-        ]
+            value: 'PUT, GET, HEAD, POST, DELETE, OPTIONS',
+          },
+        ],
       },
       condition: {
-        urlFilter: endsWith + EXTRA + "|",
+        urlFilter: endsWith + EXTRA + '|',
         resourceTypes: [
           ResourceType.XMLHTTPREQUEST,
           ResourceType.IMAGE,
-          ResourceType.MEDIA
+          ResourceType.MEDIA,
         ], // see available https://developer.chrome.com/docs/extensions/reference/declarativeNetRequest/#type-ResourceType
-        initiatorDomains: allowlist.hosts
-      }
-    }
-  ]
+        initiatorDomains: allowlist.hosts,
+      },
+    },
+  ];
 
   // add rules set header Origin
   // eslint-disable-next-line functional/no-loop-statements
@@ -125,50 +125,50 @@ export function createRule(endsWith: string, referer: string) {
     {
       const newRule = {
         ...JSON.parse(JSON.stringify(rules[i])),
-        id: currentId++
-      }
+        id: currentId++,
+      };
       newRule.action.requestHeaders?.push({
-        header: "Origin",
+        header: 'Origin',
         operation: HeaderOperation.SET,
-        value: referer ? new URL(referer).origin : ""
-      })
+        value: referer ? new URL(referer).origin : '',
+      });
       newRule.condition = {
-        urlFilter: newRule.condition.urlFilter?.slice(0, -1) + "o|",
-        resourceTypes: [ResourceType.XMLHTTPREQUEST] // see available https://developer.chrome.com/docs/extensions/reference/declarativeNetRequest/#type-ResourceType
-      }
-      rules.push(newRule)
+        urlFilter: newRule.condition.urlFilter?.slice(0, -1) + 'o|',
+        resourceTypes: [ResourceType.XMLHTTPREQUEST], // see available https://developer.chrome.com/docs/extensions/reference/declarativeNetRequest/#type-ResourceType
+      };
+      rules.push(newRule);
     }
 
     {
       const newRule2 = {
         ...JSON.parse(JSON.stringify(rules[i])),
-        id: currentId++
-      }
+        id: currentId++,
+      };
       newRule2.action.requestHeaders!.push({
-        header: "Origin",
-        operation: HeaderOperation.REMOVE
-      })
+        header: 'Origin',
+        operation: HeaderOperation.REMOVE,
+      });
       newRule2.condition.urlFilter =
-        newRule2.condition.urlFilter.slice(0, -1) + "ro|"
-      rules.push(newRule2)
+        newRule2.condition.urlFilter.slice(0, -1) + 'ro|';
+      rules.push(newRule2);
     }
   }
 
   rules.forEach((rule) => {
     typesUa.forEach((typeUa) => {
-      const ruleCloned = JSON.parse(JSON.stringify(rule))
-      ruleCloned.id = currentId++
+      const ruleCloned = JSON.parse(JSON.stringify(rule));
+      ruleCloned.id = currentId++;
       ruleCloned.action.requestHeaders?.push({
-        header: "User-Agent",
+        header: 'User-Agent',
         operation: HeaderOperation.SET,
-        value: mapUa[typeUa]
-      })
+        value: mapUa[typeUa],
+      });
       ruleCloned.condition.urlFilter =
-        ruleCloned.condition.urlFilter?.slice(0, -1) + "_ua" + typeUa + "|"
+        ruleCloned.condition.urlFilter?.slice(0, -1) + '_ua' + typeUa + '|';
 
-      rules.push(ruleCloned)
-    })
-  })
+      rules.push(ruleCloned);
+    });
+  });
 
   if (!addedGoogleUserContent) {
     rules.push(
@@ -179,69 +179,69 @@ export function createRule(endsWith: string, referer: string) {
           type: RuleActionType.MODIFY_HEADERS,
           requestHeaders: [
             {
-              header: "Accept-Encoding",
+              header: 'Accept-Encoding',
               operation: HeaderOperation.SET,
-              value: "gzip, deflate, br, zstd"
+              value: 'gzip, deflate, br, zstd',
             },
             {
-              header: "Origin",
-              operation: HeaderOperation.REMOVE
+              header: 'Origin',
+              operation: HeaderOperation.REMOVE,
             },
             {
-              header: "Priority",
+              header: 'Priority',
               operation: HeaderOperation.SET,
-              value: "i"
+              value: 'i',
             },
             {
-              header: "Referer",
+              header: 'Referer',
               operation: HeaderOperation.SET,
-              value: "https://lh3.googleusercontent.com/"
+              value: 'https://lh3.googleusercontent.com/',
             },
             {
-              header: "Sec-Fetch-Dest",
+              header: 'Sec-Fetch-Dest',
               operation: HeaderOperation.SET,
-              value: "image"
+              value: 'image',
             },
             {
-              header: "Sec-Fetch-Mode",
+              header: 'Sec-Fetch-Mode',
               operation: HeaderOperation.SET,
-              value: "no-cors"
+              value: 'no-cors',
             },
             {
-              header: "Sec-Fetch-Site",
+              header: 'Sec-Fetch-Site',
               operation: HeaderOperation.SET,
-              value: "cross-site"
+              value: 'cross-site',
             },
             {
-              header: "Sec-Gpc",
+              header: 'Sec-Gpc',
               operation: HeaderOperation.SET,
-              value: "1"
-            }
+              value: '1',
+            },
           ],
           responseHeaders: [
             {
-              header: "Access-Control-Allow-Origin",
+              header: 'Access-Control-Allow-Origin',
               operation: HeaderOperation.SET,
-              value: "*"
+              value: '*',
             },
             {
-              header: "Access-Control-Allow-Methods",
+              header: 'Access-Control-Allow-Methods',
               operation: HeaderOperation.SET,
-              value: "PUT, GET, HEAD, POST, DELETE, OPTIONS"
-            }
-          ]
+              value: 'PUT, GET, HEAD, POST, DELETE, OPTIONS',
+            },
+          ],
         },
         condition: {
           // urlFilter: endsWith + GA + "|",
           regexFilter:
-            "^https?://([a-zA-Z0-9-]+\\.)?googleusercontent\\.[a-zA-Z]{2,}(/|$)",
+            '^https?://([a-zA-Z0-9-]+\\.)?googleusercontent\\.[a-zA-Z]{2,}(/|$)',
           resourceTypes: [
             ResourceType.XMLHTTPREQUEST,
             ResourceType.IMAGE,
-            ResourceType.MEDIA
+            ResourceType.MEDIA,
           ], // see available https://developer.chrome.com/docs/extensions/reference/declarativeNetRequest/#type-ResourceType
-          initiatorDomains: allowlist.hosts
-        }
+          initiatorDomains: allowlist.hosts,
+        },
       },
       {
         id: currentId++,
@@ -250,52 +250,52 @@ export function createRule(endsWith: string, referer: string) {
           type: RuleActionType.MODIFY_HEADERS,
           requestHeaders: [
             {
-              header: "Origin",
-              operation: HeaderOperation.REMOVE
+              header: 'Origin',
+              operation: HeaderOperation.REMOVE,
             },
             {
-              header: "Referer",
-              operation: HeaderOperation.REMOVE
+              header: 'Referer',
+              operation: HeaderOperation.REMOVE,
             },
             {
-              header: "Sec-Fetch-Mode",
-              operation: HeaderOperation.REMOVE
+              header: 'Sec-Fetch-Mode',
+              operation: HeaderOperation.REMOVE,
             },
             {
-              header: "Sec-Fetch-Site",
-              operation: HeaderOperation.REMOVE
+              header: 'Sec-Fetch-Site',
+              operation: HeaderOperation.REMOVE,
             },
             {
-              header: "Sec-Gpc",
-              operation: HeaderOperation.REMOVE
-            }
+              header: 'Sec-Gpc',
+              operation: HeaderOperation.REMOVE,
+            },
           ],
           responseHeaders: [
             {
-              header: "Access-Control-Allow-Origin",
+              header: 'Access-Control-Allow-Origin',
               operation: HeaderOperation.SET,
-              value: "*"
+              value: '*',
             },
             {
-              header: "Access-Control-Allow-Methods",
+              header: 'Access-Control-Allow-Methods',
               operation: HeaderOperation.SET,
-              value: "PUT, GET, HEAD, POST, DELETE, OPTIONS"
-            }
-          ]
+              value: 'PUT, GET, HEAD, POST, DELETE, OPTIONS',
+            },
+          ],
         },
         condition: {
-          urlFilter: "#rm-origin|",
+          urlFilter: '#rm-origin|',
           resourceTypes: [
             ResourceType.XMLHTTPREQUEST,
             ResourceType.IMAGE,
-            ResourceType.MEDIA
+            ResourceType.MEDIA,
           ], // see available https://developer.chrome.com/docs/extensions/reference/declarativeNetRequest/#type-ResourceType
-          initiatorDomains: allowlist.hosts
-        }
-      }
-    )
-    addedGoogleUserContent = true
+          initiatorDomains: allowlist.hosts,
+        },
+      },
+    );
+    addedGoogleUserContent = true;
   }
 
-  return rules
+  return rules;
 }

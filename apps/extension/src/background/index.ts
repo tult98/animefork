@@ -1,85 +1,85 @@
 /* eslint-disable operator-linebreak */
 /* eslint-disable no-undef */
 
-import { onMessage } from "@tachibana-shin/webext-bridge/background"
-import { serialize } from "cookie"
-import browser from "webextension-polyfill"
+import { onMessage } from '@tachibana-shin/webext-bridge/background';
+import { serialize } from 'cookie';
+import browser from 'webextension-polyfill';
 
-import referrersDefault from "../../map-referer.json"
-import { EXTRA } from "../env"
-import { arrayBufferToBase64 } from "../logic/arrayBufferToBase64"
+import referrersDefault from '../../map-referer.json';
+import { EXTRA } from '../env';
+import { arrayBufferToBase64 } from '../logic/arrayBufferToBase64';
 
-import { getReferrers } from "./logic/get-referrers"
-import { installEmbedRules } from "./logic/install-embed-rules"
-import { installReferrers } from "./logic/install-referers"
+import { getReferrers } from './logic/get-referrers';
+import { installEmbedRules } from './logic/install-embed-rules';
+import { installReferrers } from './logic/install-referers';
 
 // setup install rules default
 const setup = Promise.all([
   installReferrers(referrersDefault),
   getReferrers().then((referrers) =>
-    installReferrers(referrers as Record<string, string>)
-  )
-])
+    installReferrers(referrers as Record<string, string>),
+  ),
+]);
 
 // The embed rules are optional: never let a failure here break the HTTP API.
 installEmbedRules().catch((error) => {
-  console.error("[AnimeVsub Helper] Failed to install embed rules:", error)
-})
+  console.error('[AnimeVsub Helper] Failed to install embed rules:', error);
+});
 
-onMessage<Record<string, string>>("set:referrers", async ({ data }) => {
-  await setup
-  await installReferrers(data)
-})
-onMessage("get:HASH", async () => {
-  await setup
-  return EXTRA
-})
+onMessage<Record<string, string>>('set:referrers', async ({ data }) => {
+  await setup;
+  await installReferrers(data);
+});
+onMessage('get:HASH', async () => {
+  await setup;
+  return EXTRA;
+});
 
 export interface RequestResponse {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  headers: Record<string, any>
-  data: string | ArrayBuffer
-  url: string
-  status: number
+  headers: Record<string, any>;
+  data: string | ArrayBuffer;
+  url: string;
+  status: number;
 }
 
 export type RequestOption = Pick<
   RequestInit,
-  | "method"
-  | "cache"
-  | "integrity"
-  | "keepalive"
-  | "redirect"
-  | "referrerPolicy"
-  | "window"
+  | 'method'
+  | 'cache'
+  | 'integrity'
+  | 'keepalive'
+  | 'redirect'
+  | 'referrerPolicy'
+  | 'window'
 > & {
-  url: string
-  headers?: Record<string, string>
-  responseType?: "arraybuffer" | "json" | "text"
-  signalId?: string | true
-  data?: Record<string, number | string | boolean> | string
-}
+  url: string;
+  headers?: Record<string, string>;
+  responseType?: 'arraybuffer' | 'json' | 'text';
+  signalId?: string | true;
+  data?: Record<string, number | string | boolean> | string;
+};
 
 // eslint-disable-next-line functional/no-classes
 const eventsAbort = new (class EventsAbort {
   // eslint-disable-next-line func-call-spacing
-  private readonly store = new Map<string, () => void>()
+  private readonly store = new Map<string, () => void>();
 
   constructor() {
     onMessage<{ signalId: string }>(
-      "http:aborted",
+      'http:aborted',
       ({ data: { signalId } }) => {
-        eventsAbort.store.get(signalId)?.()
-      }
-    )
+        eventsAbort.store.get(signalId)?.();
+      },
+    );
   }
 
   on(id: string, fn: () => void) {
-    this.store.set(id, fn)
+    this.store.set(id, fn);
 
-    return () => this.store.delete(id)
+    return () => this.store.delete(id);
   }
-})()
+})();
 
 async function sendRequest({
   url,
@@ -87,128 +87,128 @@ async function sendRequest({
   responseType,
   signalId,
   method,
-  data
+  data,
 }: RequestOption): Promise<RequestResponse> {
   // eslint-disable-next-line functional/no-let
-  let form: FormData | string | undefined
+  let form: FormData | string | undefined;
   if (data) {
-    if (typeof data === "object") {
-      form = new FormData()
+    if (typeof data === 'object') {
+      form = new FormData();
 
       Object.entries(data ?? {}).forEach(([key, val]) =>
-        (form as FormData).append(key, val as string)
-      )
+        (form as FormData).append(key, val as string),
+      );
     } else {
-      form = data
+      form = data;
     }
   }
 
   // eslint-disable-next-line functional/no-let
-  let signal: AbortSignal | undefined
+  let signal: AbortSignal | undefined;
   // eslint-disable-next-line functional/no-let
-  let cancelAbort: (() => void) | undefined
+  let cancelAbort: (() => void) | undefined;
 
   if (signalId) {
-    const controller = new AbortController()
-    signal = controller.signal
+    const controller = new AbortController();
+    signal = controller.signal;
     if (signalId === true) {
-      controller.abort()
+      controller.abort();
     } else {
       // init abortcontroller
       cancelAbort = eventsAbort.on(signalId, () => {
-        controller.abort()
-        cancelAbort?.()
-      })
+        controller.abort();
+        cancelAbort?.();
+      });
     }
   }
 
-  await setup
+  await setup;
 
-  if (headers?.["c-cookie"]) await setCookie(url, headers["c-cookie"])
+  if (headers?.['c-cookie']) await setCookie(url, headers['c-cookie']);
 
   return fetch(url, {
     headers: new Headers(headers),
-    credentials: "include",
+    credentials: 'include',
     signal,
     method,
-    body: form
+    body: form,
   })
     .then(async (res) => {
-      cancelAbort?.()
+      cancelAbort?.();
 
       return {
         headers: await mergeSetCookie(res.headers, res.url),
         data:
-          responseType === "arraybuffer"
+          responseType === 'arraybuffer'
             ? // eslint-disable-next-line promise/no-nesting, indent
               await res.arrayBuffer().then(arrayBufferToBase64)
             : await res.text(),
         url: res.url,
-        status: res.status
-      }
+        status: res.status,
+      };
     })
     .catch((err) => {
-      cancelAbort?.()
+      cancelAbort?.();
       // eslint-disable-next-line functional/no-throw-statements
-      throw err
-    })
+      throw err;
+    });
 }
 
 onMessage<RequestOption, string>(
-  "http:request",
-  ({ data }): Promise<RequestResponse> => sendRequest(data)
-)
+  'http:request',
+  ({ data }): Promise<RequestResponse> => sendRequest(data),
+);
 
 async function mergeSetCookie(headers: Headers, url: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const obj = Object.fromEntries((headers as unknown as any).entries())
-  obj["set-cookie"] = (await browser.cookies.getAll({ url }))
+  const obj = Object.fromEntries((headers as unknown as any).entries());
+  obj['set-cookie'] = (await browser.cookies.getAll({ url }))
     .map((item) =>
       serialize(item.name, item.value, {
         ...item,
-        sameSite: "none",
+        sameSite: 'none',
         ...(item.expirationDate
           ? { expires: new Date(Date.now() + item.expirationDate) }
-          : {})
-      })
+          : {}),
+      }),
     )
-    .join(",")
+    .join(',');
 
-  return obj
+  return obj;
 }
 
 // function auto fix
 onMessage<{
-  type: string
+  type: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: any
-}>("tabs", async ({ data }) => {
+  args: any;
+}>('tabs', async ({ data }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (browser.tabs as unknown as any)[data.type].apply(
     browser.tabs,
-    data.args
-  )
-})
+    data.args,
+  );
+});
 
 async function setCookie(url: string, cookie: string) {
   return Promise.all(
-    cookie.split(";").map(async (item) => {
-      const equal = item.indexOf("=")
-      if (equal === -1) return
+    cookie.split(';').map(async (item) => {
+      const equal = item.indexOf('=');
+      if (equal === -1) return;
 
-      const name = item.slice(0, equal)
-      const value = item.slice(equal + 1)
+      const name = item.slice(0, equal);
+      const value = item.slice(equal + 1);
 
       await chrome.cookies.set({
         domain: new URL(url).hostname,
         name,
-        path: "/",
+        path: '/',
         value,
         url,
         httpOnly: true,
         secure: false,
-        storeId: "0"
-      })
-    })
-  )
+        storeId: '0',
+      });
+    }),
+  );
 }

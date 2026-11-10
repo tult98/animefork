@@ -1,2 +1,2 @@
-export * from "../embed/client"
-export * from "../embed/protocol"
+export * from '../embed/client';
+export * from '../embed/protocol';

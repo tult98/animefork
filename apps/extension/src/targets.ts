@@ -4,19 +4,19 @@
  * `gecko` marks the targets that need Firefox-only manifest keys.
  */
 export const TARGETS = {
-  "chrome-mv3": { gecko: false },
-  "firefox-mv3": { gecko: true }
-} as const satisfies Record<string, { gecko: boolean }>
+  'chrome-mv3': { gecko: false },
+  'firefox-mv3': { gecko: true },
+} as const satisfies Record<string, { gecko: boolean }>;
 
-export type TargetName = keyof typeof TARGETS
+export type TargetName = keyof typeof TARGETS;
 export interface Target {
-  name: TargetName
-  gecko: boolean
+  name: TargetName;
+  gecko: boolean;
 }
 
 export const targets: readonly Target[] = Object.entries(TARGETS).map(
-  ([name, t]) => ({ name: name as TargetName, gecko: t.gecko })
-)
+  ([name, t]) => ({ name: name as TargetName, gecko: t.gecko }),
+);
 
 /**
  * Every bundle the extension ships, keyed by its output path under `<target>/dist/`.
@@ -25,11 +25,11 @@ export const targets: readonly Target[] = Object.entries(TARGETS).map(
  * Chrome service worker and the Firefox event page are the same file.
  */
 export const ENTRIES = {
-  "background/index": "src/background/index.ts",
-  "contentScripts/index.global": "src/contentScripts/index.ts",
-  "contentScripts/inject.global": "src/contentScripts/inject.ts",
-  "contentScripts/inject2.global": "src/contentScripts/inject2.ts",
-  "contentScripts/embed.global": "src/contentScripts/embed.ts"
-} as const
+  'background/index': 'src/background/index.ts',
+  'contentScripts/index.global': 'src/contentScripts/index.ts',
+  'contentScripts/inject.global': 'src/contentScripts/inject.ts',
+  'contentScripts/inject2.global': 'src/contentScripts/inject2.ts',
+  'contentScripts/embed.global': 'src/contentScripts/embed.ts',
+} as const;
 
-export type BundlePath = `dist/${keyof typeof ENTRIES}.js`
+export type BundlePath = `dist/${keyof typeof ENTRIES}.js`;
