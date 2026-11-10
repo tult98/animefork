@@ -110,9 +110,6 @@ importers:
       hls-parser:
         specifier: 0.13.3
         version: 0.13.3
-      hls-to-mp4-browser:
-        specifier: git+https://github.com/anime-vsub/hls-to-mp4-browser.git
-        version: https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70
       htmlparser2:
         specifier: 8.0.2
         version: 8.0.2
@@ -1700,10 +1697,6 @@ packages:
   '@ffmpeg/types@0.12.4':
     resolution: {integrity: sha512-k9vJQNBGTxE5AhYDtOYR5rO5fKsspbg51gbcwtbkw2lCdoIILzklulcjJfIDwrtn7XhDeF2M+THwJ2FGrLeV6A==}
     engines: {node: '>=16.x'}
-
-  '@ffmpeg/util@0.12.2':
-    resolution: {integrity: sha512-ouyoW+4JB7WxjeZ2y6KpRvB+dLp7Cp4ro8z0HIVpZVCM7AwFlHa0c4R8Y/a4M3wMqATpYKhC7lSFHQ0T11MEDw==}
-    engines: {node: '>=18.x'}
 
   '@firebase/analytics@0.10.7':
     resolution: {integrity: sha512-GE29uTT6y/Jv2EP0OjpTezeTQZ5FTCTaZXKrrdVGjb/t35AU4u/jiU+hUwUPpuK8fqhhiHkS/AawE3a3ZK/a9Q==}
@@ -6139,10 +6132,6 @@ packages:
   hls-parser@0.13.3:
     resolution: {integrity: sha512-DXqW7bwx9j2qFcAXS/LBJTDJWitxknb6oUnsnTvECHrecPvPbhRgIu45OgNDUU6gpwKxMJx40SHRRUUhdIM2gA==}
 
-  hls-to-mp4-browser@https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70:
-    resolution: {tarball: https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70}
-    version: 0.0.0
-
   hls.js@1.5.9:
     resolution: {integrity: sha512-CZBc086Ljw7Ie1IGOGUPLiINBPuJcv53O3jPRjH9aJJcbaOxAm7+jf3/TKpNZlCjCjXIz0GhmQCVAyraF7/SkA==}
 
@@ -8930,9 +8919,6 @@ packages:
   ts-retry@4.2.5:
     resolution: {integrity: sha512-dFBa4pxMBkt/bjzdBio8EwYfbAdycEAwe0KZgzlUKKwU9Wr1WErK7Hg9QLqJuDDYJXTW4KYZyXAyqYKOdO/ehA==}
 
-  ts-retry@5.0.1:
-    resolution: {integrity: sha512-sjIHRgS8eApTkuAXkASMfRSMigeTMmaxvCf4+1V6xGpo0IsuBrssqHRZh6IRgD9f8+7KeFLxNOLvWYy/mw3YBQ==}
-
   tsconfig-paths@3.15.0:
     resolution: {integrity: sha512-2Ac2RgzDe/cn48GvOe3M+o82pEFewD3UPbyoUHHdKasHwJKjds4fLXWf/Ux5kATBKN20oaFGu+jbElp1pos0mg==}
 
@@ -11238,8 +11224,6 @@ snapshots:
       '@ffmpeg/types': 0.12.4
 
   '@ffmpeg/types@0.12.4': {}
-
-  '@ffmpeg/util@0.12.2': {}
 
   '@firebase/analytics@0.10.7(@firebase/app@0.10.10)':
     dependencies:
@@ -16412,16 +16396,6 @@ snapshots:
 
   hls-parser@0.13.3: {}
 
-  hls-to-mp4-browser@https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70:
-    dependencies:
-      '@ffmpeg/core': 0.12.6
-      '@ffmpeg/ffmpeg': 0.12.10
-      '@ffmpeg/util': 0.12.2
-      hls-parser: 0.13.3
-      p-limit: 6.1.0
-      sha256: 0.2.0
-      ts-retry: 5.0.1
-
   hls.js@1.5.9: {}
 
   hookable@5.5.3: {}
@@ -19372,8 +19346,6 @@ snapshots:
   ts-md5@1.3.1: {}
 
   ts-retry@4.2.5: {}
-
-  ts-retry@5.0.1: {}
 
   tsconfig-paths@3.15.0:
     dependencies:
