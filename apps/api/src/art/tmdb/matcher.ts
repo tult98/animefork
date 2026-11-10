@@ -5,20 +5,26 @@ export interface Candidate {
   alternativeTitles: string[];
   firstAirDate?: string;
   episodeCount?: number;
+  overview?: string;
 }
 
 export interface MatchQuestion {
+  slug: string;
   sourceTitle: string;
+  season: number;
   seasonName?: string;
   year?: number;
   episodeCount?: number;
   candidates: Candidate[];
 }
 
+export type MatcherName = 'baseline' | 'jev';
+
 export interface MatchAnswer {
   choice: number | null;
   probability: number;
   episodeOffset?: number;
+  by: MatcherName;
 }
 
 export interface Matcher {
@@ -109,11 +115,16 @@ export class BaselineMatcher implements Matcher {
       }))
       .sort((a, b) => b.score - a.score);
     const [best, runnerUp] = scored;
-    if (!best) return { choice: null, probability: 0 };
+    if (!best) return { choice: null, probability: 0, by: 'baseline' };
     if (runnerUp && best.score - runnerUp.score < MIN_MARGIN) {
-      return { choice: null, probability: best.score };
+      return { choice: null, probability: best.score, by: 'baseline' };
     }
-    return { choice: best.id, probability: best.score, episodeOffset: 0 };
+    return {
+      choice: best.id,
+      probability: best.score,
+      episodeOffset: 0,
+      by: 'baseline',
+    };
   }
 }
 
@@ -121,4 +132,22 @@ export function decide(answer: MatchAnswer): number | null {
   return answer.choice !== null && answer.probability >= MIN_MATCH_PROBABILITY
     ? answer.choice
     : null;
+}
+
+export class CascadeMatcher implements Matcher {
+  private readonly baseline: Matcher;
+  private readonly second: Matcher;
+
+  constructor(baseline: Matcher, second: Matcher) {
+    this.baseline = baseline;
+    this.second = second;
+  }
+
+  async match(question: MatchQuestion): Promise<MatchAnswer> {
+    const answer = await this.baseline.match(question);
+    if (decide(answer) !== null || question.candidates.length === 0) {
+      return answer;
+    }
+    return this.second.match(question);
+  }
 }

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { MATCHER_VERSION, RETRY_AFTER_MS } from '../../src/art/retry.ts';
+import {
+  MATCHED_REFRESH_BELOW,
+  MISS_RETRY_BELOW,
+  RETRY_AFTER_MS,
+} from '../../src/art/retry.ts';
+import type { StoredTitle } from '../../src/art/art.store.ts';
 import { NOTHING, setup, TONIKAWA } from './helpers.ts';
 import { mockTmdb } from './tmdb/tmdb-mock.ts';
 
@@ -70,7 +75,7 @@ describe('ArtService.lookup', () => {
   it('never replaces a matched row', async () => {
     const { service, store, filler } = setup();
     await filler.fill(TONIKAWA);
-    await store.saveMiss(TONIKAWA.slug, 'failed', 'late failure');
+    await store.saveMiss(TONIKAWA, 'failed', 'late failure');
     await store.saveMatched({
       title: {
         source_slug: TONIKAWA.slug,
@@ -80,6 +85,10 @@ describe('ArtService.lookup', () => {
         backdrop_lang: null,
         poster_path: '/other-poster.jpg',
         poster_lang: null,
+        source_name: TONIKAWA.name,
+        source_year: null,
+        source_episode_count: null,
+        matched_by: 'baseline',
       },
       episodes: [],
     });
@@ -101,21 +110,68 @@ describe('ArtService.lookup', () => {
     expect(searches).toEqual(['Tonikaku Kawaii', 'Nothing Here']);
   });
 
+  const storedRow = (over: Partial<StoredTitle>): StoredTitle => ({
+    slug: TONIKAWA.slug,
+    status: 'matched',
+    tmdbId: 100,
+    tmdbSeason: 1,
+    backdropPath: '/old.jpg',
+    backdropLang: null,
+    posterPath: null,
+    posterLang: null,
+    reason: null,
+    matcherVersion: MATCHED_REFRESH_BELOW - 1,
+    attemptedAt: new Date(),
+    sourceName: null,
+    sourceYear: null,
+    sourceEpisodeCount: null,
+    matchedBy: null,
+    ...over,
+  });
+
+  it('does not refresh a matched row written by version 2', async () => {
+    const { service, store, filler, searches } = setup();
+    store.titles.set(
+      TONIKAWA.slug,
+      storedRow({ matcherVersion: MATCHED_REFRESH_BELOW }),
+    );
+    const out = await service.lookup({ titles: [TONIKAWA] });
+    expect(out.art[TONIKAWA.slug]).toMatchObject({ status: 'ready' });
+    expect(filler.has(TONIKAWA.slug)).toBe(false);
+    expect(searches).toEqual([]);
+  });
+
+  it.each(['no_match', 'failed'] as const)(
+    'retries a fresh %s row written below version 3 on its next lookup',
+    async (status) => {
+      const { service, store, filler } = setup();
+      store.titles.set(
+        TONIKAWA.slug,
+        storedRow({
+          status,
+          tmdbId: null,
+          tmdbSeason: null,
+          backdropPath: null,
+          matcherVersion: MISS_RETRY_BELOW - 1,
+        }),
+      );
+      const out = await service.lookup({ titles: [TONIKAWA] });
+      expect(out.art[TONIKAWA.slug]).toEqual({ status: 'pending' });
+      await filler.idle();
+      expect(store.titles.get(TONIKAWA.slug)).toMatchObject({
+        status: 'matched',
+        matcherVersion: MISS_RETRY_BELOW,
+        sourceName: TONIKAWA.name,
+        sourceYear: TONIKAWA.year,
+        sourceEpisodeCount: TONIKAWA.episodeCount,
+        matchedBy: 'baseline',
+      });
+    },
+  );
+
   describe('a matched row from an older matcher version', () => {
     const stale = (store: ReturnType<typeof setup>['store']) => {
-      store.titles.set(TONIKAWA.slug, {
-        slug: TONIKAWA.slug,
-        status: 'matched',
-        tmdbId: 100,
-        tmdbSeason: 1,
-        backdropPath: '/old.jpg',
-        backdropLang: null,
-        posterPath: null,
-        posterLang: null,
-        reason: null,
-        matcherVersion: MATCHER_VERSION - 1,
-        attemptedAt: new Date(),
-      });
+      store.titles.set(TONIKAWA.slug, storedRow({}));
     };
 
     it('answers ready at once with what is stored and refills in the background', async () => {
@@ -153,7 +209,7 @@ describe('ArtService.lookup', () => {
       expect(store.titles.get(TONIKAWA.slug)).toMatchObject({
         status: 'matched',
         backdropPath: '/old.jpg',
-        matcherVersion: MATCHER_VERSION - 1,
+        matcherVersion: MATCHED_REFRESH_BELOW - 1,
       });
       const out = await service.lookup({ titles: [TONIKAWA] });
       expect(out.art[TONIKAWA.slug]).toMatchObject({

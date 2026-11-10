@@ -1,7 +1,10 @@
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PostgresArtStore } from '../../src/art/art.store.ts';
-import { MATCHER_VERSION } from '../../src/art/retry.ts';
+import {
+  MATCHED_REFRESH_BELOW,
+  MATCHER_VERSION,
+} from '../../src/art/retry.ts';
 import {
   DEFAULT_MIGRATIONS_DIR,
   MigrationRunner,
@@ -10,6 +13,7 @@ import {
 const url = process.env.DATABASE_URL;
 const prefix = `test-${process.pid}-${Date.now()}`;
 const slug = (name: string) => `${prefix}-${name}`;
+const source = (s: string) => ({ slug: s, name: 'Source Name' });
 
 describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
   let pool: pg.Pool;
@@ -36,6 +40,10 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
     backdrop_lang: 'en',
     poster_path: `/poster${backdrop}`,
     poster_lang: 'vi',
+    source_name: 'Source Name',
+    source_year: null,
+    source_episode_count: null,
+    matched_by: 'baseline' as const,
   });
 
   it('stores a matched title with its stills in one write', async () => {
@@ -67,7 +75,7 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
   it('keeps the first matched write and ignores later misses and matches', async () => {
     const s = slug('first-wins');
     await store.saveMatched({ title: title(s, '/first.jpg'), episodes: [] });
-    await store.saveMiss(s, 'failed', 'late');
+    await store.saveMiss(source(s), 'failed', 'late');
     await store.saveMatched({
       title: title(s, '/second.jpg'),
       episodes: [{ source_slug: s, episode_number: 1, still_path: '/x.jpg' }],
@@ -85,9 +93,9 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
     await pool.query(
       `insert into title_art (source_slug, status, tmdb_id, tmdb_season, backdrop_path, matcher_version)
        values ($1, 'matched', 100, 1, '/old.jpg', $2)`,
-      [s, MATCHER_VERSION - 1],
+      [s, MATCHED_REFRESH_BELOW - 1],
     );
-    await store.saveMiss(s, 'failed', 'late');
+    await store.saveMiss(source(s), 'failed', 'late');
     expect((await store.find([s])).get(s)).toMatchObject({
       status: 'matched',
       backdropPath: '/old.jpg',
@@ -102,10 +110,68 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
     });
   });
 
+  it('keeps a matched row written at the refresh version', async () => {
+    const s = slug('current-enough');
+    await pool.query(
+      `insert into title_art (source_slug, status, tmdb_id, tmdb_season, backdrop_path, matcher_version)
+       values ($1, 'matched', 100, 1, '/kept.jpg', $2)`,
+      [s, MATCHED_REFRESH_BELOW],
+    );
+    await store.saveMatched({ title: title(s, '/new.jpg'), episodes: [] });
+    expect((await store.find([s])).get(s)).toMatchObject({
+      backdropPath: '/kept.jpg',
+      matcherVersion: MATCHED_REFRESH_BELOW,
+    });
+  });
+
+  it('round-trips the source inputs and who matched', async () => {
+    const hit = slug('provenance-hit');
+    const miss = slug('provenance-miss');
+    await store.saveMatched({
+      title: {
+        ...title(hit, '/b.jpg'),
+        source_name: 'Thám Tử Lừng Danh Conan',
+        source_year: 1996,
+        source_episode_count: 1100,
+        matched_by: 'jev',
+      },
+      episodes: [],
+    });
+    await store.saveMiss(
+      { slug: miss, name: 'Không Có', year: 2024, episodeCount: 12 },
+      'failed',
+      'jev down',
+    );
+    await store.saveMiss({ slug: miss, name: 'Không Có' }, 'no_match', 'none');
+    const rows = await store.find([hit, miss]);
+    expect(rows.get(hit)).toMatchObject({
+      sourceName: 'Thám Tử Lừng Danh Conan',
+      sourceYear: 1996,
+      sourceEpisodeCount: 1100,
+      matchedBy: 'jev',
+    });
+    expect(rows.get(miss)).toMatchObject({
+      status: 'no_match',
+      sourceName: 'Không Có',
+      sourceYear: null,
+      sourceEpisodeCount: null,
+      matchedBy: null,
+    });
+  });
+
+  it('refuses an unknown matched_by', async () => {
+    await expect(
+      pool.query(
+        `insert into title_art (source_slug, status, matcher_version, matched_by) values ($1, 'no_match', 3, 'oracle')`,
+        [slug('bad-by')],
+      ),
+    ).rejects.toThrow(/check constraint/);
+  });
+
   it('replaces a miss with a later miss or match', async () => {
     const s = slug('retry');
-    await store.saveMiss(s, 'failed', 'timeout');
-    await store.saveMiss(s, 'no_match', 'no TMDB search results');
+    await store.saveMiss(source(s), 'failed', 'timeout');
+    await store.saveMiss(source(s), 'no_match', 'no TMDB search results');
     expect((await store.find([s])).get(s)).toMatchObject({
       status: 'no_match',
       reason: 'no TMDB search results',

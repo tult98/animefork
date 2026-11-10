@@ -1,5 +1,11 @@
 import { pickBackdrop, pickPoster } from './images.ts';
-import { decide, type Candidate, type Matcher } from './matcher.ts';
+import {
+  decide,
+  type Candidate,
+  type Matcher,
+  type MatcherName,
+  type MatchQuestion,
+} from './matcher.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
 import type { TitleInput } from '../contract.ts';
 import { parseSeasonNumber, stripSeasonMarker } from './titles.ts';
@@ -12,6 +18,10 @@ export interface TitleArtRow {
   backdrop_lang: string | null;
   poster_path: string | null;
   poster_lang: string | null;
+  source_name: string;
+  source_year: number | null;
+  source_episode_count: number | null;
+  matched_by: MatcherName;
 }
 
 export interface EpisodeArtRow {
@@ -59,6 +69,7 @@ function toCandidate(
     firstAirDate:
       (season > 1 ? entry?.air_date : detail.first_air_date) ?? undefined,
     episodeCount: entry?.episode_count ?? detail.number_of_episodes,
+    ...(detail.overview ? { overview: detail.overview } : {}),
   };
 }
 
@@ -87,13 +98,19 @@ function skip(slug: string, reason: string): SyncOutcome {
   return { kind: 'skipped', skipped: { slug, reason } };
 }
 
-export async function syncTitle(
+export interface Gathered {
+  season: number;
+  question: MatchQuestion;
+  details: TmdbDetail[];
+}
+
+export async function gatherCandidates(
   input: TitleInput,
-  { tmdb, matcher }: SyncDeps,
-): Promise<SyncOutcome> {
+  tmdb: TmdbClient,
+): Promise<Gathered | null> {
   const season = parseSeasonNumber(input.seasonName, input.name);
   const results = await tmdb.searchTv(stripSeasonMarker(input.name));
-  if (results.length === 0) return skip(input.slug, 'no TMDB search results');
+  if (results.length === 0) return null;
 
   const details = await Promise.all(
     results.slice(0, CANDIDATE_LIMIT).map((r) => tmdb.tvDetail(r.id)),
@@ -103,20 +120,37 @@ export async function syncTitle(
       i < ALTERNATIVE_TITLE_LIMIT ? tmdb.tvAlternativeTitles(d.id) : [],
     ),
   );
-  const answer = await matcher.match({
-    sourceTitle: input.name,
-    seasonName: input.seasonName,
-    year: input.year,
-    episodeCount: input.episodeCount,
-    candidates: details.map((d, i) =>
-      toCandidate(d, season, alternativeTitles[i] ?? []),
-    ),
-  });
+  return {
+    season,
+    details,
+    question: {
+      slug: input.slug,
+      sourceTitle: input.name,
+      season,
+      seasonName: input.seasonName,
+      year: input.year,
+      episodeCount: input.episodeCount,
+      candidates: details.map((d, i) =>
+        toCandidate(d, season, alternativeTitles[i] ?? []),
+      ),
+    },
+  };
+}
+
+export async function syncTitle(
+  input: TitleInput,
+  { tmdb, matcher }: SyncDeps,
+): Promise<SyncOutcome> {
+  const gathered = await gatherCandidates(input, tmdb);
+  if (!gathered) return skip(input.slug, 'no TMDB search results');
+  const { season, question, details } = gathered;
+
+  const answer = await matcher.match(question);
   const choice = decide(answer);
   if (choice === null) {
     return skip(
       input.slug,
-      `no confident match (best probability ${answer.probability.toFixed(2)})`,
+      `no confident match by ${answer.by} (best probability ${answer.probability.toFixed(2)})`,
     );
   }
 
@@ -148,6 +182,10 @@ export async function syncTitle(
         backdrop_lang: backdrop?.lang ?? null,
         poster_path: poster?.path ?? null,
         poster_lang: poster?.lang ?? null,
+        source_name: input.name,
+        source_year: input.year ?? null,
+        source_episode_count: input.episodeCount ?? null,
+        matched_by: answer.by,
       },
       episodes: mapEpisodes(
         input.slug,

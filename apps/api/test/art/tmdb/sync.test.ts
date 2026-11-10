@@ -103,6 +103,10 @@ describe('syncTitle against a mocked TMDB', () => {
       backdrop_lang: 'en',
       poster_path: '/poster-vi.jpg',
       poster_lang: 'vi',
+      source_name: 'Tonikaku Kawaii',
+      source_year: 2020,
+      source_episode_count: 12,
+      matched_by: 'baseline',
     });
     expect(outcome.episodes.map((e) => e.episode_number)).toEqual([1, 3]);
   });

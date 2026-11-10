@@ -96,13 +96,13 @@ export class ArtFiller {
     } catch (error) {
       const reason = describeError(error);
       this.logger.warn(`fill ${input.slug} failed: ${reason}`);
-      await store.saveMiss(input.slug, 'failed', reason);
+      await store.saveMiss(input, 'failed', reason);
       return;
     }
     if (outcome.kind === 'matched') {
       await store.saveMatched(outcome.matched);
     } else {
-      await store.saveMiss(input.slug, 'no_match', outcome.skipped.reason);
+      await store.saveMiss(input, 'no_match', outcome.skipped.reason);
     }
   }
 }

@@ -34,6 +34,7 @@ const DetailSchema = z.object({
   original_name: z.string(),
   number_of_episodes: z.number().int(),
   first_air_date: z.string().nullish(),
+  overview: z.string().nullish(),
   seasons: z
     .array(
       z.object({
