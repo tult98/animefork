@@ -7,7 +7,7 @@ import { expect, test } from './fixtures.ts';
 const SLUG = 'tonikaku-kawaii-a3860';
 const HERO_SLUG =
   'shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku-a6137';
-const LOOKUP = '**/art.test/v1/art/lookup';
+const LOOKUP = '**/api.test/v1/art/lookup';
 const poster = readFileSync(
   resolve(import.meta.dirname, '../public/fixtures/poster.svg'),
 );

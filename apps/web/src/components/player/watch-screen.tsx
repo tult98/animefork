@@ -35,7 +35,7 @@ function useWatchPage(slug: string) {
   const art = useQuery({
     queryKey: ['watch-art', title],
     queryFn:
-      title && import.meta.env.VITE_ART_API_URL
+      title && import.meta.env.VITE_API_URL
         ? ({ signal }) => fetchArt(title, { env: import.meta.env, signal })
         : skipToken,
     refetchInterval: (query) =>

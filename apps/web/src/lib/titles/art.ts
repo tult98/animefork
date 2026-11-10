@@ -16,7 +16,7 @@ import type { Title } from './title.ts';
 import type { Episode, WatchPage } from './watch.ts';
 
 export interface ArtEnv {
-  VITE_ART_API_URL?: string;
+  VITE_API_URL?: string;
 }
 
 export interface TitleArt {
@@ -84,7 +84,7 @@ async function lookupArt(
     fetch?: typeof fetch;
   },
 ): Promise<LookupResult> {
-  const base = options.env.VITE_ART_API_URL?.replace(/\/+$/, '');
+  const base = options.env.VITE_API_URL?.replace(/\/+$/, '');
   if (!base || titles.length === 0) return { ready: new Map(), pending: false };
   const timeout = AbortSignal.timeout(TIMEOUT_MS);
   const signal = options.signal

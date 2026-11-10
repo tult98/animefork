@@ -40,7 +40,7 @@ function Home() {
     queryKey: ['home-art', titles],
     queryFn: ({ signal }) =>
       fetchBackdrops(titles, { env: import.meta.env, signal }),
-    enabled: titles.length > 0 && Boolean(import.meta.env.VITE_ART_API_URL),
+    enabled: titles.length > 0 && Boolean(import.meta.env.VITE_API_URL),
     placeholderData: keepPreviousData,
     refetchInterval: (query) =>
       artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),

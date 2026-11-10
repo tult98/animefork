@@ -23,7 +23,7 @@ const html = readFileSync(
   ),
   'utf8',
 );
-const env = { VITE_ART_API_URL: 'https://art.test/' };
+const env = { VITE_API_URL: 'https://api.test/' };
 const TITLE = { slug: SLUG, name: 'Tonikaku Kawaii' };
 
 function answer(art: unknown, status = 200): typeof fetch {
@@ -68,7 +68,7 @@ describe('fetchArt', () => {
     expect(art.stills.get(2)).toBe('https://image.tmdb.org/t/p/w300/s2.jpg');
     expect(art.pending).toBe(false);
     const [url, init] = vi.mocked(fetchImpl).mock.calls[0]!;
-    expect(String(url)).toBe('https://art.test/v1/art/lookup');
+    expect(String(url)).toBe('https://api.test/v1/art/lookup');
     expect(init?.method).toBe('POST');
     expect(new Headers(init?.headers).has('authorization')).toBe(false);
     expect(sentBody(fetchImpl)).toEqual({ titles: [TITLE], episodes: true });
