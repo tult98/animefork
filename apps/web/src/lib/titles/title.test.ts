@@ -11,7 +11,7 @@ const valid = {
 
 describe('TitleSchema', () => {
   it('accepts a complete title', () => {
-    expect(TitleSchema.parse(valid)).toEqual(valid);
+    expect(TitleSchema.parse(valid)).toEqual({ ...valid, genres: [] });
   });
 
   it.each([
