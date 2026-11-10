@@ -7,6 +7,8 @@ export const EpisodeSchema = z.object({
   play: z.string().min(1),
   label: z.string().min(1),
   name: z.string().min(1).optional(),
+  thumbnail: z.string().min(1).optional(),
+  synopsis: z.string().min(1).optional(),
 });
 
 export type Episode = z.infer<typeof EpisodeSchema>;
@@ -23,7 +25,6 @@ export const WatchPageSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
   image: z.string().min(1).optional(),
-  description: z.string().min(1).optional(),
   seasons: z.array(SeasonSchema),
   currentSeason: SeasonSchema,
   episodes: z.array(EpisodeSchema).min(1),
@@ -93,8 +94,6 @@ export function parseWatchPage(html: string, slug: string): WatchPage {
   const title = doc.querySelector('h1.Title')?.textContent?.trim();
   const image =
     doc.querySelector('.Image img')?.getAttribute('src') || undefined;
-  const description =
-    doc.querySelector('.Description')?.textContent?.trim() || undefined;
   const episodes = parseEpisodes(doc);
   const seasons = parseSeasons(doc);
   const currentSeason = seasons.find((s) => s.slug === slug) ?? {
@@ -105,7 +104,6 @@ export function parseWatchPage(html: string, slug: string): WatchPage {
     slug,
     title,
     image,
-    description,
     seasons: seasons.length > 0 ? seasons : [currentSeason],
     currentSeason,
     episodes,

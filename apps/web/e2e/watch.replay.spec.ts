@@ -195,7 +195,6 @@ test('the episodes popup lists the season and switching plays the pick', async (
   await expect(
     page.getByTestId('episode:now-playing').locator('img'),
   ).toBeVisible();
-  await expect(page.getByTestId('episode:now-playing')).toContainText('Mô tả');
 
   await page.getByTestId('episode:3').click();
   await expect(page).toHaveURL(new RegExp(`/watch/${SLUG}/${EPISODES[2]}`));
@@ -301,4 +300,28 @@ test('the back button leaves the player for the page before it, even after switc
   await page.getByTestId('player:back').click();
   await expect(page).toHaveURL(new RegExp(`/title/${SLUG}/?`));
   await expect(page.getByTestId('player')).toHaveCount(0);
+});
+
+test('hovering next episode shows the next episode card, and clicking it plays it', async ({
+  page,
+}) => {
+  await open(page);
+  await page.getByTestId('player:next').hover();
+  const card = page.getByTestId('player:next-card');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Tập tiếp theo');
+  await expect(card).toContainText('Tập 2');
+  await card.getByRole('button').click();
+  await expect(page.getByTestId('player:episode-label')).toHaveText('Tập 2');
+});
+
+test('hovering an episode row reveals its thumbnail with a play label', async ({
+  page,
+}) => {
+  await paused(page);
+  await page.getByTestId('player:episodes').hover();
+  const row = page.getByTestId('episode:4');
+  await expect(row.getByText('Phát', { exact: true })).toBeHidden();
+  await row.hover();
+  await expect(row.getByText('Phát', { exact: true })).toBeVisible();
 });

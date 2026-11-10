@@ -1,6 +1,6 @@
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import type { Episode, Season } from '../../lib/titles/watch.ts';
-import { ArrowLeft, AudioLines, Check } from '../ui/icons.ts';
+import { ArrowLeft, AudioLines, Check, Play } from '../ui/icons.ts';
 import { IconButton } from './icon-button.tsx';
 
 export type EpisodesView = 'episodes' | 'seasons';
@@ -15,7 +15,6 @@ interface EpisodesPanelProps {
   onView: (view: EpisodesView) => void;
   title: string;
   image?: string;
-  description?: string;
   seasons: Season[];
   browseSlug: string;
   browsed: BrowsedEpisodes;
@@ -57,7 +56,6 @@ function ProgressLine({ percent }: { percent: number }) {
 function EpisodesView({
   onView,
   image,
-  description,
   seasons,
   browseSlug,
   browsed,
@@ -98,7 +96,7 @@ function EpisodesView({
               <button
                 key={episode.id}
                 type="button"
-                className="pl-row flex-col items-stretch gap-4 px-6 py-6"
+                className="pl-row group flex-col items-stretch gap-4 px-6 py-4"
                 data-current={current}
                 aria-current={current ? 'true' : undefined}
                 data-testid={`episode:${index + 1}`}
@@ -113,31 +111,41 @@ function EpisodesView({
                   </span>
                   <ProgressLine percent={current ? playingProgress : 0} />
                 </span>
-                {current ? (
-                  <span
-                    className="flex gap-5"
-                    data-testid="episode:now-playing"
-                  >
-                    <span className="relative flex h-[110px] w-48 flex-none items-center justify-center gap-2 overflow-hidden rounded-md bg-surface">
-                      {image ? (
-                        <img
-                          src={image}
-                          alt=""
-                          className="absolute inset-0 size-full object-cover opacity-60"
-                        />
-                      ) : null}
-                      <span className="relative flex items-center gap-2 text-body-strong">
-                        <AudioLines aria-hidden="true" className="size-5" />
-                        {PLAYER_COPY.nowPlaying}
-                      </span>
-                    </span>
-                    {description ? (
-                      <span className="line-clamp-4 text-body text-ink">
-                        {description}
-                      </span>
+                <span
+                  className="hidden gap-5 group-hover:flex group-focus-visible:flex group-data-[current=true]:flex"
+                  data-testid={current ? 'episode:now-playing' : undefined}
+                >
+                  <span className="relative grid h-[94px] w-42 flex-none place-items-center overflow-hidden rounded-md bg-surface">
+                    {episode.thumbnail || image ? (
+                      <img
+                        src={episode.thumbnail ?? image}
+                        alt=""
+                        className="absolute inset-0 size-full object-cover opacity-60"
+                      />
                     ) : null}
+                    <span className="relative flex items-center gap-2 text-body-strong">
+                      {current ? (
+                        <>
+                          <AudioLines aria-hidden="true" className="size-5" />
+                          {PLAYER_COPY.nowPlaying}
+                        </>
+                      ) : (
+                        <>
+                          <Play
+                            aria-hidden="true"
+                            className="size-5 fill-current"
+                          />
+                          {PLAYER_COPY.play}
+                        </>
+                      )}
+                    </span>
                   </span>
-                ) : null}
+                  {episode.synopsis ? (
+                    <span className="line-clamp-4 text-sm">
+                      {episode.synopsis}
+                    </span>
+                  ) : null}
+                </span>
               </button>
             );
           })

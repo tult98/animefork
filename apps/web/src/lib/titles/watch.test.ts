@@ -20,18 +20,14 @@ const html = readFileSync(
 const SLUG = 'tonikaku-kawaii-a3860';
 
 describe('parseWatchPage', () => {
-  it('reads the poster and description when the page has them', () => {
+  it('reads the poster when the page has one', () => {
     const page = parseWatchPage(html, SLUG);
     expect(page.image).toBe('/fixtures/sample-poster.svg');
-    expect(page.description).toBe('Mô tả ngắn của phim cho bản mẫu.');
     const bare = parseWatchPage(
-      html
-        .replace(/<div class="Image">.*?<\/div>/s, '')
-        .replace(/<div class="Description">.*?<\/div>/s, ''),
+      html.replace(/<div class="Image">.*?<\/div>/s, ''),
       SLUG,
     );
     expect(bare.image).toBeUndefined();
-    expect(bare.description).toBeUndefined();
   });
 
   it('reads the title and every episode with its player keys', () => {

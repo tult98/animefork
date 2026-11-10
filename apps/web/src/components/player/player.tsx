@@ -14,12 +14,12 @@ import {
   Play,
   RotateCcw,
   RotateCw,
-  SkipForward,
   TriangleAlert,
 } from '../ui/icons.ts';
 import { Button } from '../ui/button.tsx';
 import { HoverPopup } from './hover-popup.tsx';
 import { IconButton } from './icon-button.tsx';
+import { NextEpisode, type NextEpisodeInfo } from './next-episode.tsx';
 import { Scrubber } from './scrubber.tsx';
 import { SpeedPanel } from './speed-panel.tsx';
 import { useFullscreen } from './use-fullscreen.ts';
@@ -31,6 +31,8 @@ const SKIP_SECONDS = 10;
 interface PlayerProps {
   title: string;
   episode: Episode;
+  image?: string;
+  nextEpisode?: NextEpisodeInfo;
   onNext?: () => void;
   onBack: () => void;
   episodesPanel: (progress: number) => ReactNode;
@@ -54,6 +56,8 @@ function SkipGlyph({ forward }: { forward: boolean }) {
 export function Player({
   title,
   episode,
+  image,
+  nextEpisode,
   onNext,
   onBack,
   episodesPanel,
@@ -205,14 +209,7 @@ export function Player({
           </div>
 
           <div className="ml-auto flex items-center gap-2">
-            <IconButton
-              label={PLAYER_COPY.nextEpisode}
-              data-testid="player:next"
-              disabled={!onNext}
-              onClick={onNext}
-            >
-              <SkipForward aria-hidden="true" />
-            </IconButton>
+            <NextEpisode next={nextEpisode} image={image} onNext={onNext} />
             <HoverPopup
               id="episodes"
               label={PLAYER_COPY.episodes}
