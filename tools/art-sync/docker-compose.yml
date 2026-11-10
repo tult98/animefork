@@ -26,6 +26,5 @@ services:
       PGRST_DB_SCHEMAS: public
       PGRST_DB_ANON_ROLE: web_anon
       PGRST_SERVER_PORT: '3000'
-      PGRST_SERVER_CORS_ALLOWED_ORIGINS: '*'
     ports:
       - '${ART_API_PORT:-3000}:3000'
