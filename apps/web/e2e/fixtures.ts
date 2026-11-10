@@ -31,7 +31,7 @@ export const test = base.extend<
   stubArtApi: [
     async ({ page }, use) => {
       await page.route('**/art.test/**', (route) =>
-        route.fulfill({ json: [] }),
+        route.fulfill({ json: { art: {} } }),
       );
       await use();
     },
