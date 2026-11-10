@@ -5,7 +5,7 @@ import { loadArtConfig } from '../src/art/art.config.ts';
 import { EnvError } from '../src/config/app.config.ts';
 import { createJevClient, JevMatcher } from '../src/art/tmdb/jev.ts';
 import { BaselineMatcher, decide } from '../src/art/tmdb/matcher.ts';
-import { gatherCandidates } from '../src/art/tmdb/sync.ts';
+import { effectiveScope, gatherCandidates } from '../src/art/tmdb/sync.ts';
 import { createTmdbClient } from '../src/art/tmdb/tmdb.ts';
 import { seasonMarker } from '../src/art/tmdb/titles.ts';
 
@@ -58,7 +58,8 @@ const COLUMNS = [
   ['stored', 8],
   ['baseline', 14],
   ['jev choice', 32],
-  ['noul', 5],
+  ['scope', 6],
+  ['noul s/show', 11],
   ['p', 5],
   ['conf', 5],
   ['verdict', 30],
@@ -146,12 +147,13 @@ async function main(): Promise<void> {
           '',
           '',
           '',
+          '',
           `tmdb error: ${errorText(error)}`,
         ]);
         continue;
       }
       if (!gathered || gathered.question.candidates.length === 0) {
-        printRow([...lead, 'no results', '', '', '', '', 'skipped']);
+        printRow([...lead, 'no results', '', '', '', '', '', 'skipped']);
         continue;
       }
       const { question } = gathered;
@@ -159,22 +161,48 @@ async function main(): Promise<void> {
       const baseCell = `${base.probability.toFixed(2)} ${decide(base) === null ? 'miss' : 'match'}`;
       try {
         const verdict = await jev.ask(question);
+        const accepted = decide(verdict.answer);
+        const showScope = verdict.answer.scope === 'show' && accepted !== null;
         const chosen = question.candidates.find(
-          (c) => c.id === verdict.choiceId,
+          (c) => c.id === (showScope ? verdict.showChoiceId : verdict.choiceId),
         );
+        const baseScope =
+          decide(base) === null
+            ? null
+            : effectiveScope(
+                base,
+                base.choice ?? 0,
+                gathered.details,
+                gathered.season,
+              );
+        const scope =
+          baseScope ??
+          (accepted === null
+            ? '-'
+            : effectiveScope(
+                verdict.answer,
+                accepted,
+                gathered.details,
+                gathered.season,
+              ));
         printRow([
           ...lead,
           baseCell,
           chosen ? `${chosen.id} ${chosen.name}` : String(verdict.choiceId),
-          verdict.noul.toFixed(2),
-          verdict.choiceProbability.toFixed(2),
-          verdict.confidence.toFixed(2),
-          decide(verdict.answer) === null ? 'reject' : 'accept',
+          scope,
+          `${verdict.noul.toFixed(2)}/${verdict.showNoul.toFixed(2)}`,
+          (showScope
+            ? verdict.showChoiceProbability
+            : verdict.choiceProbability
+          ).toFixed(2),
+          (showScope ? verdict.showConfidence : verdict.confidence).toFixed(2),
+          accepted === null ? 'reject' : 'accept',
         ]);
       } catch (error) {
         printRow([
           ...lead,
           baseCell,
+          '',
           '',
           '',
           '',
