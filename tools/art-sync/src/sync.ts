@@ -168,7 +168,7 @@ export async function syncAll(
     } catch (error) {
       skipped.push({
         slug: input.slug,
-        reason: `error: ${error instanceof Error ? error.message : String(error)}`,
+        reason: `error: ${describeError(error)}`,
       });
     }
   }
@@ -197,4 +197,10 @@ export async function syncAll(
       episodeRows: matched.reduce((n, m) => n + m.episodes.length, 0),
     },
   };
+}
+
+function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const cause = error.cause instanceof Error ? `: ${error.cause.message}` : '';
+  return `${error.message}${cause}`;
 }

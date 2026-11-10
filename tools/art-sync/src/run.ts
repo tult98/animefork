@@ -29,7 +29,11 @@ export async function run(
   const report = await syncAll(
     titles,
     {
-      tmdb: createTmdbClient({ apiKey, fetch: fetchImpl }),
+      tmdb: createTmdbClient({
+        apiKey,
+        baseUrl: env.TMDB_API_BASE || undefined,
+        fetch: fetchImpl,
+      }),
       matcher: new BaselineMatcher(),
     },
     live ? createSink(databaseUrl) : undefined,

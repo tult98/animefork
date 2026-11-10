@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const API = 'https://api.themoviedb.org/3';
+export const DEFAULT_TMDB_API = 'https://api.themoviedb.org/3';
 
 const SearchResultSchema = z.object({
   id: z.number().int(),
@@ -78,8 +78,10 @@ export interface TmdbClient {
 
 export function createTmdbClient(options: {
   apiKey: string;
+  baseUrl?: string;
   fetch?: typeof fetch;
 }): TmdbClient {
+  const base = (options.baseUrl ?? DEFAULT_TMDB_API).replace(/\/+$/, '');
   const doFetch = options.fetch ?? fetch;
 
   async function get<T>(
@@ -87,7 +89,7 @@ export function createTmdbClient(options: {
     params: Record<string, string>,
     schema: z.ZodType<T>,
   ): Promise<T> {
-    const url = new URL(`${API}${path}`);
+    const url = new URL(`${base}${path}`);
     url.searchParams.set('api_key', options.apiKey);
     for (const [key, value] of Object.entries(params)) {
       url.searchParams.set(key, value);

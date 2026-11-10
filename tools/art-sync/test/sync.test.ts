@@ -65,6 +65,20 @@ describe('createTmdbClient', () => {
     await expect(client.searchTv('a')).rejects.toThrow();
   });
 
+  it('uses a custom base URL when one is given', async () => {
+    let seen = '';
+    const client = createTmdbClient({
+      apiKey: 'key',
+      baseUrl: 'https://api.tmdb.org/3/',
+      fetch: async (input) => {
+        seen = String(input);
+        return Response.json({ results: [] });
+      },
+    });
+    await client.searchTv('a');
+    expect(seen.startsWith('https://api.tmdb.org/3/search/tv?')).toBe(true);
+  });
+
   it('requests images in vi, en and textless', async () => {
     let seen = '';
     const client = createTmdbClient({
