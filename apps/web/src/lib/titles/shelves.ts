@@ -1,0 +1,86 @@
+import type { Title } from './title.ts';
+
+export const MIN_SHELF_TITLES = 8;
+export const SEASON_SHELF_LIMIT = 12;
+export const TOP_10_SIZE = 10;
+
+export interface HeroShelf {
+  kind: 'hero';
+  id: 'hero';
+  items: Title[];
+}
+
+export interface DefaultShelf {
+  kind: 'default';
+  id: 'new-episodes' | 'airing-this-season';
+  title: string;
+  items: Title[];
+}
+
+export interface Top10Shelf {
+  kind: 'top10';
+  id: 'top-10-today';
+  title: string;
+  items: (Title & { rank: number })[];
+}
+
+export type Shelf = HeroShelf | DefaultShelf | Top10Shelf;
+export type HomeShelves = Shelf[];
+
+export interface HomeInput {
+  hero: Title[];
+  newEpisodes: Title[];
+  top: Title[];
+  season: Title[] | undefined;
+}
+
+export function buildHome({
+  hero,
+  newEpisodes,
+  top,
+  season,
+}: HomeInput): HomeShelves {
+  const shelves: HomeShelves = [];
+
+  if (hero.length > 0) shelves.push({ kind: 'hero', id: 'hero', items: hero });
+
+  const keepNewEpisodes = newEpisodes.length >= MIN_SHELF_TITLES;
+  if (keepNewEpisodes) {
+    shelves.push({
+      kind: 'default',
+      id: 'new-episodes',
+      title: 'Mới cập nhật',
+      items: newEpisodes,
+    });
+  }
+
+  if (top.length >= MIN_SHELF_TITLES) {
+    shelves.push({
+      kind: 'top10',
+      id: 'top-10-today',
+      title: 'Top 10 hôm nay',
+      items: top
+        .slice(0, TOP_10_SIZE)
+        .map((title, index) => ({ ...title, rank: index + 1 })),
+    });
+  }
+
+  if (season) {
+    const shown = new Set(
+      keepNewEpisodes ? newEpisodes.map((title) => title.path) : [],
+    );
+    const airing = season
+      .filter((title) => !shown.has(title.path))
+      .slice(0, SEASON_SHELF_LIMIT);
+    if (airing.length >= MIN_SHELF_TITLES) {
+      shelves.push({
+        kind: 'default',
+        id: 'airing-this-season',
+        title: 'Đang chiếu mùa này',
+        items: airing,
+      });
+    }
+  }
+
+  return shelves;
+}
