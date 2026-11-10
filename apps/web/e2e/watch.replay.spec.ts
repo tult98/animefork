@@ -325,3 +325,33 @@ test('hovering an episode row reveals its thumbnail with a play label', async ({
   await row.hover();
   await expect(row.getByText('Phát', { exact: true })).toBeVisible();
 });
+
+test('episode rows and the next card are left-aligned to their padding', async ({
+  page,
+}) => {
+  await paused(page);
+  await page.getByTestId('player:episodes').hover();
+  const row = page.getByTestId('episode:2');
+  const rowBox = await row.boundingBox();
+  const numberBox = await row
+    .locator('span')
+    .first()
+    .locator('span')
+    .first()
+    .boundingBox();
+  expect(numberBox!.x - rowBox!.x).toBeLessThan(64);
+  const lineBox = await row
+    .getByTestId('episode:progress')
+    .or(row.locator('[aria-hidden="true"]').first())
+    .boundingBox();
+  expect(
+    rowBox!.x + rowBox!.width - (lineBox!.x + lineBox!.width),
+  ).toBeLessThan(64);
+
+  await page.mouse.move(0, 0);
+  await page.getByTestId('player:next').hover();
+  const card = page.getByTestId('player:next-card');
+  const cardBox = await card.boundingBox();
+  const thumb = await card.locator('span').first().boundingBox();
+  expect(thumb!.x - cardBox!.x).toBeLessThan(64);
+});

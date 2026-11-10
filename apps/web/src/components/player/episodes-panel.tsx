@@ -96,7 +96,7 @@ function EpisodesView({
               <button
                 key={episode.id}
                 type="button"
-                className="pl-row group flex-col items-stretch gap-4 px-6 py-4"
+                className="pl-row group flex-col items-stretch! gap-4 px-6 py-4"
                 data-current={current}
                 aria-current={current ? 'true' : undefined}
                 data-testid={`episode:${index + 1}`}
