@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
+import { applyArt, fetchArt } from '../../lib/titles/art.ts';
 import { watchLink } from '../../lib/titles/link.ts';
 import {
   EpisodeNotFoundError,
@@ -24,7 +25,13 @@ function useWatchPage(slug: string) {
   const transport = useTransport();
   return useQuery({
     queryKey: ['watch', slug],
-    queryFn: ({ signal }) => fetchWatchPage(transport, slug, signal),
+    queryFn: async ({ signal }) => {
+      const [page, art] = await Promise.all([
+        fetchWatchPage(transport, slug, signal),
+        fetchArt(slug, { env: import.meta.env, signal }),
+      ]);
+      return applyArt(page, art);
+    },
   });
 }
 

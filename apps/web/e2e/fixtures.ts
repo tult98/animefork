@@ -12,13 +12,27 @@ interface Options {
 }
 
 export const test = base.extend<
-  Options & { consoleErrors: string[]; stubCdnImages: void }
+  Options & {
+    consoleErrors: string[];
+    stubCdnImages: void;
+    stubArtApi: void;
+  }
 >({
   allowedConsoleErrors: [[], { option: true }],
   stubCdnImages: [
     async ({ page }, use) => {
       await page.route('**/cdn.animevietsub.best/**', (route) =>
         route.fulfill({ contentType: 'image/svg+xml', body: poster }),
+      );
+      await use();
+    },
+    { auto: true },
+  ],
+  // The dev server is started with a fake art API origin (playwright.config.ts), so every page needs an answer for it.
+  stubArtApi: [
+    async ({ page }, use) => {
+      await page.route('**/art.test/**', (route) =>
+        route.fulfill({ json: [] }),
       );
       await use();
     },

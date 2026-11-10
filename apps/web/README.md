@@ -19,6 +19,10 @@ Run everything through Nx from the repo root.
 
 Playwright drives the installed Google Chrome so no browser download is needed. CI sets `PW_CHANNEL=chromium` after `playwright install chromium`.
 
+## TMDB art
+
+The watch screen swaps in a TMDB backdrop and episode stills when `title_art` and `episode_art` have rows for the season slug. They are filled by `tools/art-sync`. Set `VITE_ART_API_URL` to a PostgREST root (for example `http://localhost:3000`, see `tools/art-sync/README.md`) to turn the lookup on. `VITE_ART_API_KEY` is optional and is sent as a bearer token only when set, because PostgREST's anonymous role needs none. Without them, or when the request fails, the screen shows the source site's own images.
+
 ## Transport
 
 Routes never fetch directly. They call `useTransport()` from `src/lib/transport/`, which returns one of two implementations.
