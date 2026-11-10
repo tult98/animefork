@@ -200,6 +200,14 @@ export function applyHomeArt(
         items: shelf.items.map((t) => withBackdrop(t, CARD_BACKDROP_SIZE)),
       };
     }
-    return shelf;
+    return {
+      ...shelf,
+      items: shelf.items.map((t) => {
+        const path = backdrops.get(slugOf(t));
+        return path
+          ? { ...t, backdrop: tmdbImageUrl(path, CARD_BACKDROP_SIZE) }
+          : t;
+      }),
+    };
   });
 }

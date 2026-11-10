@@ -259,7 +259,7 @@ describe('applyHomeArt', () => {
   ]);
 
   it('puts w1280 on the hero and w780 on the cards, and leaves the rest', () => {
-    const [hero, cards, top] = applyHomeArt(home(), backdrops);
+    const [hero, cards] = applyHomeArt(home(), backdrops);
     expect(hero?.items.map((t) => t.image)).toEqual([
       'https://image.tmdb.org/t/p/w1280/a.jpg',
       'https://cdn.test/b-2.jpg',
@@ -268,7 +268,29 @@ describe('applyHomeArt', () => {
       'https://image.tmdb.org/t/p/w780/a.jpg',
       'https://image.tmdb.org/t/p/w780/c.jpg',
     ]);
+  });
+
+  it('adds a w780 backdrop to the ranking items and keeps their poster image', () => {
+    const [, , top] = applyHomeArt(home(), backdrops);
+    expect(top?.items).toEqual([
+      {
+        ...home()[2]!.items[0],
+        backdrop: 'https://image.tmdb.org/t/p/w780/a.jpg',
+      },
+    ]);
+    expect(top?.items[0]?.image).toBe('https://cdn.test/a-1.jpg');
+  });
+
+  it('leaves a ranking item without a stored backdrop untouched', () => {
+    const [, , top] = applyHomeArt(home(), new Map([['c-3', '/c.jpg']]));
     expect(top).toEqual(home()[2]);
+  });
+
+  it('sets no backdrop field on the hero and card shelves', () => {
+    const [hero, cards] = applyHomeArt(home(), backdrops);
+    expect(
+      [...hero!.items, ...cards!.items].some((t) => 'backdrop' in t),
+    ).toBe(false);
   });
 
   it('returns the same shelves when no art exists', () => {

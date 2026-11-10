@@ -22,10 +22,18 @@ interface PosterCardProps {
   newEpisode?: boolean;
 }
 
-function CardImage({ title, alt }: { title: Title; alt: string }) {
+function CardImage({
+  title,
+  alt,
+  src = title.image,
+}: {
+  title: Title;
+  alt: string;
+  src?: string;
+}) {
   return (
     <img
-      src={title.image}
+      src={src}
       alt={alt}
       loading="lazy"
       decoding="async"
@@ -213,7 +221,7 @@ export function PosterCard({
             aria-hidden="true"
             className="block aspect-(--card-art-ratio) bg-surface-alt"
           >
-            <CardImage title={title} alt="" />
+            <CardImage title={title} alt="" src={title.backdrop ?? title.image} />
           </Link>
           <div className="af-hover-body card-preview-body">
             <div className="af-hover-actions">

@@ -7,6 +7,7 @@ import { expect, test } from './fixtures.ts';
 const SLUG = 'tonikaku-kawaii-a3860';
 const HERO_SLUG =
   'shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku-a6137';
+const TOP10_SLUG = 'black-clover-2nd-season-a6073';
 const LOOKUP = '**/api.test/v1/art/lookup';
 const poster = readFileSync(
   resolve(import.meta.dirname, '../public/fixtures/poster.svg'),
@@ -131,6 +132,44 @@ test('the home hero swaps in the backdrop after a pending answer, then stops pol
   const settled = bodies.length;
   await page.waitForTimeout(4_000);
   expect(bodies).toHaveLength(settled);
+});
+
+test('a top 10 hover preview shows the TMDB backdrop while the card keeps its poster', async ({
+  page,
+}) => {
+  const bodies = await stubArt(page, () => ({
+    [TOP10_SLUG]: ready('/top.jpg'),
+  }));
+
+  await page.goto('/?transport=replay');
+  const items = page.getByTestId('shelf:top-10-today').getByRole('listitem');
+  const first = items.nth(0);
+  const second = items.nth(1);
+  await expect(first).toBeVisible();
+
+  await expect
+    .poll(() => bodies.flatMap((b) => b.titles.map((t) => t.slug)))
+    .toContain(TOP10_SLUG);
+
+  const previewImg = page.locator('[data-testid$=":preview"] img');
+  await first.locator('a[data-cover]').hover();
+  await expect(previewImg).toHaveAttribute(
+    'src',
+    'https://image.tmdb.org/t/p/w780/top.jpg',
+  );
+  await expect(first.locator('.af-poster-art img')).toHaveAttribute(
+    'src',
+    /^https:\/\/cdn\.animevietsub\.best\/data\/poster\//,
+  );
+
+  await page.mouse.move(5, 5);
+  await expect(previewImg).toHaveCount(0);
+
+  await second.locator('a[data-cover]').hover();
+  await expect(previewImg).toHaveAttribute(
+    'src',
+    /^https:\/\/cdn\.animevietsub\.best\//,
+  );
 });
 
 test.describe('a failing art API', () => {

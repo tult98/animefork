@@ -36,7 +36,6 @@ function toInput(raw: {
 export function lookupTitles(shelves: HomeShelves): TitleInput[] {
   const bySlug = new Map<string, TitleInput>();
   for (const shelf of shelves) {
-    if (shelf.kind === 'top10') continue;
     for (const title of shelf.items) {
       const slug = titleWatchLink(title).params.slug;
       if (bySlug.has(slug)) continue;

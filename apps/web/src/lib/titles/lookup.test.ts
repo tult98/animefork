@@ -42,11 +42,30 @@ describe('lookupTitles', () => {
     },
   ];
 
-  it('lists each slug of the hero and card shelves once, not the ranking row', () => {
+  it('lists each slug of the hero, card and ranking shelves once', () => {
     expect(lookupTitles(shelves).map((e) => e.slug)).toEqual([
       'a-1',
       'b-2',
       'c-3',
+      'd-4',
+    ]);
+  });
+
+  it('looks up a ranking title already listed on another shelf only once', () => {
+    const dup: HomeShelves = [
+      ...shelves,
+      {
+        kind: 'top10',
+        id: 'top-10-today',
+        title: 'Again',
+        items: [{ ...t('a-1', { name: 'Show A' }), rank: 1 }],
+      },
+    ];
+    expect(lookupTitles(dup).map((e) => e.slug)).toEqual([
+      'a-1',
+      'b-2',
+      'c-3',
+      'd-4',
     ]);
   });
 
