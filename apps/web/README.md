@@ -28,12 +28,22 @@ Routes never fetch directly. They call `useTransport()` from `src/lib/transport/
 
 Selection: `?transport=replay` in the URL, else `VITE_TRANSPORT=replay`, else the extension. In replay mode `?fixtures=<set>` picks the fixture set (default `default`).
 
-In dev, `window.__app` exposes `route()`, `queryKeys()` and the active `transport`.
+In dev, `window.__app` exposes `route()`, `queryKeys()`, `shelves()` (the id and card paths of each shelf the home page currently renders) and the active `transport`.
 
 ## Fixtures
 
-**The fixtures in `public/fixtures/default/` and `public/fixtures/invalid-title/` are synthetic.** They are hand-written to exercise replay and are not captured from the upstream site. `invalid-title` is deliberately malformed to prove the zod error path.
+**The fixtures in `public/fixtures/default/` are excerpts of the live site, captured from a real browser on 2026-11-10.** `default/index.html` holds the `.MovieListSldCn`, `#single-home` and `#hot-home` sections of the home page. `default/season/autumn/2026.html` holds the first 22 cards of the autumn 2026 season page, the page the home page's season tab links to. Each file starts with an HTML comment naming its source and date. Scripts, ads and inline handlers were removed, and the cast lists were dropped because no parser reads them. They are not full pages. Image URLs stay the upstream `https://cdn.animevietsub.best/...` URLs, and the Playwright fixtures answer those requests locally so no test depends on the CDN.
 
-Real fixtures must be captured from a real browser with the extension. The upstream is behind Cloudflare, so `curl` gets a 403, and nothing here tries to bypass that. `scripts/capture-fixtures.ts` opens Chrome for Testing with the built extension, reads each page through `ExtensionTransport`, and writes it to `public/fixtures/captured/`. It needs a human at the keyboard and stops if a page does not answer 200. The header of the script lists the prerequisites. `node scripts/capture-fixtures.ts --dry-run` prints the plan without a browser.
+`invalid-title` is the same markup cut down to one card per section, with one hero card given a non-numeric rating to prove the zod error path.
 
-The home page parser in this PR is a placeholder that reads the synthetic markup. Real parsers and captured fixtures arrive with the catalog package.
+Full pages must be captured from a real browser with the extension. The upstream is behind Cloudflare, so `curl` gets a 403, and nothing here tries to bypass that. `scripts/capture-fixtures.ts` opens Chrome for Testing with the built extension, reads each page through `ExtensionTransport`, and writes it to `public/fixtures/captured/`. It needs a human at the keyboard and stops if a page does not answer 200. The header of the script lists the prerequisites. `node scripts/capture-fixtures.ts --dry-run` prints the plan without a browser.
+
+## Home data
+
+`src/lib/titles/` turns the home page into shelves.
+
+- `card-parser.ts` reads one `.TPostMv` card with DOM selectors, and `TitleSchema` (zod) rejects a malformed card instead of letting NaN through. A card without genres, description or studio is valid. The hero carousel has no episode label, so its `.Info .Time` progress text (such as `05/12`) fills `episodeLabel`.
+- `home.ts` parses the hero, the new episodes and the top 10 from `GET /`, and the season tab's `href` from the same page. `fetchSeason` then reads that path. The season is never computed from the date.
+- `shelves.ts` is the pure `buildHome`. It orders the shelves, dedupes new episodes against airing this season, drops a shelf under 8 titles and caps airing at 12.
+
+The home route runs two queries, `['home']` and `['season', seasonPath]`. A slow or failed season request only affects its own shelf.

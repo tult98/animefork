@@ -4,7 +4,7 @@ test('home renders on the stage theme with Archivo loaded', async ({
   page,
 }) => {
   await page.goto('/?transport=replay');
-  await expect(page.getByTestId('home:titles')).toBeVisible();
+  await expect(page.getByTestId('shelf:new-episodes')).toBeVisible();
 
   const theme = await page.evaluate(async () => {
     await document.fonts.ready;
