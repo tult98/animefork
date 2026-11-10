@@ -114,7 +114,6 @@ export function WatchScreen({
   return (
     <Player
       title={page.title}
-      ageRating={page.ageRating}
       episode={page.currentEpisode}
       onNext={next ? () => open(slug, next) : undefined}
       onBack={goBack}

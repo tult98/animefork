@@ -267,13 +267,6 @@ test('the fullscreen button follows the document state', async ({ page }) => {
   await expect(button).toHaveAttribute('data-active', 'false');
 });
 
-test('there is no rating bug when the page carries no age rating', async ({
-  page,
-}) => {
-  await open(page);
-  await expect(page.getByTestId('player:rating')).toHaveCount(0);
-});
-
 test('an episode that is not on the title says so', async ({ page }) => {
   await page.goto(`/watch/${SLUG}/1?transport=replay`);
   await expect(page.getByTestId('watch:not-found')).toBeVisible();

@@ -21,5 +21,4 @@ export const PLAYER_COPY = {
   loading: 'Đang tải phim',
   failed: 'Không phát được tập này',
   retry: 'Thử lại',
-  rated: 'Phân loại',
 } as const;

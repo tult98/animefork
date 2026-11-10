@@ -27,11 +27,9 @@ import { VolumeControl } from './volume-control.tsx';
 import './player.css';
 
 const SKIP_SECONDS = 10;
-const RATING_SECONDS = 8;
 
 interface PlayerProps {
   title: string;
-  ageRating?: string;
   episode: Episode;
   onNext?: () => void;
   onBack: () => void;
@@ -55,7 +53,6 @@ function SkipGlyph({ forward }: { forward: boolean }) {
 
 export function Player({
   title,
-  ageRating,
   episode,
   onNext,
   onBack,
@@ -130,22 +127,6 @@ export function Player({
       >
         <ArrowLeft aria-hidden="true" />
       </IconButton>
-
-      {ageRating ? (
-        <div
-          data-testid="player:rating"
-          className={`pointer-events-none absolute top-28 left-gutter flex gap-4 transition-opacity duration-[600ms] max-[720px]:left-4 ${
-            state.time < RATING_SECONDS ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          <div className="w-1 flex-none bg-brand" />
-          <div className="flex flex-col gap-1 py-0.5">
-            <div className="text-[22px] leading-[1.3] font-bold">
-              {PLAYER_COPY.rated} {ageRating}
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       <div className="pl-bar pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-[linear-gradient(to_top,var(--hero-overlay),transparent),linear-gradient(to_top,var(--hero-overlay),transparent_70%)] px-gutter pt-24 pb-7 max-[720px]:px-4">
         <div className="pl-timeline pointer-events-auto flex items-center gap-4">

@@ -22,7 +22,6 @@ export type Season = z.infer<typeof SeasonSchema>;
 export const WatchPageSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
-  ageRating: z.string().min(1).optional(),
   image: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
   seasons: z.array(SeasonSchema),
