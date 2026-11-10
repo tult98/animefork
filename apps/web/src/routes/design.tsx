@@ -128,7 +128,7 @@ function Gallery() {
         <Inputs />
       </Section>
       <Section id="header" title="Header">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 overflow-x-auto">
           <HeaderDemo />
           <HeaderDemo solid />
         </div>
