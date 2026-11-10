@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.ts';
 
 const NEW_EPISODES = 'shelf:new-episodes';
@@ -61,6 +62,12 @@ test('ArrowRight moves focus to the next cover', async ({ page }) => {
   await expect(covers.first()).toBeFocused();
 });
 
+const hoverRow = (page: Page, id: string) =>
+  page
+    .getByTestId(id)
+    .locator('.shelf-rail')
+    .hover({ position: { x: 600, y: 8 } });
+
 test('the arrows scroll the shelf and the left arrow hides at the start', async ({
   page,
 }) => {
@@ -69,33 +76,79 @@ test('the arrows scroll the shelf and the left arrow hides at the start', async 
   const right = page.getByTestId(`${NEW_EPISODES}:scroll-right`);
   const scroller = page.getByTestId(NEW_EPISODES).getByRole('list');
 
+  await hoverRow(page, NEW_EPISODES);
   await expect(left).toBeHidden();
-  await expect(right).toBeVisible();
+  await expect(right).toHaveCSS('opacity', '1');
   await right.click();
   await expect
     .poll(() => scroller.evaluate((el) => el.scrollLeft))
     .toBeGreaterThan(300);
   await expect(left).toBeVisible();
+  await expect(left).toHaveCSS('opacity', '1');
   await left.click();
   await expect.poll(() => scroller.evaluate((el) => el.scrollLeft)).toBe(0);
   await expect(left).toBeHidden();
 });
 
-test('the arrows are 56px pills centred on the card art', async ({ page }) => {
+test('the arrows are 44px pills centred on the card art', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/?transport=replay');
   for (const id of [NEW_EPISODES, 'shelf:top-10-today']) {
+    await hoverRow(page, id);
+    const arrowLocator = page.getByTestId(`${id}:scroll-right`);
+    await expect(arrowLocator).toHaveCSS('opacity', '1');
     const art = await page
       .getByTestId(id)
       .locator('a[data-cover] img')
       .first()
       .boundingBox();
-    const arrow = await page.getByTestId(`${id}:scroll-right`).boundingBox();
-    expect(arrow!.width).toBeCloseTo(56, 0);
+    const arrow = await arrowLocator.boundingBox();
+    expect(arrow!.width).toBeCloseTo(44, 0);
+    expect(arrow!.height).toBeLessThanOrEqual(88.5);
     expect(arrow!.height).toBeLessThanOrEqual(art!.height + 0.5);
     const artMid = art!.y + art!.height / 2;
     expect(Math.abs(arrow!.y + arrow!.height / 2 - artMid)).toBeLessThan(2);
   }
+});
+
+test('the arrows are transparent until the row is hovered and fade out after', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/?transport=replay');
+  const right = page.getByTestId(`${NEW_EPISODES}:scroll-right`);
+  await expect(page.getByTestId(NEW_EPISODES)).toBeVisible();
+  await expect(right).toHaveCSS('opacity', '0');
+  await expect(right).toHaveCSS('pointer-events', 'none');
+
+  await hoverRow(page, NEW_EPISODES);
+  await expect(right).toHaveCSS('opacity', '1');
+  await expect(right).toHaveCSS('pointer-events', 'auto');
+
+  await page.mouse.move(5, 5);
+  await expect(right).toHaveCSS('opacity', '0');
+});
+
+test('the arrows show for keyboard focus on an arrow or a card', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/?transport=replay');
+  const right = page.getByTestId(`${NEW_EPISODES}:scroll-right`);
+  await expect(right).toHaveCSS('opacity', '0');
+
+  await page.getByTestId(NEW_EPISODES).locator('a[data-cover]').first().focus();
+  await expect(right).toHaveCSS('opacity', '1');
+
+  await page
+    .getByTestId('shelf:top-10-today')
+    .locator('a[data-cover]')
+    .first()
+    .focus();
+  await expect(right).toHaveCSS('opacity', '0');
+
+  await right.focus();
+  await expect(right).toHaveCSS('opacity', '1');
 });
 
 test('the hover preview opens after 250 ms and closes on leave', async ({

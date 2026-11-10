@@ -129,16 +129,31 @@ body {
       (100cqw - 2 * var(--pad) - (var(--per) - 1) * var(--gap)) / var(--per) /
         var(--card-art-ratio)
     );
-    --arrow-w: 56px;
-    --arrow-h: min(112px, var(--art-h));
+    --arrow-w: 44px;
+    --arrow-h: min(88px, var(--art-h));
     position: absolute;
     top: calc(var(--shelf-bleed) + (var(--art-h) - var(--arrow-h)) / 2);
     width: var(--arrow-w);
     height: var(--arrow-h);
-    border-radius: 12px;
+    border-radius: 10px;
     display: grid;
     place-items: center;
-    pointer-events: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 150ms ease-out,
+      transform 100ms ease-out,
+      background-color 150ms ease-out;
+  }
+
+  .shelf-arrow:active {
+    transform: scale(0.96);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shelf-arrow {
+      transition: none;
+    }
   }
 
   .shelf-arrow--prev {
@@ -147,6 +162,25 @@ body {
 
   .shelf-arrow--next {
     right: calc(var(--pad) - var(--arrow-w) / 2);
+  }
+
+  .shelf-rail:has(:focus-visible) .shelf-arrow {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (hover: hover) {
+    .shelf-rail:hover .shelf-arrow {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  @media (hover: none) {
+    .shelf-arrow {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
 
   .shelf--top .shelf-arrow {
