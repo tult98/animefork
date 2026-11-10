@@ -57,7 +57,7 @@ describe('ReplayTransport', () => {
       baseUrl: '/fixtures/invalid-title/',
       fetchImpl: diskFetch,
     }).get({ url: '/' });
-    expect(res.data).toContain('not-a-number');
+    expect(res.data).toContain('has no poster');
   });
 
   it('asks for text/plain so a dev server cannot answer a missing file with index.html', async () => {

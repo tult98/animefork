@@ -44,7 +44,9 @@ function Home() {
             <div className="p-3">
               <p className="font-medium">{title.name}</p>
               <p className="text-sm text-ink-muted">
-                {title.episodeLabel} · {title.rating.toFixed(1)}
+                {[title.episodeLabel, title.rating?.toFixed(1)]
+                  .filter(Boolean)
+                  .join(' · ')}
               </p>
             </div>
           </li>

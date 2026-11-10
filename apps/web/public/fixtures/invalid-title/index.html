@@ -1,31 +1,42 @@
 <!doctype html>
-<!-- SYNTHETIC: hand-written for replay tests. Not captured from the upstream site. -->
+<!-- SYNTHETIC: hand-written for replay tests. Not captured from the upstream site. The second card has no poster, which the catalog parser rejects. -->
 <html>
   <body>
-    <ul>
-      <li
-        data-title="Psyren"
-        data-path="/phim/psyren-a1001/"
-        data-rating="8.4"
-        data-episode="Tap 12"
-      >
-        <img src="/fixtures/poster.svg" />
-      </li>
-      <li
-        data-title="Dragon Ball Super: Beerus"
-        data-path="/phim/dragon-ball-super-beerus-a1002/"
-        data-rating="not-a-number"
-        data-episode="Tap 5"
-      >
-        <img src="/fixtures/poster.svg" />
-      </li>
-      <li
-        data-title="Synthetic Title Three"
-        data-path="/phim/synthetic-title-three-a1003/"
-        data-rating="9.1"
-      >
-        <img src="/fixtures/poster.svg" />
-      </li>
-    </ul>
+    <div class="MovieListSldCn"></div>
+    <div class="MovieListTopCn">
+      <div class="MovieListTop">
+        <div class="TPostMv">
+          <div class="TPost B">
+            <a href="/phim/psyren-a1001/">
+              <div class="Image">
+                <figure class="Objf"><img src="/fixtures/poster.svg" /></figure>
+                <span class="mli-eps">TẬP<i>12</i></span>
+                <div class="anime-extras">
+                  <div class="anime-avg-user-rating">8.4</div>
+                </div>
+              </div>
+              <div class="Title">Psyren</div>
+            </a>
+          </div>
+        </div>
+        <div class="TPostMv">
+          <div class="TPost B">
+            <a href="/phim/dragon-ball-super-beerus-a1002/">
+              <div class="Image">
+                <span class="mli-eps">TẬP<i>5</i></span>
+                <div class="anime-extras">
+                  <div class="anime-avg-user-rating">7.9</div>
+                </div>
+              </div>
+              <div class="Title">Dragon Ball Super: Beerus</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <section id="single-home"></section>
+    <section id="new-home"></section>
+    <section id="hot-home"></section>
+    <div id="showTopPhim"></div>
   </body>
 </html>

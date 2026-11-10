@@ -36,4 +36,4 @@ In dev, `window.__app` exposes `route()`, `queryKeys()` and the active `transpor
 
 Real fixtures must be captured from a real browser with the extension. The upstream is behind Cloudflare, so `curl` gets a 403, and nothing here tries to bypass that. `scripts/capture-fixtures.ts` opens Chrome for Testing with the built extension, reads each page through `ExtensionTransport`, and writes it to `public/fixtures/captured/`. It needs a human at the keyboard and stops if a page does not answer 200. The header of the script lists the prerequisites. `node scripts/capture-fixtures.ts --dry-run` prints the plan without a browser.
 
-The home page parser in this PR is a placeholder that reads the synthetic markup. Real parsers and captured fixtures arrive with the catalog package.
+The home route parses with `parseHome` from `packages/catalog`. The synthetic home fixtures use the real home markup (section containers and `TPostMv` cards) so that parser reads them. Real captured fixtures and the list of what still needs a human capture are in `packages/catalog/README.md`.

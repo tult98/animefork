@@ -17,7 +17,10 @@
   "nx": {
     "targets": {
       "dev": {
-        "continuous": true
+        "continuous": true,
+        "dependsOn": [
+          "^build"
+        ]
       },
       "build": {
         "cache": true,
@@ -81,6 +84,7 @@
     "@base-ui/react": "1.9.0",
     "@tanstack/react-query": "5.105.0",
     "@tanstack/react-router": "1.170.46",
+    "catalog": "workspace:*",
     "client-ext-animevsub-helper": "workspace:*",
     "react": "19.1.10",
     "react-dom": "19.1.10",
