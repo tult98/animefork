@@ -2,4 +2,5 @@ packages:
   - apps/desktop-web
   - apps/extension
   - apps/extension/client
+  - apps/web
   - tools/avs-loader
