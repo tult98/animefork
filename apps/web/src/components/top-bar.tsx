@@ -52,7 +52,7 @@ export function TopBar() {
             key={item.id}
             to={item.to}
             data-testid={`nav:${item.id}`}
-            activeOptions={{ exact: item.to === '/' }}
+            activeOptions={{ exact: item.to === '/', includeSearch: false }}
             className={`${NAV_PILL_CLASS} inline-flex min-h-11 items-center`}
           >
             {item.label}

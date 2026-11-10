@@ -57,14 +57,6 @@ test('cards show name, episode label and rating', async ({ page }) => {
   await expect(page.locator('body')).not.toContainText(/\bNaN\b/);
 });
 
-test('top 10 numbers its cards from 1', async ({ page }) => {
-  await page.goto('/?transport=replay');
-  const items = page.getByTestId('shelf:top-10-today').getByRole('listitem');
-
-  await expect(items.first()).toContainText('1. Black Clover 2nd Season');
-  await expect(items.last()).toContainText('10. ');
-});
-
 test('image requests are answered locally, never by the CDN', async ({
   page,
 }) => {

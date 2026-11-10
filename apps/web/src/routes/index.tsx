@@ -2,6 +2,7 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo } from 'react';
 import { ErrorScreen } from '../components/error-screen.tsx';
+import { Shelf as ShelfRow, ShelfSkeleton } from '../components/shelf.tsx';
 import { publishShelves } from '../lib/app-hook.ts';
 import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
 import { buildHome, type Shelf } from '../lib/titles/shelves.ts';
@@ -54,16 +55,15 @@ function Home() {
 
   return (
     <div className="flex flex-col gap-10 py-8">
-      {shelves.map((shelf) => (
-        <ShelfSection key={shelf.id} shelf={shelf} />
-      ))}
+      {shelves.map((shelf) =>
+        shelf.kind === 'hero' ? (
+          <ShelfSection key={shelf.id} shelf={shelf} />
+        ) : (
+          <ShelfRow key={shelf.id} shelf={shelf} />
+        ),
+      )}
       {seasonPath !== null && season.isPending ? (
-        <p
-          className="text-muted"
-          data-testid="shelf:airing-this-season:loading"
-        >
-          Loading
-        </p>
+        <ShelfSkeleton id="airing-this-season" />
       ) : null}
     </div>
   );

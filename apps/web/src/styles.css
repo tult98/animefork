@@ -40,20 +40,105 @@ body {
 /* Layout variables shared by the shell, the hero and the shelves. */
 @theme {
   --breakpoint-desk: 1100px;
+  --animate-shimmer: shimmer 1.4s infinite;
+
+  @keyframes shimmer {
+    to {
+      transform: translateX(100%);
+    }
+  }
 }
 
 :root {
   --pad: var(--space-gutter);
+  --per: 6;
+  --gap: 8px;
+  --rkslot: 208px;
+  --rkposter: 139px;
+  --rkfs: 210px;
+  /* Width over height of the art on a default card. A portrait poster is cropped to it, so this is the one switch. */
+  --card-art-ratio: calc(16 / 9);
 }
 
 @media (max-width: 1099px) {
   :root {
     --pad: 32px;
+    --per: 3.2;
+    --rkslot: 176px;
+    --rkposter: 118px;
+    --rkfs: 178px;
   }
 }
 
 @media (max-width: 767px) {
   :root {
     --pad: 16px;
+    --per: 1.7;
+    --rkslot: 150px;
+    --rkposter: 100px;
+    --rkfs: 150px;
+    --space-row: 28px;
+  }
+}
+
+@layer components {
+  .shelf-scroller {
+    display: flex;
+    gap: var(--gap);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--pad);
+    padding: 32px var(--pad) 40px;
+    margin-block: -32px -40px;
+    scrollbar-width: none;
+  }
+
+  .shelf-scroller::-webkit-scrollbar {
+    display: none;
+  }
+
+  .shelf-item {
+    flex: 0 0 calc((100% - (var(--per) - 1) * var(--gap)) / var(--per));
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+
+  .shelf-item--rank {
+    flex-basis: var(--rkslot);
+  }
+
+  /* The arrows sit in their own container so the scroller, whose cards open fixed-position previews, is not contained. */
+  .shelf-arrows {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    container-type: inline-size;
+  }
+
+  @media (min-width: 1100px) {
+    .shelf-arrows {
+      display: block;
+    }
+  }
+
+  .shelf-arrow {
+    --art-h: calc(
+      (100cqw - 2 * var(--pad) - (var(--per) - 1) * var(--gap)) / var(--per) /
+        var(--card-art-ratio)
+    );
+    position: absolute;
+    top: 0;
+    width: var(--pad);
+    height: var(--art-h);
+    display: grid;
+    place-items: center;
+    pointer-events: auto;
+  }
+
+  /* The 5:7 poster is 1.4 times as tall as it is wide. */
+  .shelf--top .shelf-arrow {
+    height: calc(var(--rkposter) * 1.4);
   }
 }
