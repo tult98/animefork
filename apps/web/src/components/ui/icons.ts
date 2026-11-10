@@ -1,4 +1,5 @@
 export {
+  ArrowLeft,
   Bell,
   Bookmark,
   CalendarDays,

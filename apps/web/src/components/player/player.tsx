@@ -4,6 +4,7 @@ import { formatClock } from '../../lib/player/format.ts';
 import { usePlayback } from '../../lib/player/use-playback.ts';
 import type { Episode } from '../../lib/titles/watch.ts';
 import {
+  ArrowLeft,
   ListVideo,
   Gauge,
   LoaderCircle,
@@ -33,6 +34,7 @@ interface PlayerProps {
   ageRating?: string;
   episode: Episode;
   onNext?: () => void;
+  onBack: () => void;
   episodesPanel: (progress: number) => ReactNode;
 }
 
@@ -56,6 +58,7 @@ export function Player({
   ageRating,
   episode,
   onNext,
+  onBack,
   episodesPanel,
 }: PlayerProps) {
   const root = useRef<HTMLDivElement>(null);
@@ -118,6 +121,15 @@ export function Player({
           </Button>
         </div>
       ) : null}
+
+      <IconButton
+        label={PLAYER_COPY.back}
+        data-testid="player:back"
+        className="absolute top-8 right-gutter z-1 bg-hero-overlay max-[720px]:right-4"
+        onClick={onBack}
+      >
+        <ArrowLeft aria-hidden="true" />
+      </IconButton>
 
       {ageRating ? (
         <div

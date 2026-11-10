@@ -1,4 +1,5 @@
 export const PLAYER_COPY = {
+  back: 'Quay lại',
   play: 'Phát',
   pause: 'Tạm dừng',
   back10: 'Lùi 10 giây',

@@ -95,10 +95,14 @@ export function WatchScreen({
   const episodes = page.episodes;
   const index = episodes.findIndex((e) => e.id === page.currentEpisode.id);
   const next = episodes[index + 1];
+  const goBack = () => {
+    if (window.history.length > 1) window.history.back();
+    else void navigate({ to: '/' });
+  };
   const open = (targetSlug: string, episode: Episode) => {
     setBrowse(null);
     setView('episodes');
-    void navigate(watchLink(targetSlug, episode.id));
+    void navigate({ ...watchLink(targetSlug, episode.id), replace: true });
   };
 
   const browsed: BrowsedEpisodes = browsedQuery.data
@@ -117,6 +121,7 @@ export function WatchScreen({
       ageRating={page.ageRating}
       episode={page.currentEpisode}
       onNext={next ? () => open(slug, next) : undefined}
+      onBack={goBack}
       episodesPanel={(progress) => (
         <EpisodesPanel
           view={view}
