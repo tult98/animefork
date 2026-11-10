@@ -30,11 +30,16 @@ async function stubArt(
   return bodies;
 }
 
-const ready = (backdropPath: string, stills?: Record<string, string>) =>
+const ready = (
+  backdropPath: string,
+  stills?: Record<string, string>,
+  posterPath: string | null = null,
+) =>
   ({
     status: 'ready',
     backdropPath,
     backdropLang: 'vi',
+    posterPath,
     ...(stills ? { stills } : {}),
   }) as const;
 
@@ -134,11 +139,11 @@ test('the home hero swaps in the backdrop after a pending answer, then stops pol
   expect(bodies).toHaveLength(settled);
 });
 
-test('a top 10 hover preview shows the TMDB backdrop while the card keeps its poster', async ({
+test('a top 10 card shows the TMDB poster and its hover preview the backdrop', async ({
   page,
 }) => {
   const bodies = await stubArt(page, () => ({
-    [TOP10_SLUG]: ready('/top.jpg'),
+    [TOP10_SLUG]: ready('/top.jpg', undefined, '/top-poster.jpg'),
   }));
 
   await page.goto('/?transport=replay');
@@ -152,23 +157,54 @@ test('a top 10 hover preview shows the TMDB backdrop while the card keeps its po
     .toContain(TOP10_SLUG);
 
   const previewImg = page.locator('[data-testid$=":preview"] img');
+  await expect(first.locator('.af-poster-art img')).toHaveAttribute(
+    'src',
+    'https://image.tmdb.org/t/p/w342/top-poster.jpg',
+  );
   await first.locator('a[data-cover]').hover();
   await expect(previewImg).toHaveAttribute(
+    'src',
+    'https://image.tmdb.org/t/p/w780/top.jpg',
+  );
+
+  await page.mouse.move(5, 5);
+  await expect(previewImg).toHaveCount(0);
+
+  await expect(second.locator('.af-poster-art img')).toHaveAttribute(
+    'src',
+    /^https:\/\/cdn\.animevietsub\.best\/data\/poster\//,
+  );
+  await second.locator('a[data-cover]').hover();
+  await expect(previewImg).toHaveAttribute(
+    'src',
+    /^https:\/\/cdn\.animevietsub\.best\//,
+  );
+});
+
+test('a top 10 title without a posterPath keeps the source poster in its card', async ({
+  page,
+}) => {
+  const bodies = await stubArt(page, () => ({
+    [TOP10_SLUG]: ready('/top.jpg'),
+  }));
+
+  await page.goto('/?transport=replay');
+  const first = page
+    .getByTestId('shelf:top-10-today')
+    .getByRole('listitem')
+    .nth(0);
+  await expect
+    .poll(() => bodies.flatMap((b) => b.titles.map((t) => t.slug)))
+    .toContain(TOP10_SLUG);
+
+  await first.locator('a[data-cover]').hover();
+  await expect(page.locator('[data-testid$=":preview"] img')).toHaveAttribute(
     'src',
     'https://image.tmdb.org/t/p/w780/top.jpg',
   );
   await expect(first.locator('.af-poster-art img')).toHaveAttribute(
     'src',
     /^https:\/\/cdn\.animevietsub\.best\/data\/poster\//,
-  );
-
-  await page.mouse.move(5, 5);
-  await expect(previewImg).toHaveCount(0);
-
-  await second.locator('a[data-cover]').hover();
-  await expect(previewImg).toHaveAttribute(
-    'src',
-    /^https:\/\/cdn\.animevietsub\.best\//,
   );
 });
 

@@ -221,7 +221,11 @@ export function PosterCard({
             aria-hidden="true"
             className="block aspect-(--card-art-ratio) bg-surface-alt"
           >
-            <CardImage title={title} alt="" src={title.backdrop ?? title.image} />
+            <CardImage
+              title={title}
+              alt=""
+              src={title.backdrop ?? title.image}
+            />
           </Link>
           <div className="af-hover-body card-preview-body">
             <div className="af-hover-actions">

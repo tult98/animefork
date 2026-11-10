@@ -5,11 +5,7 @@ import { ErrorScreen } from '../components/error-screen.tsx';
 import { Hero, HeroSkeleton } from '../components/hero.tsx';
 import { Shelf, ShelfSkeleton } from '../components/shelf.tsx';
 import { publishShelves } from '../lib/app-hook.ts';
-import {
-  applyHomeArt,
-  artPollDelay,
-  fetchBackdrops,
-} from '../lib/titles/art.ts';
+import { applyHomeArt, artPollDelay, fetchHomeArt } from '../lib/titles/art.ts';
 import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
 import { lookupTitles } from '../lib/titles/lookup.ts';
 import { buildHome } from '../lib/titles/shelves.ts';
@@ -39,14 +35,14 @@ function Home() {
   const art = useQuery({
     queryKey: ['home-art', titles],
     queryFn: ({ signal }) =>
-      fetchBackdrops(titles, { env: import.meta.env, signal }),
+      fetchHomeArt(titles, { env: import.meta.env, signal }),
     enabled: titles.length > 0 && Boolean(import.meta.env.VITE_API_URL),
     placeholderData: keepPreviousData,
     refetchInterval: (query) =>
       artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
   });
   const shelves = useMemo(
-    () => (art.data ? applyHomeArt(built, art.data.backdrops) : built),
+    () => (art.data ? applyHomeArt(built, art.data.paths) : built),
     [built, art.data],
   );
 

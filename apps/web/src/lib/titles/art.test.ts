@@ -7,7 +7,8 @@ import {
   applyHomeArt,
   artPollDelay,
   fetchArt,
-  fetchBackdrops,
+  fetchHomeArt,
+  type HomeArtPaths,
   NO_ART,
   type TitleArt,
 } from './art.ts';
@@ -60,6 +61,7 @@ describe('fetchArt', () => {
         status: 'ready',
         backdropPath: '/b.jpg',
         backdropLang: 'vi',
+        posterPath: null,
         stills: { '2': '/s2.jpg' },
       },
     });
@@ -180,32 +182,50 @@ const home = (): HomeShelves => {
   ];
 };
 
-describe('fetchBackdrops', () => {
+describe('fetchHomeArt', () => {
   const titles = [
     { slug: 'a-1', name: 'A' },
     { slug: 'b-2', name: 'B' },
     { slug: 'c-3', name: 'C' },
   ];
 
-  it('posts every title without episodes and keeps only ready backdrops', async () => {
+  it('posts every title without episodes and keeps only entries with a backdrop or a poster', async () => {
     const fetchImpl = answer({
-      'a-1': { status: 'ready', backdropPath: '/a.jpg', backdropLang: 'en' },
-      'b-2': { status: 'ready', backdropPath: null, backdropLang: null },
-      'c-3': { status: 'none' },
+      'a-1': {
+        status: 'ready',
+        backdropPath: '/a.jpg',
+        backdropLang: 'en',
+        posterPath: '/pa.jpg',
+      },
+      'b-2': {
+        status: 'ready',
+        backdropPath: null,
+        backdropLang: null,
+        posterPath: null,
+      },
+      'c-3': {
+        status: 'ready',
+        backdropPath: null,
+        backdropLang: null,
+        posterPath: '/pc.jpg',
+      },
     });
-    const art = await fetchBackdrops(titles, { env, fetch: fetchImpl });
-    expect([...art.backdrops]).toEqual([['a-1', '/a.jpg']]);
+    const art = await fetchHomeArt(titles, { env, fetch: fetchImpl });
+    expect([...art.paths]).toEqual([
+      ['a-1', { backdropPath: '/a.jpg', posterPath: '/pa.jpg' }],
+      ['c-3', { backdropPath: null, posterPath: '/pc.jpg' }],
+    ]);
     expect(art.pending).toBe(false);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(sentBody(fetchImpl)).toEqual({ titles });
   });
 
   it('reports pending when any entry is still being filled', async () => {
-    const art = await fetchBackdrops(titles, {
+    const art = await fetchHomeArt(titles, {
       env,
       fetch: answer({ 'a-1': { status: 'pending' } }),
     });
-    expect(art).toEqual({ backdrops: new Map(), pending: true });
+    expect(art).toEqual({ paths: new Map(), pending: true });
   });
 
   it('splits more than 50 titles into several lookups', async () => {
@@ -214,7 +234,7 @@ describe('fetchBackdrops', () => {
       name: 'S',
     }));
     const fetchImpl = answer({});
-    await fetchBackdrops(many, { env, fetch: fetchImpl });
+    await fetchHomeArt(many, { env, fetch: fetchImpl });
     const sizes = vi
       .mocked(fetchImpl)
       .mock.calls.map(
@@ -226,11 +246,11 @@ describe('fetchBackdrops', () => {
 
   it('answers nothing without a base url or titles, without fetching', async () => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
-    const empty = { backdrops: new Map(), pending: false };
-    expect(await fetchBackdrops(titles, { env: {}, fetch: fetchImpl })).toEqual(
+    const empty = { paths: new Map(), pending: false };
+    expect(await fetchHomeArt(titles, { env: {}, fetch: fetchImpl })).toEqual(
       empty,
     );
-    expect(await fetchBackdrops([], { env, fetch: fetchImpl })).toEqual(empty);
+    expect(await fetchHomeArt([], { env, fetch: fetchImpl })).toEqual(empty);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -243,23 +263,23 @@ describe('fetchBackdrops', () => {
       },
     ];
     for (const a of answers) {
-      const art = await fetchBackdrops(titles, {
+      const art = await fetchHomeArt(titles, {
         env,
         fetch: a as unknown as typeof fetch,
       });
-      expect(art).toEqual({ backdrops: new Map(), pending: false });
+      expect(art).toEqual({ paths: new Map(), pending: false });
     }
   });
 });
 
 describe('applyHomeArt', () => {
-  const backdrops = new Map([
-    ['a-1', '/a.jpg'],
-    ['c-3', '/c.jpg'],
+  const art = new Map<string, HomeArtPaths>([
+    ['a-1', { backdropPath: '/a.jpg', posterPath: '/pa.jpg' }],
+    ['c-3', { backdropPath: '/c.jpg', posterPath: null }],
   ]);
 
   it('puts w1280 on the hero and w780 on the cards, and leaves the rest', () => {
-    const [hero, cards] = applyHomeArt(home(), backdrops);
+    const [hero, cards] = applyHomeArt(home(), art);
     expect(hero?.items.map((t) => t.image)).toEqual([
       'https://image.tmdb.org/t/p/w1280/a.jpg',
       'https://cdn.test/b-2.jpg',
@@ -270,27 +290,51 @@ describe('applyHomeArt', () => {
     ]);
   });
 
-  it('adds a w780 backdrop to the ranking items and keeps their poster image', () => {
-    const [, , top] = applyHomeArt(home(), backdrops);
+  it('gives a ranking item the w342 TMDB poster and a w780 backdrop for the hover', () => {
+    const [, , top] = applyHomeArt(home(), art);
     expect(top?.items).toEqual([
       {
         ...home()[2]!.items[0],
+        image: 'https://image.tmdb.org/t/p/w342/pa.jpg',
         backdrop: 'https://image.tmdb.org/t/p/w780/a.jpg',
       },
     ]);
-    expect(top?.items[0]?.image).toBe('https://cdn.test/a-1.jpg');
   });
 
-  it('leaves a ranking item without a stored backdrop untouched', () => {
-    const [, , top] = applyHomeArt(home(), new Map([['c-3', '/c.jpg']]));
+  it('keeps the source poster of a ranking item without a stored posterPath', () => {
+    const shelves = home();
+    const top = shelves[2]!;
+    if (top.kind !== 'top10') throw new Error('expected the top10 shelf');
+    top.items = [{ ...top.items[0]!, path: '/phim/c-3/' }];
+    const [, , out] = applyHomeArt(shelves, art);
+    expect(out?.items[0]).toMatchObject({
+      image: 'https://cdn.test/a-1.jpg',
+      backdrop: 'https://image.tmdb.org/t/p/w780/c.jpg',
+    });
+  });
+
+  it('sets a poster without a backdrop when only the poster is stored', () => {
+    const [, , top] = applyHomeArt(
+      home(),
+      new Map([['a-1', { backdropPath: null, posterPath: '/pa.jpg' }]]),
+    );
+    expect(top?.items[0]).toMatchObject({
+      image: 'https://image.tmdb.org/t/p/w342/pa.jpg',
+    });
+    expect(top?.items[0]).not.toHaveProperty('backdrop');
+  });
+
+  it('leaves a ranking item without stored art untouched', () => {
+    const [, , top] = applyHomeArt(home(), new Map([['c-3', art.get('c-3')!]]));
     expect(top).toEqual(home()[2]);
   });
 
-  it('sets no backdrop field on the hero and card shelves', () => {
-    const [hero, cards] = applyHomeArt(home(), backdrops);
-    expect(
-      [...hero!.items, ...cards!.items].some((t) => 'backdrop' in t),
-    ).toBe(false);
+  it('ignores the poster on the hero and card shelves and sets no backdrop field', () => {
+    const [hero, cards] = applyHomeArt(home(), art);
+    expect([...hero!.items, ...cards!.items].some((t) => 'backdrop' in t)).toBe(
+      false,
+    );
+    expect(hero?.items[0]?.image).not.toContain('w342');
   });
 
   it('returns the same shelves when no art exists', () => {
@@ -300,7 +344,7 @@ describe('applyHomeArt', () => {
 
   it('does not mutate its input', () => {
     const shelves = home();
-    applyHomeArt(shelves, backdrops);
+    applyHomeArt(shelves, art);
     expect(shelves).toEqual(home());
   });
 });

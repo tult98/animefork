@@ -4,6 +4,7 @@ import {
   LOOKUP_PATH,
   LookupResponseSchema,
   MAX_TITLES_PER_LOOKUP,
+  POSTER_SIZE,
   STILL_SIZE,
   tmdbImageUrl,
   type ArtEntry,
@@ -25,8 +26,13 @@ export interface TitleArt {
   pending: boolean;
 }
 
+export interface HomeArtPaths {
+  backdropPath: string | null;
+  posterPath: string | null;
+}
+
 export interface HomeArt {
-  backdrops: Map<string, string>;
+  paths: Map<string, HomeArtPaths>;
   pending: boolean;
 }
 
@@ -162,16 +168,21 @@ export function applyArt(page: WatchPage, art: TitleArt): WatchPage {
   };
 }
 
-export async function fetchBackdrops(
+export async function fetchHomeArt(
   titles: TitleInput[],
   options: { env: ArtEnv; signal?: AbortSignal; fetch?: typeof fetch },
 ): Promise<HomeArt> {
   const { ready, pending } = await lookupArt(titles, options);
-  const backdrops = new Map<string, string>();
+  const paths = new Map<string, HomeArtPaths>();
   for (const [slug, entry] of ready) {
-    if (entry.backdropPath) backdrops.set(slug, entry.backdropPath);
+    if (entry.backdropPath || entry.posterPath) {
+      paths.set(slug, {
+        backdropPath: entry.backdropPath,
+        posterPath: entry.posterPath,
+      });
+    }
   }
-  return { backdrops, pending };
+  return { paths, pending };
 }
 
 function slugOf(title: Pick<Title, 'path'>): string {
@@ -180,11 +191,11 @@ function slugOf(title: Pick<Title, 'path'>): string {
 
 export function applyHomeArt(
   shelves: HomeShelves,
-  backdrops: Map<string, string>,
+  art: Map<string, HomeArtPaths>,
 ): HomeShelves {
-  if (backdrops.size === 0) return shelves;
+  if (art.size === 0) return shelves;
   const withBackdrop = (title: Title, size: ImageSize): Title => {
-    const path = backdrops.get(slugOf(title));
+    const path = art.get(slugOf(title))?.backdropPath;
     return path ? { ...title, image: tmdbImageUrl(path, size) } : title;
   };
   return shelves.map((shelf) => {
@@ -203,10 +214,16 @@ export function applyHomeArt(
     return {
       ...shelf,
       items: shelf.items.map((t) => {
-        const path = backdrops.get(slugOf(t));
-        return path
-          ? { ...t, backdrop: tmdbImageUrl(path, CARD_BACKDROP_SIZE) }
-          : t;
+        const paths = art.get(slugOf(t));
+        if (!paths) return t;
+        const { backdropPath, posterPath } = paths;
+        return {
+          ...t,
+          ...(posterPath && { image: tmdbImageUrl(posterPath, POSTER_SIZE) }),
+          ...(backdropPath && {
+            backdrop: tmdbImageUrl(backdropPath, CARD_BACKDROP_SIZE),
+          }),
+        };
       }),
     };
   });
