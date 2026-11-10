@@ -8,7 +8,7 @@ import {
 } from './matcher.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
 import type { TitleInput } from '../contract.ts';
-import { parseSeasonNumber, stripSeasonMarker } from './titles.ts';
+import { parseSeasonNumber, searchQueries } from './titles.ts';
 
 export interface TitleArtRow {
   source_slug: string;
@@ -32,6 +32,7 @@ export interface EpisodeArtRow {
 
 const CANDIDATE_LIMIT = 5;
 const ALTERNATIVE_TITLE_LIMIT = 3;
+const MAX_SEARCHES = 3;
 
 export interface MatchedTitle {
   slug: string;
@@ -100,6 +101,7 @@ function skip(slug: string, reason: string): SyncOutcome {
 
 export interface Gathered {
   season: number;
+  query: string;
   question: MatchQuestion;
   details: TmdbDetail[];
 }
@@ -109,7 +111,13 @@ export async function gatherCandidates(
   tmdb: TmdbClient,
 ): Promise<Gathered | null> {
   const season = parseSeasonNumber(input.seasonName, input.name);
-  const results = await tmdb.searchTv(stripSeasonMarker(input.name));
+  let query = '';
+  let results: Awaited<ReturnType<TmdbClient['searchTv']>> = [];
+  for (const candidate of searchQueries(input.name).slice(0, MAX_SEARCHES)) {
+    query = candidate;
+    results = await tmdb.searchTv(candidate);
+    if (results.length > 0) break;
+  }
   if (results.length === 0) return null;
 
   const details = await Promise.all(
@@ -122,6 +130,7 @@ export async function gatherCandidates(
   );
   return {
     season,
+    query,
     details,
     question: {
       slug: input.slug,
@@ -143,14 +152,14 @@ export async function syncTitle(
 ): Promise<SyncOutcome> {
   const gathered = await gatherCandidates(input, tmdb);
   if (!gathered) return skip(input.slug, 'no TMDB search results');
-  const { season, question, details } = gathered;
+  const { season, query, question, details } = gathered;
 
   const answer = await matcher.match(question);
   const choice = decide(answer);
   if (choice === null) {
     return skip(
       input.slug,
-      `no confident match by ${answer.by} (best probability ${answer.probability.toFixed(2)})`,
+      `no confident match by ${answer.by} (best probability ${answer.probability.toFixed(2)}) via query '${query}'`,
     );
   }
 
@@ -159,7 +168,10 @@ export async function syncTitle(
     detail?.seasons &&
     !detail.seasons.some((s) => s.season_number === season)
   ) {
-    return skip(input.slug, `TMDB ${choice} has no season ${season}`);
+    return skip(
+      input.slug,
+      `TMDB ${choice} has no season ${season} via query '${query}'`,
+    );
   }
 
   const [images, seasonDetail] = await Promise.all([

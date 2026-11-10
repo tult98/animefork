@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   parseSeasonNumber,
+  searchQueries,
   stripSeasonMarker,
 } from '../../../src/art/tmdb/titles.ts';
 
@@ -31,5 +32,52 @@ describe('stripSeasonMarker', () => {
   it('keeps a name without a marker, or one that is only a marker', () => {
     expect(stripSeasonMarker('Show')).toBe('Show');
     expect(stripSeasonMarker('Season 2')).toBe('Season 2');
+  });
+});
+
+describe('searchQueries', () => {
+  it('falls back from the full name to the franchise and the arc-less name', () => {
+    expect(searchQueries('Tokyo Revengers: Santen Sensou-hen')).toEqual([
+      'Tokyo Revengers: Santen Sensou-hen',
+      'Tokyo Revengers',
+      'Tokyo Revengers: Santen Sensou',
+    ]);
+  });
+
+  it('starts from the name without its season marker', () => {
+    expect(searchQueries('Show: Subtitle 2nd Season')).toEqual([
+      'Show: Subtitle',
+      'Show',
+    ]);
+  });
+
+  it('splits on a spaced dash', () => {
+    expect(searchQueries('Franchise - Part Two')).toEqual([
+      'Franchise - Part Two',
+      'Franchise',
+    ]);
+  });
+
+  it('strips an arc or movie suffix, case-insensitively', () => {
+    expect(searchQueries('Jujutsu Kaisen Movie')).toEqual([
+      'Jujutsu Kaisen Movie',
+      'Jujutsu Kaisen',
+    ]);
+    expect(searchQueries('One Piece ARC')).toEqual([
+      'One Piece ARC',
+      'One Piece',
+    ]);
+  });
+
+  it('gives one query for a plain name', () => {
+    expect(searchQueries('Tonikaku Kawaii')).toEqual(['Tonikaku Kawaii']);
+  });
+
+  it('ignores a prefix shorter than 3 characters', () => {
+    expect(searchQueries('A: Long Subtitle')).toEqual(['A: Long Subtitle']);
+  });
+
+  it('dedupes queries that collapse to the same text', () => {
+    expect(searchQueries('Show: Arc')).toEqual(['Show: Arc', 'Show']);
   });
 });

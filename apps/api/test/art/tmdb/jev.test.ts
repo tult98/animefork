@@ -337,7 +337,7 @@ describe('a sync through the cascade', () => {
       matcher: new CascadeMatcher(new BaselineMatcher(), jev.matcher),
     });
     expect(outcome.kind === 'skipped' && outcome.skipped.reason).toBe(
-      'no confident match by jev (best probability 0.20)',
+      "no confident match by jev (best probability 0.20) via query 'Thám Tử Lừng Danh Conan'",
     );
   });
 });

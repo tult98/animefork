@@ -35,3 +35,35 @@ export function stripSeasonMarker(name: string): string {
     .trim();
   return stripped || name;
 }
+
+const MIN_PREFIX_LENGTH = 3;
+
+function beforeSubtitle(query: string): string | undefined {
+  const cut = query.search(/:| [-–] /);
+  if (cut < 0) return undefined;
+  const prefix = query.slice(0, cut).trim();
+  return prefix.length >= MIN_PREFIX_LENGTH ? prefix : undefined;
+}
+
+function stripArcSuffix(query: string): string | undefined {
+  const stripped = query
+    .replace(/[\s-]+(?:hen|arc|movie)$/i, '')
+    .replace(/[\s:\-–]+$/, '')
+    .trim();
+  return stripped && stripped !== query ? stripped : undefined;
+}
+
+// TMDB search is literal, so a full name with an arc subtitle often finds
+// nothing while the franchise name alone does. Ordered from most to least specific.
+export function searchQueries(name: string): string[] {
+  const full = stripSeasonMarker(name);
+  const prefix = beforeSubtitle(full);
+  const ordered = [
+    full,
+    prefix,
+    stripArcSuffix(full),
+    prefix === undefined ? undefined : stripArcSuffix(prefix),
+  ];
+  const queries = ordered.filter((q): q is string => q !== undefined);
+  return [...new Set(queries)];
+}

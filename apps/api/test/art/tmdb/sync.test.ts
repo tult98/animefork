@@ -118,6 +118,69 @@ describe('syncTitle against a mocked TMDB', () => {
     });
   });
 
+  it('retries shorter queries when the first search is empty', async () => {
+    const searches: string[] = [];
+    const inner = mockTmdb({
+      '/3/search/tv?Tonikaku Kawaii: Arc Subtitle-hen': fx.SEARCH_NOTHING,
+    });
+    const spy: typeof fetch = async (input, init) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/3/search/tv') {
+        searches.push(url.searchParams.get('query') ?? '');
+      }
+      return inner(input, init);
+    };
+    const outcome = await sync(
+      {
+        slug: 'tonikaku-kawaii-x',
+        name: 'Tonikaku Kawaii: Arc Subtitle-hen',
+        year: 2020,
+        episodeCount: 12,
+      },
+      spy,
+    );
+    expect(searches).toEqual([
+      'Tonikaku Kawaii: Arc Subtitle-hen',
+      'Tonikaku Kawaii',
+    ]);
+    expect(outcome.kind === 'skipped' && outcome.skipped.reason).toMatch(
+      /via query 'Tonikaku Kawaii'$/,
+    );
+  });
+
+  it('makes no extra search when the first one has results', async () => {
+    const searches: string[] = [];
+    const inner = mockTmdb();
+    const spy: typeof fetch = async (input, init) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/3/search/tv') {
+        searches.push(url.searchParams.get('query') ?? '');
+      }
+      return inner(input, init);
+    };
+    await sync(
+      { slug: 'tonikaku-kawaii-a3860', name: 'Tonikaku Kawaii', year: 2020 },
+      spy,
+    );
+    expect(searches).toEqual(['Tonikaku Kawaii']);
+  });
+
+  it('searches at most 3 queries and still reports no results', async () => {
+    const searches: string[] = [];
+    const spy: typeof fetch = async (input) => {
+      searches.push(new URL(String(input)).searchParams.get('query') ?? '');
+      return Response.json({ results: [] });
+    };
+    const outcome = await sync(
+      { slug: 'none', name: 'Nothing Here: Sub Story-hen' },
+      spy,
+    );
+    expect(searches).toHaveLength(3);
+    expect(outcome.kind === 'skipped' && outcome.skipped.reason).toBe(
+      'no TMDB search results',
+    );
+  });
+
   it('skips a title whose season TMDB does not have', async () => {
     const outcome = await sync({
       slug: 's5',
@@ -126,7 +189,7 @@ describe('syncTitle against a mocked TMDB', () => {
       year: 2020,
     });
     expect(outcome.kind === 'skipped' && outcome.skipped.reason).toMatch(
-      /no season 5/,
+      /no season 5 via query 'Tonikaku Kawaii'/,
     );
   });
 
