@@ -6,8 +6,9 @@ It writes `title_art` (one TMDB backdrop per season slug) and `episode_art` (one
 
 ## Usage
 
+Put the keys in `tools/art-sync/.env` (copy `.env.example`). Git ignores that file, and the `sync` script loads it when it exists. A variable already set in the shell wins over the file.
+
 ```sh
-export TMDB_API_KEY=...
 pnpm --filter art-sync sync titles.json --dry-run   # prints matches, skips and counts as JSON
 DATABASE_URL=postgres://user:pass@host/db pnpm --filter art-sync sync titles.json   # upserts
 ```
