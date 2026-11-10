@@ -255,3 +255,37 @@ describe('season-aware year and alternative titles in a sync', () => {
     expect(report.matches[0]?.season).toBe(2);
   });
 });
+
+describe('season marker in the title name', () => {
+  const env = { TMDB_API_KEY: 'key' };
+  const routes = {
+    '/3/tv/100': { ...fx.DETAIL_100, name: 'Tonikaku Kawaii' },
+    '/3/tv/100/season/2': fx.SEASON_100_1,
+  };
+
+  it.each(['Tonikaku Kawaii 2nd Season', 'Tonikaku Kawaii Mùa 2'])(
+    'searches TMDB for the bare name and syncs season 2 from "%s"',
+    async (name) => {
+      const queries: string[] = [];
+      const base = mockTmdb(routes);
+      const tmdbFetch: typeof fetch = async (input, init) => {
+        const url = new URL(String(input));
+        if (url.pathname === '/3/search/tv')
+          queries.push(url.searchParams.get('query') ?? '');
+        return base(input, init);
+      };
+      const file = titlesFile([{ slug: 'd', name }]);
+      const report = await run([file], env, tmdbFetch);
+      expect(queries).toEqual(['Tonikaku Kawaii']);
+      expect(report.matches[0]?.season).toBe(2);
+    },
+  );
+
+  it('lets an explicit seasonName win over the name', async () => {
+    const file = titlesFile([
+      { slug: 'e', name: 'Tonikaku Kawaii Season 3', seasonName: 'Season 2' },
+    ]);
+    const report = await run([file], env, mockTmdb(routes));
+    expect(report.matches[0]?.season).toBe(2);
+  });
+});

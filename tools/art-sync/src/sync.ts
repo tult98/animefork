@@ -2,7 +2,11 @@ import { pickBackdrop } from './backdrop.ts';
 import { decide, type Candidate, type Matcher } from './matcher.ts';
 import type { EpisodeArtRow, TitleArtRow } from './schema.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
-import { parseSeasonNumber, type TitleInput } from './titles.ts';
+import {
+  parseSeasonNumber,
+  stripSeasonMarker,
+  type TitleInput,
+} from './titles.ts';
 
 const CANDIDATE_LIMIT = 5;
 const ALTERNATIVE_TITLE_LIMIT = 3;
@@ -75,8 +79,8 @@ export async function syncTitle(
   input: TitleInput,
   { tmdb, matcher }: SyncDeps,
 ): Promise<SyncOutcome> {
-  const season = parseSeasonNumber(input.seasonName);
-  const results = await tmdb.searchTv(input.name);
+  const season = parseSeasonNumber(input.seasonName, input.name);
+  const results = await tmdb.searchTv(stripSeasonMarker(input.name));
   if (results.length === 0) return skip(input.slug, 'no TMDB search results');
 
   const details = await Promise.all(
