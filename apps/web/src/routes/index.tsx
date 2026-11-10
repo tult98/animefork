@@ -2,11 +2,11 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo } from 'react';
 import { ErrorScreen } from '../components/error-screen.tsx';
-import { Shelf as ShelfRow, ShelfSkeleton } from '../components/shelf.tsx';
+import { Hero } from '../components/hero.tsx';
+import { Shelf, ShelfSkeleton } from '../components/shelf.tsx';
 import { publishShelves } from '../lib/app-hook.ts';
 import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
-import { buildHome, type Shelf } from '../lib/titles/shelves.ts';
-import type { Title } from '../lib/titles/title.ts';
+import { buildHome } from '../lib/titles/shelves.ts';
 import { useTransport } from '../lib/transport/index.ts';
 
 export const Route = createFileRoute('/')({ component: Home });
@@ -54,69 +54,17 @@ function Home() {
   }
 
   return (
-    <div className="flex flex-col gap-10 py-8">
+    <div className="pt-4">
       {shelves.map((shelf) =>
         shelf.kind === 'hero' ? (
-          <ShelfSection key={shelf.id} shelf={shelf} />
+          <Hero key={shelf.id} items={shelf.items} />
         ) : (
-          <ShelfRow key={shelf.id} shelf={shelf} />
+          <Shelf key={shelf.id} shelf={shelf} />
         ),
       )}
       {seasonPath !== null && season.isPending ? (
         <ShelfSkeleton id="airing-this-season" />
       ) : null}
     </div>
-  );
-}
-
-function ShelfSection({ shelf }: { shelf: Shelf }) {
-  return (
-    <section
-      data-testid={`shelf:${shelf.id}`}
-      aria-label={shelf.kind === 'hero' ? 'Nổi bật' : undefined}
-    >
-      {shelf.kind === 'hero' ? null : (
-        <h2 className="mb-4 text-xl font-semibold">{shelf.title}</h2>
-      )}
-      <ul className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6">
-        {shelf.items.map((title) => (
-          <TitleCard
-            key={title.path}
-            title={title}
-            rank={'rank' in title ? title.rank : undefined}
-          />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function TitleCard({
-  title,
-  rank,
-}: {
-  title: Title;
-  rank: number | undefined;
-}) {
-  return (
-    <li
-      data-testid={`card:${title.path}`}
-      className="overflow-hidden rounded-lg bg-surface shadow-card"
-    >
-      <img
-        src={title.image}
-        alt=""
-        className="aspect-[2/3] w-full object-cover"
-      />
-      <div className="p-3">
-        <p className="font-medium">
-          {rank === undefined ? null : `${rank}. `}
-          {title.name}
-        </p>
-        <p className="text-sm text-muted">
-          {title.episodeLabel} · {title.rating.toFixed(1)}
-        </p>
-      </div>
-    </li>
   );
 }

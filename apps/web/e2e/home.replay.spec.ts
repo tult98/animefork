@@ -20,9 +20,11 @@ test('home renders the hero and the three shelves in order', async ({
     'airing-this-season',
   ]);
   for (const shelf of rendered) {
-    await expect(
-      page.getByTestId(`shelf:${shelf.id}`).getByRole('listitem'),
-    ).toHaveCount(shelf.paths.length);
+    const rows =
+      shelf.id === 'hero'
+        ? page.locator('[data-testid^="hero:slide:"]')
+        : page.getByTestId(`shelf:${shelf.id}`).getByRole('listitem');
+    await expect(rows).toHaveCount(shelf.paths.length);
   }
   await expect(page.getByTestId('error-screen')).toHaveCount(0);
 });

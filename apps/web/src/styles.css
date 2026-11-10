@@ -56,6 +56,7 @@ body {
   --rkslot: 208px;
   --rkposter: 139px;
   --rkfs: 210px;
+  --bb-h: 560px;
   /* Width over height of the art on a default card. A portrait poster is cropped to it, so this is the one switch. */
   --card-art-ratio: calc(16 / 9);
 }
@@ -67,6 +68,7 @@ body {
     --rkslot: 176px;
     --rkposter: 118px;
     --rkfs: 178px;
+    --bb-h: 520px;
   }
 }
 
@@ -77,6 +79,7 @@ body {
     --rkslot: 150px;
     --rkposter: 100px;
     --rkfs: 150px;
+    --bb-h: 600px;
     --space-row: 28px;
   }
 }
@@ -140,5 +143,43 @@ body {
   /* The 5:7 poster is 1.4 times as tall as it is wide. */
   .shelf--top .shelf-arrow {
     height: calc(var(--rkposter) * 1.4);
+  }
+}
+
+@layer components {
+  .hero-slide {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.6s ease,
+      visibility 0s 0.6s;
+  }
+
+  .hero-slide[data-active] {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.6s ease;
+  }
+
+  /* Heavier than the design system's --hero-overlay so white text keeps 4.5:1 on bright art. */
+  .hero-scrim {
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--canvas) 88%, transparent) 0,
+        transparent 62%
+      ),
+      linear-gradient(0deg, var(--canvas) 0, transparent 35%);
+  }
+
+  @media (max-width: 767px) {
+    .hero-scrim {
+      background: linear-gradient(
+        0deg,
+        var(--canvas) 0,
+        color-mix(in srgb, var(--canvas) 88%, transparent) 55%,
+        transparent 100%
+      );
+    }
   }
 }
