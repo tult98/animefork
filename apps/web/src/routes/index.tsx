@@ -7,10 +7,11 @@ import { Shelf, ShelfSkeleton } from '../components/shelf.tsx';
 import { publishShelves } from '../lib/app-hook.ts';
 import {
   applyHomeArt,
-  backdropSlugs,
+  artPollDelay,
   fetchBackdrops,
 } from '../lib/titles/art.ts';
 import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
+import { lookupTitles } from '../lib/titles/lookup.ts';
 import { buildHome } from '../lib/titles/shelves.ts';
 import { useTransport } from '../lib/transport/index.ts';
 
@@ -34,16 +35,18 @@ function Home() {
     () => (home.data ? buildHome({ ...home.data, season: season.data }) : []),
     [home.data, season.data],
   );
-  const slugs = useMemo(() => backdropSlugs(built), [built]);
+  const titles = useMemo(() => lookupTitles(built), [built]);
   const art = useQuery({
-    queryKey: ['home-art', slugs],
+    queryKey: ['home-art', titles],
     queryFn: ({ signal }) =>
-      fetchBackdrops(slugs, { env: import.meta.env, signal }),
-    enabled: slugs.length > 0 && Boolean(import.meta.env.VITE_ART_API_URL),
+      fetchBackdrops(titles, { env: import.meta.env, signal }),
+    enabled: titles.length > 0 && Boolean(import.meta.env.VITE_ART_API_URL),
     placeholderData: keepPreviousData,
+    refetchInterval: (query) =>
+      artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
   });
   const shelves = useMemo(
-    () => (art.data ? applyHomeArt(built, art.data) : built),
+    () => (art.data ? applyHomeArt(built, art.data.backdrops) : built),
     [built, art.data],
   );
 

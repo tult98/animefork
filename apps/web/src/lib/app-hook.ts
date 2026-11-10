@@ -1,7 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { AnyRouter } from '@tanstack/react-router';
-import type { TitleInput } from '../../../art-api/src/contract.ts';
-import { exportTitles } from './titles/export.ts';
 import type { HomeShelves } from './titles/shelves.ts';
 import type { Transport } from './transport/index.ts';
 
@@ -14,7 +12,6 @@ export interface AppHook {
   route: () => string;
   queryKeys: () => readonly (readonly unknown[])[];
   shelves: () => RenderedShelf[];
-  titlesJson: () => TitleInput[];
   transport: Transport;
 }
 
@@ -47,7 +44,6 @@ export function installAppHook(deps: {
         id: shelf.id,
         paths: shelf.items.map((title) => title.path),
       })),
-    titlesJson: () => exportTitles(rendered),
     transport: deps.transport,
   };
 }

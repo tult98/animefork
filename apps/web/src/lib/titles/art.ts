@@ -1,14 +1,15 @@
-import { z } from 'zod';
 import {
   BACKDROP_SIZE,
   CARD_BACKDROP_SIZE,
-  EPISODE_ART_TABLE,
-  EpisodeArtRowSchema,
+  LOOKUP_PATH,
+  LookupResponseSchema,
+  MAX_TITLES_PER_LOOKUP,
   STILL_SIZE,
-  TITLE_ART_TABLE,
-  TitleArtRowSchema,
   tmdbImageUrl,
-} from '../../../../art-api/src/schema.ts';
+  type ArtEntry,
+  type ImageSize,
+  type TitleInput,
+} from '../../../../art-api/src/contract.ts';
 import { titleWatchLink } from './link.ts';
 import type { HomeShelves } from './shelves.ts';
 import type { Title } from './title.ts';
@@ -16,96 +17,126 @@ import type { Episode, WatchPage } from './watch.ts';
 
 export interface ArtEnv {
   VITE_ART_API_URL?: string;
-  VITE_ART_API_KEY?: string;
 }
 
 export interface TitleArt {
   backdrop?: string;
   stills: Map<number, string>;
+  pending: boolean;
 }
 
-export const NO_ART: TitleArt = { stills: new Map() };
+export interface HomeArt {
+  backdrops: Map<string, string>;
+  pending: boolean;
+}
+
+export const NO_ART: TitleArt = { stills: new Map(), pending: false };
 
 const TIMEOUT_MS = 3000;
 
-async function select<T>(
-  base: string,
-  key: string | undefined,
-  table: string,
-  slug: string,
-  columns: string,
-  schema: z.ZodType<T>,
-  signal: AbortSignal,
-  fetchImpl: typeof fetch,
-): Promise<T[]> {
-  const url = `${base}/${table}?source_slug=eq.${encodeURIComponent(slug)}&select=${columns}`;
-  const res = await fetchImpl(url, {
-    signal,
-    headers: key ? { authorization: `Bearer ${key}` } : {},
-  });
-  if (!res.ok) throw new Error(`${table} answered ${res.status}`);
-  const rows: unknown = await res.json();
-  if (!Array.isArray(rows)) throw new Error(`${table} did not answer a list`);
-  return rows.flatMap((row) => {
-    const parsed = schema.safeParse(row);
-    return parsed.success ? [parsed.data] : [];
-  });
+export const ART_POLL_DELAYS_MS = [3000, 6000, 12000];
+
+export function artPollDelay(
+  pending: boolean | undefined,
+  fetches: number,
+): number | false {
+  if (!pending) return false;
+  return ART_POLL_DELAYS_MS[fetches - 1] ?? false;
 }
 
-export async function fetchArt(
-  slug: string,
+type ReadyEntry = Extract<ArtEntry, { status: 'ready' }>;
+
+interface LookupResult {
+  ready: Map<string, ReadyEntry>;
+  pending: boolean;
+}
+
+async function lookupChunk(
+  url: string,
+  titles: TitleInput[],
+  episodes: boolean,
+  signal: AbortSignal,
+  fetchImpl: typeof fetch,
+): Promise<LookupResult> {
+  const res = await fetchImpl(url, {
+    method: 'POST',
+    signal,
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(episodes ? { titles, episodes } : { titles }),
+  });
+  if (!res.ok) throw new Error(`art lookup answered ${res.status}`);
+  const { art } = LookupResponseSchema.parse(await res.json());
+  const ready = new Map<string, ReadyEntry>();
+  let pending = false;
+  for (const [slug, entry] of Object.entries(art)) {
+    if (entry.status === 'ready') ready.set(slug, entry);
+    else if (entry.status === 'pending') pending = true;
+  }
+  return { ready, pending };
+}
+
+async function lookupArt(
+  titles: TitleInput[],
   options: {
     env: ArtEnv;
+    episodes?: boolean;
     signal?: AbortSignal;
     fetch?: typeof fetch;
   },
-): Promise<TitleArt> {
+): Promise<LookupResult> {
   const base = options.env.VITE_ART_API_URL?.replace(/\/+$/, '');
-  const key = options.env.VITE_ART_API_KEY;
-  if (!base) return NO_ART;
-  const fetchImpl = options.fetch ?? fetch;
+  if (!base || titles.length === 0) return { ready: new Map(), pending: false };
   const timeout = AbortSignal.timeout(TIMEOUT_MS);
   const signal = options.signal
     ? AbortSignal.any([options.signal, timeout])
     : timeout;
+  const chunks: TitleInput[][] = [];
+  for (let i = 0; i < titles.length; i += MAX_TITLES_PER_LOOKUP) {
+    chunks.push(titles.slice(i, i + MAX_TITLES_PER_LOOKUP));
+  }
   try {
-    const [titles, episodes] = await Promise.all([
-      select(
-        base,
-        key,
-        TITLE_ART_TABLE,
-        slug,
-        'source_slug,tmdb_id,tmdb_season,backdrop_path,backdrop_lang',
-        TitleArtRowSchema,
-        signal,
-        fetchImpl,
+    const results = await Promise.all(
+      chunks.map((chunk) =>
+        lookupChunk(
+          `${base}${LOOKUP_PATH}`,
+          chunk,
+          options.episodes ?? false,
+          signal,
+          options.fetch ?? fetch,
+        ),
       ),
-      select(
-        base,
-        key,
-        EPISODE_ART_TABLE,
-        slug,
-        'source_slug,episode_number,still_path',
-        EpisodeArtRowSchema,
-        signal,
-        fetchImpl,
-      ),
-    ]);
-    const backdropPath = titles[0]?.backdrop_path;
+    );
     return {
-      backdrop: backdropPath
-        ? tmdbImageUrl(backdropPath, BACKDROP_SIZE)
-        : undefined,
-      stills: new Map(
-        episodes.map((row) => [
-          row.episode_number,
-          tmdbImageUrl(row.still_path, STILL_SIZE),
-        ]),
-      ),
+      ready: new Map(results.flatMap((r) => [...r.ready])),
+      pending: results.some((r) => r.pending),
     };
   } catch {
-    return NO_ART;
+    return { ready: new Map(), pending: false };
   }
+}
+
+export async function fetchArt(
+  title: TitleInput,
+  options: { env: ArtEnv; signal?: AbortSignal; fetch?: typeof fetch },
+): Promise<TitleArt> {
+  const { ready, pending } = await lookupArt([title], {
+    ...options,
+    episodes: true,
+  });
+  const entry = ready.get(title.slug);
+  if (!entry) return pending ? { ...NO_ART, pending } : NO_ART;
+  return {
+    backdrop: entry.backdropPath
+      ? tmdbImageUrl(entry.backdropPath, BACKDROP_SIZE)
+      : undefined,
+    stills: new Map(
+      Object.entries(entry.stills ?? {}).map(([n, path]) => [
+        Number.parseInt(n, 10),
+        tmdbImageUrl(path, STILL_SIZE),
+      ]),
+    ),
+    pending: false,
+  };
 }
 
 function episodeNumber(label: string): number | undefined {
@@ -131,64 +162,20 @@ export function applyArt(page: WatchPage, art: TitleArt): WatchPage {
   };
 }
 
-const BackdropRowSchema = z.object({
-  source_slug: z.string().min(1),
-  backdrop_path: z.string().min(1).nullable(),
-});
-
-function quoteListItem(value: string): string {
-  return `"${value.replace(/[\\"]/g, '\\$&')}"`;
-}
-
 export async function fetchBackdrops(
-  slugs: string[],
-  options: {
-    env: ArtEnv;
-    signal?: AbortSignal;
-    fetch?: typeof fetch;
-  },
-): Promise<Map<string, string>> {
+  titles: TitleInput[],
+  options: { env: ArtEnv; signal?: AbortSignal; fetch?: typeof fetch },
+): Promise<HomeArt> {
+  const { ready, pending } = await lookupArt(titles, options);
   const backdrops = new Map<string, string>();
-  const base = options.env.VITE_ART_API_URL?.replace(/\/+$/, '');
-  const key = options.env.VITE_ART_API_KEY;
-  if (!base || slugs.length === 0) return backdrops;
-  const timeout = AbortSignal.timeout(TIMEOUT_MS);
-  const signal = options.signal
-    ? AbortSignal.any([options.signal, timeout])
-    : timeout;
-  const list = encodeURIComponent(`(${slugs.map(quoteListItem).join(',')})`);
-  const url = `${base}/${TITLE_ART_TABLE}?source_slug=in.${list}&select=source_slug,backdrop_path`;
-  try {
-    const res = await (options.fetch ?? fetch)(url, {
-      signal,
-      headers: key ? { authorization: `Bearer ${key}` } : {},
-    });
-    if (!res.ok) return backdrops;
-    const rows: unknown = await res.json();
-    if (!Array.isArray(rows)) return backdrops;
-    for (const row of rows) {
-      const parsed = BackdropRowSchema.safeParse(row);
-      if (parsed.success && parsed.data.backdrop_path) {
-        backdrops.set(parsed.data.source_slug, parsed.data.backdrop_path);
-      }
-    }
-  } catch {
-    backdrops.clear();
+  for (const [slug, entry] of ready) {
+    if (entry.backdropPath) backdrops.set(slug, entry.backdropPath);
   }
-  return backdrops;
+  return { backdrops, pending };
 }
 
 function slugOf(title: Pick<Title, 'path'>): string {
   return titleWatchLink(title).params.slug;
-}
-
-export function backdropSlugs(shelves: HomeShelves): string[] {
-  const slugs = new Set<string>();
-  for (const shelf of shelves) {
-    if (shelf.kind === 'top10') continue;
-    for (const title of shelf.items) slugs.add(slugOf(title));
-  }
-  return [...slugs].sort();
 }
 
 export function applyHomeArt(
@@ -196,10 +183,7 @@ export function applyHomeArt(
   backdrops: Map<string, string>,
 ): HomeShelves {
   if (backdrops.size === 0) return shelves;
-  const withBackdrop = (
-    title: Title,
-    size: Parameters<typeof tmdbImageUrl>[1],
-  ): Title => {
+  const withBackdrop = (title: Title, size: ImageSize): Title => {
     const path = backdrops.get(slugOf(title));
     return path ? { ...title, image: tmdbImageUrl(path, size) } : title;
   };
