@@ -7,6 +7,7 @@
 @import '@fontsource/archivo/900.css';
 @import './design/tokens.css';
 @import './design/theme.css';
+@import './design/bundle.css' layer(components);
 
 :root {
   color-scheme: dark;

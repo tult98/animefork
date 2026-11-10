@@ -1,16 +1,13 @@
 import { Link } from '@tanstack/react-router';
 import { NAV_ITEMS } from '../nav.ts';
+import { Logo } from './ui/logo.tsx';
 
 export function TopBar() {
   return (
     <header className="sticky top-0 z-10 border-b border-border-strong bg-canvas/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-6 px-4 md:px-8">
         <Link to="/" data-testid="brand">
-          <img
-            src="/brand/animefork-logo-on-dark.svg"
-            alt="AnimeFork"
-            className="h-7 w-auto"
-          />
+          <Logo className="h-7 w-auto" />
         </Link>
         <nav aria-label="Main" className="flex gap-1 overflow-x-auto">
           {NAV_ITEMS.map((item) => (
