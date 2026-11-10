@@ -21,5 +21,26 @@
       }
     }
   ],
-  "analytics": false
+  "analytics": false,
+  "release": {
+    "groups": {
+      "extension": {
+        "projects": [
+          "extension-animevsub-helper",
+          "client-ext-animevsub-helper"
+        ],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "extension-v{version}"
+        }
+      }
+    },
+    "version": {
+      "conventionalCommits": true
+    },
+    "changelog": {
+      "workspaceChangelog": false,
+      "projectChangelogs": false
+    }
+  }
 }
