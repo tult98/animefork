@@ -382,3 +382,23 @@ test('hovering a collapsed episode row changes its background', async ({
   await row.hover();
   await expect.poll(background).not.toBe(before);
 });
+
+test('a title with one season has no back button to a seasons list', async ({
+  page,
+}) => {
+  await page.route(
+    `**/fixtures/default/phim/${SLUG}/xem-phim.html`,
+    async (route) => {
+      const res = await route.fetch();
+      const body = (await res.text()).replace(
+        /<div class="MovieInfo[^]*?<\/div><\/div>/,
+        '',
+      );
+      await route.fulfill({ response: res, body });
+    },
+  );
+  await paused(page);
+  await page.getByTestId('player:episodes').hover();
+  await expect(page.getByTestId('player:episodes-panel')).toBeVisible();
+  await expect(page.getByTestId('player:seasons-back')).toHaveCount(0);
+});

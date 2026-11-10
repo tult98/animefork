@@ -66,20 +66,25 @@ function EpisodesView({
   onPickEpisode,
 }: EpisodesPanelProps) {
   const season = seasons.find((s) => s.slug === browseSlug);
+  const hasSeasons = seasons.length > 1;
   const [chosenId, setChosenId] = useState<string>();
   const expandedId =
     chosenId ?? (browseSlug === playingSlug ? playingEpisodeId : undefined);
   return (
     <div className={PANEL} data-testid="player:episodes-panel">
-      <div className="flex items-center gap-3 px-3 py-4">
-        <IconButton
-          small
-          label={PLAYER_COPY.backToSeasons}
-          data-testid="player:seasons-back"
-          onClick={() => onView('seasons')}
-        >
-          <ArrowLeft aria-hidden="true" />
-        </IconButton>
+      <div
+        className={`flex items-center gap-3 py-4 ${hasSeasons ? 'px-3' : 'px-6'}`}
+      >
+        {hasSeasons ? (
+          <IconButton
+            small
+            label={PLAYER_COPY.backToSeasons}
+            data-testid="player:seasons-back"
+            onClick={() => onView('seasons')}
+          >
+            <ArrowLeft aria-hidden="true" />
+          </IconButton>
+        ) : null}
         <h2 className="flex-1 text-title-sm">{season?.name}</h2>
       </div>
       <div className="pl-scroll">
