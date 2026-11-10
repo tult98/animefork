@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { titleLink, watchLink } from './link.ts';
+import { titleLink, titleWatchLink, watchLink } from './link.ts';
 
 describe('titleLink', () => {
   it('turns an upstream title path into the splat of the /title/$ route', () => {
@@ -23,5 +23,16 @@ describe('watchLink', () => {
       params: { slug: 'x-a1', episode: '72839' },
     });
     expect(watchLink('x-a1').params.episode).toBeUndefined();
+  });
+});
+
+describe('titleWatchLink', () => {
+  it('points a title at its watch page without the trailing slash', () => {
+    expect(
+      titleWatchLink({ path: '/phim/ushiro-no-shoumen-kamui-san-a6084/' }),
+    ).toEqual({
+      to: '/watch/$slug/{-$episode}',
+      params: { slug: 'ushiro-no-shoumen-kamui-san-a6084', episode: undefined },
+    });
   });
 });
