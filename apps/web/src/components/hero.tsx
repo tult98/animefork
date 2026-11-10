@@ -58,7 +58,6 @@ export function Hero({ items }: { items: Title[] }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={(event) => {
-        // A mouse click on a control also focuses it; only keyboard focus should hold the carousel still.
         if (event.target.matches(':focus-visible')) setFocused(true);
       }}
       onBlur={(event) => {

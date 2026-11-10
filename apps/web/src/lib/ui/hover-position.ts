@@ -1,6 +1,5 @@
 export const HOVER_WIDTH = 340;
 export const HOVER_MARGIN = 8;
-// How far the preview rises above the cover it opens from.
 const HOVER_LIFT = 32;
 
 export interface Anchor {
@@ -14,7 +13,6 @@ export interface Viewport {
   height: number;
 }
 
-// Centers the preview on the cover and keeps it fully inside the viewport. A height of 0 skips the bottom clamp.
 export function hoverPosition(
   anchor: Anchor,
   viewport: Viewport,

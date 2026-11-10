@@ -14,7 +14,6 @@ export function counterLabel(index: number, length: number): string {
   return `${index + 1} trên ${length}`;
 }
 
-// The hero's episodeLabel is progress text such as 05/12, so it stays out of the meta line.
 export function heroMeta(
   title: Pick<Title, 'genres' | 'year' | 'rating'>,
 ): string {

@@ -10,9 +10,7 @@ const NO_HOVER_QUERY = '(hover: none), (pointer: coarse)';
 
 interface PosterCardProps {
   title: Title;
-  // Set on the Top 10 shelf, which draws a 5:7 poster beside an outlined numeral.
   rank?: number;
-  // The "Tập mới" badge belongs to the new episodes shelf only.
   newEpisode?: boolean;
 }
 
@@ -55,7 +53,6 @@ export function PosterCard({
     }, OPEN_DELAY_MS);
   };
 
-  // Runs at commit, before paint, so the preview is measured and clamped before it is ever shown.
   const place = useCallback(
     (el: HTMLDivElement | null) => {
       if (!el || !anchor) return;

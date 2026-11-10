@@ -5,7 +5,6 @@ async function openHome(page: import('@playwright/test').Page) {
   await page.goto('/?transport=replay');
   await expect(page.getByTestId('hero')).toBeVisible();
   await page.clock.pauseAt(new Date(Date.now() + 1_000));
-  // Changing slide restarts the 7 s timer at the paused clock, so the tests count from a known zero.
   await page.getByTestId('hero:next').click();
   await page.getByTestId('hero:prev').click();
   await page.mouse.move(2, 2);
