@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-/* eslint-disable functional/no-classes */
 /**
  * Client (parent page) side of the AnimeVsub embed bridge.
  *
@@ -80,7 +78,6 @@ export interface EmbedBridge {
   destroy(): void;
 }
 
-// eslint-disable-next-line functional/no-mixed-types
 interface PendingRequest {
   resolve: (value: EmbedResponseMessage) => void;
   reject: (reason: unknown) => void;

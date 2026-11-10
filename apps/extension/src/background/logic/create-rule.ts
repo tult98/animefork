@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import allowlist from '../../../allowlist.json';
 import { EXTRA } from '../../env';
 
@@ -16,7 +15,6 @@ const mapUa = {
     'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.41',
 } as const;
 
-// eslint-disable-next-line functional/no-let
 let addedGoogleUserContent = false;
 const RuleActionType =
   typeof chrome?.declarativeNetRequest !== 'undefined'
@@ -57,7 +55,6 @@ const ResourceType =
       } as typeof chrome.declarativeNetRequest.ResourceType);
 
 const typesUa = Object.keys(mapUa) as (keyof typeof mapUa)[];
-// eslint-disable-next-line functional/no-let
 let currentId = 1;
 
 export function createRule(endsWith: string, referer: string) {
@@ -120,7 +117,6 @@ export function createRule(endsWith: string, referer: string) {
   ];
 
   // add rules set header Origin
-  // eslint-disable-next-line functional/no-loop-statements
   for (let i = 0, length = rules.length; i < length; i++) {
     {
       const newRule = {

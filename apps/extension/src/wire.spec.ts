@@ -62,13 +62,16 @@ describe('manifest', () => {
   test.each(targets)(
     '$name only differs from chrome in its background and gecko keys',
     (target) => {
-      const {
-        background: _b,
-        browser_specific_settings: _g,
-        ...rest
-      } = manifestFor(target, input) as Record<string, unknown>;
-      const { background: _b2, ...chromeRest } = manifestFor(chrome, input);
-      expect(rest).toEqual(chromeRest);
+      const omit = (manifest: object, keys: string[]) =>
+        Object.fromEntries(
+          Object.entries(manifest).filter(([key]) => !keys.includes(key)),
+        );
+      expect(
+        omit(manifestFor(target, input), [
+          'background',
+          'browser_specific_settings',
+        ]),
+      ).toEqual(omit(manifestFor(chrome, input), ['background']));
     },
   );
 

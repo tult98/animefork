@@ -1,6 +1,3 @@
-/* eslint-disable camelcase */
-/* eslint-disable no-undef */
-
 import type { RequestOption, RequestResponse } from '../background';
 import type { DetailCustomEvent_sendToInject } from '../contentScripts';
 import { base64ToArrayBuffer } from '../logic/base64ToArrayBuffer';
@@ -66,8 +63,7 @@ function createPorter(method: string, options: ClientRequestOption) {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface GetOption extends ClientRequestOption {}
+export type GetOption = ClientRequestOption;
 export interface PostOption extends ClientRequestOption {
   data?: RequestOption['data'];
 }
@@ -124,10 +120,8 @@ export function execTabs<
   type: T,
   args: Parameters<(typeof chrome.tabs)[T]>,
 ): Promise<Awaited<ReturnType<(typeof chrome.tabs)[T]>>> {
-  // eslint-disable-next-line functional/no-throw-statements
   if (!tabsApi) throw new Error('Version extension not support tabs api.');
 
-  // eslint-disable-next-line @typescript-eslint/no-extra-parens
   return new Promise<Awaited<ReturnType<(typeof chrome.tabs)[T]>>>(
     (resolve, reject) => {
       const id = randomUUID();
@@ -164,7 +158,6 @@ export const customReferer = JSON.parse(
 
 export function setReferrers(referrers: Record<string, string>) {
   if (!customReferer)
-    // eslint-disable-next-line functional/no-throw-statements
     throw new Error('Version extension not support setReferrers api.');
 
   const id = randomUUID();

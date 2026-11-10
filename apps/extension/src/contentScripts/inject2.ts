@@ -1,10 +1,5 @@
-/* eslint-disable no-useless-call */
-
-/* eslint-disable camelcase */
-/* eslint-disable functional/functional-parameters */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable functional/no-classes */
-/* eslint-disable no-undef */
+
 /// <reference lib="dom" />
 
 import { version } from '../../package.json';
@@ -150,7 +145,6 @@ function patchWorker() {
     ): void {
       if (!this.listeners.has(type)) this.listeners.set(type, new Set());
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.listeners.get(type)!.add(listener);
     }
 
@@ -166,7 +160,6 @@ function patchWorker() {
       const listenerSet = this.listeners.get(type);
       if (!listenerSet) return true;
 
-      // eslint-disable-next-line functional/no-loop-statements
       for (const listener of listenerSet) {
         try {
           if (typeof listener === 'function') listener.call(this, event);
@@ -184,7 +177,6 @@ function patchWorker() {
 }
 function patchAnimeVsubHelper() {
   const eventsAbort = new (class EventsAbort {
-    // eslint-disable-next-line func-call-spacing
     readonly store = new Map<string, () => void>();
 
     on(id: string, fn: () => void) {
@@ -206,7 +198,6 @@ function patchAnimeVsubHelper() {
     id: string;
     req: RequestOption;
   }>) => {
-    // eslint-disable-next-line functional/no-let
     let form: FormData | string | undefined;
     const { data, signalId } = detail.req;
     if (data) {
@@ -221,9 +212,7 @@ function patchAnimeVsubHelper() {
       }
     }
 
-    // eslint-disable-next-line functional/no-let
     let signal: AbortSignal | undefined;
-    // eslint-disable-next-line functional/no-let
     let cancelAbort: (() => void) | undefined;
 
     if (signalId) {
@@ -324,7 +313,6 @@ if (
   location.host.startsWith('animevietsub') &&
   localStorage.getItem('patch') === 'true'
 ) {
-  // eslint-disable-next-line no-inner-declarations
   function emit() {
     if (document.documentElement.innerHTML.includes('Trang chủ')) patch();
   }

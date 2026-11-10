@@ -42,7 +42,7 @@ export function setHeader(
         key as 'requestHeaders'
       ] = [];
     }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
     (details as browser.WebRequest.OnBeforeSendHeadersDetailsType)[
       key as 'requestHeaders'
     ]!.push({
@@ -73,7 +73,7 @@ export function addHeader(
       key as 'requestHeaders'
     ] = [];
   }
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
   (details as browser.WebRequest.OnBeforeSendHeadersDetailsType)[
     key as 'requestHeaders'
   ]!.push({

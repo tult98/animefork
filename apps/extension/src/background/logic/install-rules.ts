@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable no-undef */
 import browser from 'webextension-polyfill';
 
 import { HASH } from '../../env';
@@ -27,7 +25,6 @@ export async function installRules(rules: chrome.declarativeNetRequest.Rule[]) {
     return uninstall;
   } else {
     rules.forEach((rule) => {
-      // eslint-disable-next-line functional/no-let
       let rules = storeRulesMV2.get(rule.condition.urlFilter!);
       if (!rules) storeRulesMV2.set(rule.condition.urlFilter!, (rules = []));
 
@@ -45,7 +42,6 @@ export async function installRules(rules: chrome.declarativeNetRequest.Rule[]) {
   }
 }
 
-// eslint-disable-next-line functional/no-let
 let registeredMV2 = false;
 function registerMV2() {
   if (registeredMV2) return;

@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 /// <reference lib="dom" />
 
 import browser from 'webextension-polyfill';

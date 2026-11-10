@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 import { sendMessage } from '@tachibana-shin/webext-bridge/content-script';
 
 import { version } from '../../package.json';

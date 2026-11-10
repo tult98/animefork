@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 export const EMBED_CHANNEL = '__animevsub_embed__' as const;
 export const EMBED_VERSION = 1 as const;
 

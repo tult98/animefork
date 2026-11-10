@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-/* eslint-disable promise/catch-or-return */
 /**
  * Page context bridge that is injected into every frame by `inject.ts`.
  *

@@ -1,6 +1,3 @@
-/* eslint-disable operator-linebreak */
-/* eslint-disable no-undef */
-
 import { onMessage } from '@tachibana-shin/webext-bridge/background';
 import { serialize } from 'cookie';
 import browser from 'webextension-polyfill';
@@ -60,9 +57,7 @@ export type RequestOption = Pick<
   data?: Record<string, number | string | boolean> | string;
 };
 
-// eslint-disable-next-line functional/no-classes
 const eventsAbort = new (class EventsAbort {
-  // eslint-disable-next-line func-call-spacing
   private readonly store = new Map<string, () => void>();
 
   constructor() {
@@ -89,7 +84,6 @@ async function sendRequest({
   method,
   data,
 }: RequestOption): Promise<RequestResponse> {
-  // eslint-disable-next-line functional/no-let
   let form: FormData | string | undefined;
   if (data) {
     if (typeof data === 'object') {
@@ -103,9 +97,7 @@ async function sendRequest({
     }
   }
 
-  // eslint-disable-next-line functional/no-let
   let signal: AbortSignal | undefined;
-  // eslint-disable-next-line functional/no-let
   let cancelAbort: (() => void) | undefined;
 
   if (signalId) {
@@ -140,8 +132,7 @@ async function sendRequest({
         headers: await mergeSetCookie(res.headers, res.url),
         data:
           responseType === 'arraybuffer'
-            ? // eslint-disable-next-line promise/no-nesting, indent
-              await res.arrayBuffer().then(arrayBufferToBase64)
+            ? await res.arrayBuffer().then(arrayBufferToBase64)
             : await res.text(),
         url: res.url,
         status: res.status,
@@ -149,7 +140,6 @@ async function sendRequest({
     })
     .catch((err) => {
       cancelAbort?.();
-      // eslint-disable-next-line functional/no-throw-statements
       throw err;
     });
 }
