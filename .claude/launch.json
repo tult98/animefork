@@ -4,21 +4,13 @@
     {
       "name": "desktop-web",
       "runtimeExecutable": "npx",
-      "runtimeArgs": [
-        "nx",
-        "run",
-        "animefork:dev"
-      ],
+      "runtimeArgs": ["nx", "run", "animefork:dev"],
       "port": 9000
     },
     {
       "name": "web",
       "runtimeExecutable": "npx",
-      "runtimeArgs": [
-        "nx",
-        "dev",
-        "web"
-      ],
+      "runtimeArgs": ["nx", "dev", "web"],
       "port": 5180
     }
   ]
