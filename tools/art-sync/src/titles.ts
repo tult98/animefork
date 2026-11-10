@@ -35,6 +35,10 @@ export function parseSeasonNumber(
   return found && found.season > 0 ? found.season : 1;
 }
 
+export function seasonMarker(name: string): string | undefined {
+  return findSeasonMarker(name)?.match[0];
+}
+
 export function stripSeasonMarker(name: string): string {
   const found = findSeasonMarker(name);
   if (!found) return name;

@@ -1,5 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { AnyRouter } from '@tanstack/react-router';
+import type { TitleInput } from '../../../../tools/art-sync/src/titles.ts';
+import { exportTitles } from './titles/export.ts';
+import type { HomeShelves } from './titles/shelves.ts';
 import type { Transport } from './transport/index.ts';
 
 export interface RenderedShelf {
@@ -11,6 +14,7 @@ export interface AppHook {
   route: () => string;
   queryKeys: () => readonly (readonly unknown[])[];
   shelves: () => RenderedShelf[];
+  titlesJson: () => TitleInput[];
   transport: Transport;
 }
 
@@ -20,9 +24,9 @@ declare global {
   }
 }
 
-let rendered: RenderedShelf[] = [];
+let rendered: HomeShelves = [];
 
-export function publishShelves(shelves: RenderedShelf[]): void {
+export function publishShelves(shelves: HomeShelves): void {
   rendered = shelves;
 }
 
@@ -38,7 +42,12 @@ export function installAppHook(deps: {
         .getQueryCache()
         .getAll()
         .map((query) => query.queryKey),
-    shelves: () => rendered,
+    shelves: () =>
+      rendered.map((shelf) => ({
+        id: shelf.id,
+        paths: shelf.items.map((title) => title.path),
+      })),
+    titlesJson: () => exportTitles(rendered),
     transport: deps.transport,
   };
 }

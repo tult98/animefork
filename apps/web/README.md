@@ -23,6 +23,10 @@ Playwright drives the installed Google Chrome so no browser download is needed. 
 
 The watch screen swaps in a TMDB backdrop and episode stills when `title_art` and `episode_art` have rows for the season slug. They are filled by `tools/art-sync`. Set `VITE_ART_API_URL` to a PostgREST root (for example `http://localhost:3000`, see `tools/art-sync/README.md`) to turn the lookup on. `VITE_ART_API_KEY` is optional and is sent as a bearer token only when set, because PostgREST's anonymous role needs none. Without them, or when the request fails, the screen shows the source site's own images.
 
+The home page does the same for the hero (w1280) and the new episodes and airing shelves (w780) with one batched `title_art` request, applied after the home data so a slow art API never delays first paint. The Top 10 posters keep the source image.
+
+To feed `tools/art-sync` with the titles the home page shows, open the home page in dev, run `copy(JSON.stringify(window.__app.titlesJson(), null, 2))` in the console, and save the clipboard to `tools/art-sync/titles.json`.
+
 ## Transport
 
 Routes never fetch directly. They call `useTransport()` from `src/lib/transport/`, which returns one of two implementations.
@@ -32,7 +36,7 @@ Routes never fetch directly. They call `useTransport()` from `src/lib/transport/
 
 Selection: `?transport=replay` in the URL, else `VITE_TRANSPORT=replay`, else the extension. In replay mode `?fixtures=<set>` picks the fixture set (default `default`).
 
-In dev, `window.__app` exposes `route()`, `queryKeys()`, `shelves()` (the id and card paths of each shelf the home page currently renders) and the active `transport`.
+In dev, `window.__app` exposes `route()`, `queryKeys()`, `shelves()` (the id and card paths of each shelf the home page currently renders), `titlesJson()` (the same titles as a de-duplicated `tools/art-sync` titles list) and the active `transport`.
 
 ## Fixtures
 

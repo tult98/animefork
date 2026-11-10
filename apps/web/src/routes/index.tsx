@@ -48,12 +48,7 @@ function Home() {
   );
 
   useEffect(() => {
-    publishShelves(
-      shelves.map((shelf) => ({
-        id: shelf.id,
-        paths: shelf.items.map((title) => title.path),
-      })),
-    );
+    publishShelves(shelves);
     return () => publishShelves([]);
   }, [shelves]);
 
