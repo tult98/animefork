@@ -8,7 +8,7 @@ import {
   TITLE_ART_TABLE,
   TitleArtRowSchema,
   tmdbImageUrl,
-} from '../../../../../apps/art-api/src/schema.ts';
+} from '../../../../art-api/src/schema.ts';
 import { titleWatchLink } from './link.ts';
 import type { HomeShelves } from './shelves.ts';
 import type { Title } from './title.ts';

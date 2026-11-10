@@ -1,7 +1,5 @@
-import {
-  seasonMarker,
-  type TitleInput,
-} from '../../../../../apps/art-api/src/titles.ts';
+import type { TitleInput } from '../../../../art-api/src/contract.ts';
+import { seasonMarker } from '../../../../art-api/src/titles.ts';
 import { titleWatchLink } from './link.ts';
 import type { HomeShelves } from './shelves.ts';
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { TitlesFileSchema } from '../../../../../apps/art-api/src/titles.ts';
+import { z } from 'zod';
+import { TitleInputSchema } from '../../../../art-api/src/contract.ts';
 import { exportTitles } from './export.ts';
 import type { HomeShelves } from './shelves.ts';
 import type { Title } from './title.ts';
@@ -73,6 +74,6 @@ describe('exportTitles', () => {
 
   it('round-trips through the art-sync titles schema', () => {
     const json = JSON.parse(JSON.stringify(exportTitles(shelves)));
-    expect(TitlesFileSchema.safeParse(json).success).toBe(true);
+    expect(z.array(TitleInputSchema).safeParse(json).success).toBe(true);
   });
 });

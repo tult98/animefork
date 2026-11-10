@@ -2,11 +2,8 @@ import { pickBackdrop } from './backdrop.ts';
 import { decide, type Candidate, type Matcher } from './matcher.ts';
 import type { EpisodeArtRow, TitleArtRow } from './schema.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
-import {
-  parseSeasonNumber,
-  stripSeasonMarker,
-  type TitleInput,
-} from './titles.ts';
+import type { TitleInput } from './contract.ts';
+import { parseSeasonNumber, stripSeasonMarker } from './titles.ts';
 
 const CANDIDATE_LIMIT = 5;
 const ALTERNATIVE_TITLE_LIMIT = 3;

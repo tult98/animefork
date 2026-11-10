@@ -1,0 +1,78 @@
+import { describe, expect, it } from 'vitest';
+import {
+  LookupRequestSchema,
+  LookupResponseSchema,
+  MAX_TITLES_PER_LOOKUP,
+  TitleInputSchema,
+  tmdbImageUrl,
+  type LookupResponse,
+} from '../src/contract.ts';
+
+describe('contract', () => {
+  it('round-trips a response through JSON', () => {
+    const response: LookupResponse = {
+      art: {
+        a: {
+          status: 'ready',
+          backdropPath: '/b.jpg',
+          backdropLang: 'vi',
+          stills: { '1': '/s1.jpg' },
+        },
+        b: { status: 'ready', backdropPath: null, backdropLang: null },
+        c: { status: 'pending' },
+        d: { status: 'none' },
+      },
+    };
+    expect(
+      LookupResponseSchema.parse(JSON.parse(JSON.stringify(response))),
+    ).toEqual(response);
+  });
+
+  it('rejects an unknown status and a non-numeric still key', () => {
+    expect(
+      LookupResponseSchema.safeParse({ art: { a: { status: 'done' } } })
+        .success,
+    ).toBe(false);
+    expect(
+      LookupResponseSchema.safeParse({
+        art: {
+          a: {
+            status: 'ready',
+            backdropPath: null,
+            backdropLang: null,
+            stills: { one: '/s.jpg' },
+          },
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('bounds titles and their fields', () => {
+    const title = { slug: 'a-1', name: 'A' };
+    expect(TitleInputSchema.safeParse(title).success).toBe(true);
+    for (const bad of [
+      { ...title, slug: 'A_1' },
+      { ...title, slug: 'a'.repeat(121) },
+      { ...title, name: '' },
+      { ...title, name: 'x'.repeat(201) },
+      { ...title, seasonName: 'x'.repeat(101) },
+      { ...title, year: 1899 },
+      { ...title, episodeCount: 0 },
+      { ...title, episodeCount: 2001 },
+    ]) {
+      expect(TitleInputSchema.safeParse(bad).success).toBe(false);
+    }
+    expect(LookupRequestSchema.safeParse({ titles: [] }).success).toBe(false);
+    expect(
+      LookupRequestSchema.safeParse({
+        titles: Array(MAX_TITLES_PER_LOOKUP + 1).fill(title),
+      }).success,
+    ).toBe(false);
+  });
+
+  it('joins size and path into a TMDB image url', () => {
+    expect(tmdbImageUrl('/a.jpg', 'w300')).toBe(
+      'https://image.tmdb.org/t/p/w300/a.jpg',
+    );
+  });
+});

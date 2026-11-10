@@ -1,17 +1,3 @@
-import { z } from 'zod';
-
-export const TitleInputSchema = z.object({
-  slug: z.string().min(1),
-  name: z.string().min(1),
-  seasonName: z.string().min(1).optional(),
-  year: z.number().int().optional(),
-  episodeCount: z.number().int().positive().optional(),
-});
-
-export const TitlesFileSchema = z.array(TitleInputSchema);
-
-export type TitleInput = z.infer<typeof TitleInputSchema>;
-
 const SEASON_MARKER_PATTERNS = [
   /(?:season|mùa|phần)\s*(\d+)/i,
   /(\d+)(?:st|nd|rd|th)\s+season/i,
