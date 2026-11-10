@@ -1,0 +1,27 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`parseSearchSuggestions (synthetic fixture) > matches the snapshot 1`] = `
+[
+  {
+    "id": "a4476",
+    "image": "http://cdn.animevietsub.cc/data/poster/2022/02/24/animevsub-vziyRxKpU1.jpg",
+    "name": "Tonikaku Kawaii 2nd Season",
+    "path": "/phim/tonikaku-kawaii-2nd-season-a4476/",
+    "status": "Preview VietSub",
+  },
+  {
+    "id": "a4229",
+    "image": "http://cdn.animevietsub.cc/data/poster/2021/08/18/animevsub-HXKAyrZo5i.jpg",
+    "name": "Tonikaku Kawaii: SNS",
+    "path": "/phim/tonikaku-kawaii-sns-a4229/",
+    "status": "HD-VietSub",
+  },
+  {
+    "id": "a3860",
+    "image": "http://cdn.animevietsub.cc/data/poster/2020/09/30/animevsub-1NmQPMC9x0.jpg",
+    "name": "Tonikaku Kawaii [BD]",
+    "path": "/phim/tonikaku-kawaii-a3860/",
+    "status": "Full VietSub",
+  },
+]
+`;

@@ -29,6 +29,17 @@ export function pathOf(href: string | undefined): string | undefined {
   }
 }
 
+/** `style="background-image: url('x')"` to `x`. The site uses it for posters it does not render as an `img`. */
+export function backgroundImageOf(
+  style: string | undefined,
+): string | undefined {
+  return orUndefined(
+    style?.match(
+      /background-image\s*:\s*url\(\s*['"]?([^'")]+?)['"]?\s*\)/,
+    )?.[1],
+  );
+}
+
 export function intOf(value: string | undefined): number | undefined {
   const digits = value?.match(/\d[\d,.]*/)?.[0]?.replace(/[,.]/g, '');
   return digits === undefined ? undefined : Number.parseInt(digits, 10);

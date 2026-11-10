@@ -34,6 +34,11 @@ export function ratingOf(candidates: string[]): number | undefined {
   return undefined;
 }
 
+/** The same span holds an air time ("01 giờ 15 phút") on schedule cards. Only a date or a year is a release time. */
+function releaseOf(raw: string): string | undefined {
+  return /^\d{4}(?:-\d{2}-\d{2})?$/.test(raw) ? raw : undefined;
+}
+
 export function progressOf(raw: string): string | undefined {
   return PROGRESS.test(raw) ? raw : undefined;
 }
@@ -77,6 +82,6 @@ export function readCard(card: Sel): Record<string, unknown> {
       text(card.find('.Qlty').first()) ||
         text(card.find('.mli-quality').first()),
     ),
-    releaseTime: orUndefined(text(card.find('.mli-timeschedule + .b').first())),
+    releaseTime: releaseOf(text(card.find('.mli-timeschedule + .b').first())),
   };
 }
