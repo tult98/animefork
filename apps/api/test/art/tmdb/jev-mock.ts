@@ -13,6 +13,11 @@ export interface JevReply {
   probabilities: Record<string, number>;
   confidence: number;
   noul: number;
+  // Each show answer defaults to the season one.
+  showChoice?: string;
+  showProbabilities?: Record<string, number>;
+  showConfidence?: number;
+  showNoul?: number;
 }
 
 export interface SentRequest {
@@ -32,6 +37,13 @@ export function jevResponse(reply: JevReply) {
         probabilities: reply.probabilities,
       },
       any_match: { type: 'noul', noul: reply.noul },
+      show_match: {
+        type: 'choice',
+        choice: reply.showChoice ?? reply.choice,
+        confidence: reply.showConfidence ?? reply.confidence,
+        probabilities: reply.showProbabilities ?? reply.probabilities,
+      },
+      any_show: { type: 'noul', noul: reply.showNoul ?? reply.noul },
     },
     usage: { input_tokens: 400, output_tokens: 30 },
   };

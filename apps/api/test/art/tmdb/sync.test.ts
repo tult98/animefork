@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { BaselineMatcher } from '../../../src/art/tmdb/matcher.ts';
+import {
+  BaselineMatcher,
+  type Matcher,
+} from '../../../src/art/tmdb/matcher.ts';
 import {
   mapEpisodes,
   syncTitle,
@@ -99,6 +102,7 @@ describe('syncTitle against a mocked TMDB', () => {
       source_slug: 'tonikaku-kawaii-a3860',
       tmdb_id: 100,
       tmdb_season: 1,
+      match_scope: 'season',
       backdrop_path: '/en.jpg',
       backdrop_lang: 'en',
       poster_path: '/poster-vi.jpg',
@@ -181,16 +185,34 @@ describe('syncTitle against a mocked TMDB', () => {
     );
   });
 
-  it('skips a title whose season TMDB does not have', async () => {
-    const outcome = await sync({
-      slug: 's5',
-      name: 'Tonikaku Kawaii',
-      seasonName: 'Season 5',
-      year: 2020,
-    });
-    expect(outcome.kind === 'skipped' && outcome.skipped.reason).toMatch(
-      /no season 5 via query 'Tonikaku Kawaii'/,
+  it('downgrades a baseline match to show scope when TMDB lacks the season', async () => {
+    const paths: string[] = [];
+    const inner = mockTmdb();
+    const spy: typeof fetch = async (input, init) => {
+      paths.push(new URL(String(input)).pathname);
+      return inner(input, init);
+    };
+    const outcome = matched(
+      await sync(
+        {
+          slug: 's5',
+          name: 'Tonikaku Kawaii',
+          seasonName: 'Season 5',
+          year: 2020,
+        },
+        spy,
+      ),
     );
+    expect(outcome.title).toMatchObject({
+      tmdb_id: 100,
+      tmdb_season: null,
+      match_scope: 'show',
+      backdrop_path: '/en.jpg',
+      poster_path: '/poster-vi.jpg',
+      matched_by: 'baseline',
+    });
+    expect(outcome.episodes).toEqual([]);
+    expect(paths.filter((p) => p.includes('/season/'))).toEqual([]);
   });
 
   it('throws when TMDB fails mid-sync', async () => {
@@ -200,6 +222,46 @@ describe('syncTitle against a mocked TMDB', () => {
         mockTmdb({ '/3/tv/100/images': undefined }),
       ),
     ).rejects.toThrow(/TMDB \/tv\/100\/images answered 404/);
+  });
+});
+
+describe('syncTitle with a show-scope answer', () => {
+  const showMatcher: Matcher = {
+    match: async () => ({
+      choice: 100,
+      probability: 0.9,
+      by: 'jev',
+      scope: 'show',
+    }),
+  };
+
+  it('stores the backdrop and poster, no episodes, and never asks for a season', async () => {
+    const paths: string[] = [];
+    const inner = mockTmdb();
+    const spy: typeof fetch = async (input, init) => {
+      paths.push(new URL(String(input)).pathname);
+      return inner(input, init);
+    };
+    const outcome = matched(
+      await syncTitle(
+        { slug: 'x', name: 'Tonikaku Kawaii', seasonName: 'Season 2' },
+        {
+          tmdb: createTmdbClient({ apiKey: 'key', fetch: spy }),
+          matcher: showMatcher,
+        },
+      ),
+    );
+    expect(outcome.title).toMatchObject({
+      tmdb_id: 100,
+      tmdb_season: null,
+      match_scope: 'show',
+      backdrop_path: '/en.jpg',
+      poster_path: '/poster-vi.jpg',
+      matched_by: 'jev',
+    });
+    expect(outcome.episodes).toEqual([]);
+    expect(paths).toContain('/3/tv/100/images');
+    expect(paths.filter((p) => p.includes('/season/'))).toEqual([]);
   });
 });
 

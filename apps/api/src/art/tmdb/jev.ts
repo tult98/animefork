@@ -30,13 +30,26 @@ const MATCH_INSTRUCTIONS =
 const ANY_MATCH_INSTRUCTIONS =
   'At least one candidate is the same anime and the same season as the source.';
 
+const SHOW_MATCH_INSTRUCTIONS =
+  'Pick the candidate that is the same anime franchise as the source, ignoring which season, cour, arc or part the source is. ' +
+  'The source title may be Vietnamese or a romanization of the Japanese title. ' +
+  'Compare names, original names, alternative titles and overview. ' +
+  'A different franchise, a movie, a special, a recap or a spin-off of another show is not the same.';
+
+const ANY_SHOW_INSTRUCTIONS =
+  'At least one candidate is the same anime franchise as the source, whichever season it is.';
+
+const ChoiceSchema = z.object({
+  choice: z.string(),
+  confidence: z.number(),
+  probabilities: z.record(z.string(), z.number()),
+});
+
 const AnswersSchema = z.object({
-  match: z.object({
-    choice: z.string(),
-    confidence: z.number(),
-    probabilities: z.record(z.string(), z.number()),
-  }),
+  match: ChoiceSchema,
   any_match: z.object({ noul: z.number() }),
+  show_match: ChoiceSchema,
+  any_show: z.object({ noul: z.number() }),
 });
 
 export interface JevVerdict {
@@ -45,6 +58,11 @@ export interface JevVerdict {
   confidence: number;
   noul: number;
   probabilities: Record<string, number>;
+  showChoiceId: number;
+  showChoiceProbability: number;
+  showConfidence: number;
+  showNoul: number;
+  showProbabilities: Record<string, number>;
   accepted: boolean;
   answer: MatchAnswer;
 }
@@ -79,6 +97,8 @@ function describeCandidate(c: Candidate): string {
   return `${names}, ${aired}, ${episodes}`;
 }
 
+const fmt = (n: number) => n.toFixed(2);
+
 export function jevState(question: MatchQuestion): {
   [key: string]: ContentValue;
 } {
@@ -104,18 +124,30 @@ export function jevState(question: MatchQuestion): {
 }
 
 export function jevQuestions(question: MatchQuestion) {
+  const options = () =>
+    Object.fromEntries(
+      question.candidates.map((c) => [String(c.id), describeCandidate(c)]),
+    );
   return {
-    match: choice(
-      MATCH_INSTRUCTIONS,
-      Object.fromEntries(
-        question.candidates.map((c) => [String(c.id), describeCandidate(c)]),
-      ),
-    ),
+    match: choice(MATCH_INSTRUCTIONS, options()),
     any_match: noul(ANY_MATCH_INSTRUCTIONS),
+    show_match: choice(SHOW_MATCH_INSTRUCTIONS, options()),
+    any_show: noul(ANY_SHOW_INSTRUCTIONS),
   };
 }
 
-const fmt = (n: number) => n.toFixed(2);
+function candidateId(question: MatchQuestion, raw: string): number {
+  const id = Number(raw);
+  if (!question.candidates.some((c) => c.id === id)) {
+    throw new Error(`Jev chose ${raw}, which is not a candidate`);
+  }
+  return id;
+}
+
+const formatProbabilities = (probabilities: Record<string, number>) =>
+  Object.entries(probabilities)
+    .map(([id, p]) => `${id}:${fmt(p)}`)
+    .join(',');
 
 export class JevMatcher implements Matcher {
   private readonly logger = new Logger(JevMatcher.name);
@@ -144,42 +176,78 @@ export class JevMatcher implements Matcher {
       questions: jevQuestions(question),
     });
     const answers = AnswersSchema.parse(result.answers);
-    const choiceId = Number(answers.match.choice);
-    if (!question.candidates.some((c) => c.id === choiceId)) {
-      throw new Error(
-        `Jev chose ${answers.match.choice}, which is not a candidate`,
-      );
-    }
+    const choiceId = candidateId(question, answers.match.choice);
+    const showChoiceId = candidateId(question, answers.show_match.choice);
     const choiceProbability =
       answers.match.probabilities[answers.match.choice] ?? 0;
+    const showChoiceProbability =
+      answers.show_match.probabilities[answers.show_match.choice] ?? 0;
     const { confidence } = answers.match;
-    const { noul: anyMatch } = answers.any_match;
+    const showConfidence = answers.show_match.confidence;
+    const anyMatch = answers.any_match.noul;
+    const anyShow = answers.any_show.noul;
     const { minNoul, minChoice, minConfidence } = this.thresholds;
-    const accepted =
+    const seasonAccepted =
       anyMatch >= minNoul &&
       choiceProbability >= minChoice &&
       confidence >= minConfidence;
-    const probability = Math.min(anyMatch, choiceProbability);
-    const probabilities = answers.match.probabilities;
+    const showAccepted =
+      anyShow >= minNoul &&
+      showChoiceProbability >= minChoice &&
+      showConfidence >= minConfidence;
+    const seasonProbability = Math.min(anyMatch, choiceProbability);
+    const showProbability = Math.min(anyShow, showChoiceProbability);
+    const verdict = seasonAccepted
+      ? 'accept season'
+      : showAccepted
+        ? 'accept show'
+        : 'reject';
 
     this.logger.log(
-      `jev ${question.slug}: choice ${choiceId} p=${fmt(choiceProbability)} ` +
+      `jev ${question.slug}: season choice ${choiceId} p=${fmt(choiceProbability)} ` +
         `confidence=${fmt(confidence)} noul=${fmt(anyMatch)} ` +
-        `probabilities=${Object.entries(probabilities)
-          .map(([id, p]) => `${id}:${fmt(p)}`)
-          .join(',')} -> ${accepted ? 'accept' : 'reject'}`,
+        `probabilities=${formatProbabilities(answers.match.probabilities)}; ` +
+        `show choice ${showChoiceId} p=${fmt(showChoiceProbability)} ` +
+        `confidence=${fmt(showConfidence)} noul=${fmt(anyShow)} ` +
+        `probabilities=${formatProbabilities(answers.show_match.probabilities)} -> ${verdict}`,
     );
+
+    const answer: MatchAnswer = seasonAccepted
+      ? {
+          choice: choiceId,
+          probability: seasonProbability,
+          episodeOffset: 0,
+          by: 'jev',
+          scope: 'season',
+        }
+      : showAccepted
+        ? {
+            choice: showChoiceId,
+            probability: showProbability,
+            by: 'jev',
+            scope: 'show',
+          }
+        : {
+            choice: null,
+            probability: seasonProbability,
+            showProbability,
+            by: 'jev',
+            scope: 'season',
+          };
 
     return {
       choiceId,
       choiceProbability,
       confidence,
       noul: anyMatch,
-      probabilities,
-      accepted,
-      answer: accepted
-        ? { choice: choiceId, probability, episodeOffset: 0, by: 'jev' }
-        : { choice: null, probability, by: 'jev' },
+      probabilities: answers.match.probabilities,
+      showChoiceId,
+      showChoiceProbability,
+      showConfidence,
+      showNoul: anyShow,
+      showProbabilities: answers.show_match.probabilities,
+      accepted: seasonAccepted || showAccepted,
+      answer,
     };
   }
 }

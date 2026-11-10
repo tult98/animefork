@@ -81,6 +81,7 @@ describe('ArtService.lookup', () => {
         source_slug: TONIKAWA.slug,
         tmdb_id: 9,
         tmdb_season: 1,
+        match_scope: 'season',
         backdrop_path: '/other.jpg',
         backdrop_lang: null,
         poster_path: '/other-poster.jpg',
@@ -115,6 +116,7 @@ describe('ArtService.lookup', () => {
     status: 'matched',
     tmdbId: 100,
     tmdbSeason: 1,
+    matchScope: 'season',
     backdropPath: '/old.jpg',
     backdropLang: null,
     posterPath: null,
@@ -142,7 +144,7 @@ describe('ArtService.lookup', () => {
   });
 
   it.each(['no_match', 'failed'] as const)(
-    'retries a fresh %s row written below version 3 on its next lookup',
+    'retries a fresh %s row written below version 4 on its next lookup',
     async (status) => {
       const { service, store, filler } = setup();
       store.titles.set(

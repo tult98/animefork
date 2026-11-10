@@ -13,6 +13,36 @@ describe('ArtFiller', () => {
     expect(store.titles.get(TONIKAWA.slug)?.status).toBe('matched');
   });
 
+  it('stores a show-scope match with art and no stills, and serves it', async () => {
+    const { store, filler, service } = setup({
+      matcher: {
+        match: async () => ({
+          choice: 100,
+          probability: 0.9,
+          by: 'jev',
+          scope: 'show',
+        }),
+      },
+    });
+    await filler.fill({ ...TONIKAWA, seasonName: 'Season 3' });
+    expect(store.titles.get(TONIKAWA.slug)).toMatchObject({
+      status: 'matched',
+      matchScope: 'show',
+      tmdbSeason: null,
+      backdropPath: '/en.jpg',
+      posterPath: '/poster-vi.jpg',
+    });
+    expect((await store.episodes(TONIKAWA.slug)).size).toBe(0);
+    const out = await service.lookup({ titles: [TONIKAWA], episodes: true });
+    expect(out.art[TONIKAWA.slug]).toEqual({
+      status: 'ready',
+      backdropPath: '/en.jpg',
+      backdropLang: 'en',
+      posterPath: '/poster-vi.jpg',
+      stills: {},
+    });
+  });
+
   it('skips TMDB when a settled row landed before its turn', async () => {
     const { store, filler, searches } = setup();
     await filler.fill(TONIKAWA);

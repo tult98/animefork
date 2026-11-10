@@ -4,6 +4,8 @@ import {
   type Candidate,
   type Matcher,
   type MatcherName,
+  type MatchAnswer,
+  type MatchScope,
   type MatchQuestion,
 } from './matcher.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
@@ -13,7 +15,8 @@ import { parseSeasonNumber, searchQueries } from './titles.ts';
 export interface TitleArtRow {
   source_slug: string;
   tmdb_id: number;
-  tmdb_season: number;
+  tmdb_season: number | null;
+  match_scope: MatchScope;
   backdrop_path: string | null;
   backdrop_lang: string | null;
   poster_path: string | null;
@@ -146,6 +149,56 @@ export async function gatherCandidates(
   };
 }
 
+// TMDB art is per show, so a season TMDB lacks costs the stills and nothing else.
+export function effectiveScope(
+  answer: Pick<MatchAnswer, 'scope'>,
+  choice: number,
+  details: TmdbDetail[],
+  season: number,
+): MatchScope {
+  if (answer.scope === 'show') return 'show';
+  const seasons = details.find((d) => d.id === choice)?.seasons;
+  return seasons && !seasons.some((s) => s.season_number === season)
+    ? 'show'
+    : 'season';
+}
+
+function matchedOutcome(
+  input: TitleInput,
+  answer: MatchAnswer,
+  tmdbId: number,
+  scope: MatchScope,
+  images: Awaited<ReturnType<TmdbClient['tvImages']>>,
+  episodes: EpisodeArtRow[],
+  season: number | null = null,
+): SyncOutcome {
+  const backdrop = pickBackdrop(images.backdrops);
+  const poster = pickPoster(images.posters);
+  return {
+    kind: 'matched',
+    matched: {
+      slug: input.slug,
+      tmdbId,
+      probability: answer.probability,
+      title: {
+        source_slug: input.slug,
+        tmdb_id: tmdbId,
+        tmdb_season: scope === 'season' ? season : null,
+        match_scope: scope,
+        backdrop_path: backdrop?.path ?? null,
+        backdrop_lang: backdrop?.lang ?? null,
+        poster_path: poster?.path ?? null,
+        poster_lang: poster?.lang ?? null,
+        source_name: input.name,
+        source_year: input.year ?? null,
+        source_episode_count: input.episodeCount ?? null,
+        matched_by: answer.by,
+      },
+      episodes,
+    },
+  };
+}
+
 export async function syncTitle(
   input: TitleInput,
   { tmdb, matcher }: SyncDeps,
@@ -157,54 +210,39 @@ export async function syncTitle(
   const answer = await matcher.match(question);
   const choice = decide(answer);
   if (choice === null) {
+    const show =
+      answer.showProbability === undefined
+        ? ''
+        : `, show probability ${answer.showProbability.toFixed(2)}`;
     return skip(
       input.slug,
-      `no confident match by ${answer.by} (best probability ${answer.probability.toFixed(2)}) via query '${query}'`,
+      `no confident match by ${answer.by} (best probability ${answer.probability.toFixed(2)}${show}) via query '${query}'`,
     );
   }
 
-  const detail = details.find((d) => d.id === choice);
-  if (
-    detail?.seasons &&
-    !detail.seasons.some((s) => s.season_number === season)
-  ) {
-    return skip(
-      input.slug,
-      `TMDB ${choice} has no season ${season} via query '${query}'`,
-    );
+  const scope = effectiveScope(answer, choice, details, season);
+  if (scope === 'show') {
+    const images = await tmdb.tvImages(choice);
+    return matchedOutcome(input, answer, choice, 'show', images, []);
   }
 
   const [images, seasonDetail] = await Promise.all([
     tmdb.tvImages(choice),
     tmdb.seasonDetail(choice, season),
   ]);
-  const backdrop = pickBackdrop(images.backdrops);
-  const poster = pickPoster(images.posters);
-  return {
-    kind: 'matched',
-    matched: {
-      slug: input.slug,
-      tmdbId: choice,
-      probability: answer.probability,
-      title: {
-        source_slug: input.slug,
-        tmdb_id: choice,
-        tmdb_season: season,
-        backdrop_path: backdrop?.path ?? null,
-        backdrop_lang: backdrop?.lang ?? null,
-        poster_path: poster?.path ?? null,
-        poster_lang: poster?.lang ?? null,
-        source_name: input.name,
-        source_year: input.year ?? null,
-        source_episode_count: input.episodeCount ?? null,
-        matched_by: answer.by,
-      },
-      episodes: mapEpisodes(
-        input.slug,
-        seasonDetail.episodes,
-        answer.episodeOffset ?? 0,
-        input.episodeCount,
-      ),
-    },
-  };
+  const episodes = mapEpisodes(
+    input.slug,
+    seasonDetail.episodes,
+    answer.episodeOffset ?? 0,
+    input.episodeCount,
+  );
+  return matchedOutcome(
+    input,
+    answer,
+    choice,
+    'season',
+    images,
+    episodes,
+    season,
+  );
 }

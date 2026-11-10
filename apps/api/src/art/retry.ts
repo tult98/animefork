@@ -4,8 +4,8 @@ export type MissStatus = Exclude<TitleStatus, 'matched'>;
 const MINUTE = 60_000;
 const DAY = 24 * 60 * MINUTE;
 
-// Version history: 2 added the TMDB poster, 3 added the Jev second-stage matcher.
-export const MATCHER_VERSION = 3;
+// Version history: 2 added the TMDB poster, 3 added the Jev second-stage matcher, 4 added show scope.
+export const MATCHER_VERSION = 4;
 
 // | status   | written below version | settled for  | then                                     |
 // | -------- | --------------------- | ------------ | ---------------------------------------- |
@@ -15,7 +15,7 @@ export const MATCHER_VERSION = 3;
 // | failed   | MISS_RETRY_BELOW      | not at all   | retried on its next lookup               |
 // | failed   | (current)             | 10 minutes   | retried on its next lookup               |
 export const MATCHED_REFRESH_BELOW = 2;
-export const MISS_RETRY_BELOW = 3;
+export const MISS_RETRY_BELOW = 4;
 
 export const RETRY_AFTER_MS: Record<TitleStatus, number> = {
   matched: Number.POSITIVE_INFINITY,

@@ -20,11 +20,17 @@ export interface MatchQuestion {
 
 export type MatcherName = 'baseline' | 'jev';
 
+// 'show' means the show is identified but the season is not: art belongs to the show, stills do not.
+export type MatchScope = 'season' | 'show';
+
 export interface MatchAnswer {
   choice: number | null;
   probability: number;
   episodeOffset?: number;
   by: MatcherName;
+  scope: MatchScope;
+  // Set on a rejection that was also judged at show level.
+  showProbability?: number;
 }
 
 export interface Matcher {
@@ -115,15 +121,23 @@ export class BaselineMatcher implements Matcher {
       }))
       .sort((a, b) => b.score - a.score);
     const [best, runnerUp] = scored;
-    if (!best) return { choice: null, probability: 0, by: 'baseline' };
+    if (!best) {
+      return { choice: null, probability: 0, by: 'baseline', scope: 'season' };
+    }
     if (runnerUp && best.score - runnerUp.score < MIN_MARGIN) {
-      return { choice: null, probability: best.score, by: 'baseline' };
+      return {
+        choice: null,
+        probability: best.score,
+        by: 'baseline',
+        scope: 'season',
+      };
     }
     return {
       choice: best.id,
       probability: best.score,
       episodeOffset: 0,
       by: 'baseline',
+      scope: 'season',
     };
   }
 }

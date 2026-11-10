@@ -124,6 +124,7 @@ describe('BaselineMatcher', () => {
       choice: null,
       probability: 0,
       by: 'baseline',
+      scope: 'season',
     });
   });
 });

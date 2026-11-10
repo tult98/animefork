@@ -19,13 +19,13 @@ const row = (status: TitleStatus, matcherVersion = MATCHER_VERSION) => ({
 
 describe('retry table', () => {
   it('writes new rows at the version misses are retried below', () => {
-    expect(MATCHER_VERSION).toBe(3);
-    expect(MISS_RETRY_BELOW).toBe(3);
+    expect(MATCHER_VERSION).toBe(4);
+    expect(MISS_RETRY_BELOW).toBe(4);
     expect(MATCHED_REFRESH_BELOW).toBe(2);
   });
 
   it('never retries a matched row, whatever its version', () => {
-    for (const version of [1, 2, 3]) {
+    for (const version of [1, 2, 3, 4]) {
       expect(
         isSettled(row('matched', version), after(10 * 365 * 86_400_000)),
       ).toBe(true);
@@ -56,6 +56,9 @@ describe('retry table', () => {
     ['matched', 1, true],
     ['matched', 2, false],
     ['matched', 3, false],
+    ['matched', 4, false],
+    ['no_match', 3, false],
+    ['failed', 3, false],
     ['no_match', 1, false],
     ['failed', 1, false],
   ])('calls a %s row at version %i stale: %s', (status, version, stale) => {

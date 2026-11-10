@@ -33,6 +33,7 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
     source_slug: s,
     tmdb_id: 100,
     tmdb_season: 1,
+    match_scope: 'season' as const,
     backdrop_path: backdrop,
     backdrop_lang: 'en',
     poster_path: `/poster${backdrop}`,
@@ -67,6 +68,83 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
       [1, '/e1.jpg'],
       [3, '/e3.jpg'],
     ]);
+  });
+
+  it('round-trips a show-scope row with a null season and no stills', async () => {
+    const s = slug('show-scope');
+    await store.saveMatched({
+      title: {
+        ...title(s, '/show.jpg'),
+        tmdb_season: null,
+        match_scope: 'show' as const,
+        matched_by: 'jev',
+      },
+      episodes: [],
+    });
+    expect((await store.find([s])).get(s)).toMatchObject({
+      status: 'matched',
+      tmdbId: 100,
+      tmdbSeason: null,
+      matchScope: 'show',
+      backdropPath: '/show.jpg',
+      matchedBy: 'jev',
+    });
+    expect((await store.episodes(s)).size).toBe(0);
+  });
+
+  it('reads a season row as season scope and a row from before the column too', async () => {
+    const written = slug('season-scope');
+    const legacy = slug('legacy');
+    await store.saveMatched({ title: title(written, '/b.jpg'), episodes: [] });
+    await pool.query(
+      `insert into title_art (source_slug, status, tmdb_id, tmdb_season, matcher_version)
+       values ($1, 'matched', 100, 2, 3)`,
+      [legacy],
+    );
+    const rows = await store.find([written, legacy]);
+    expect(rows.get(written)).toMatchObject({
+      matchScope: 'season',
+      tmdbSeason: 1,
+    });
+    expect(rows.get(legacy)).toMatchObject({
+      matchScope: 'season',
+      tmdbSeason: 2,
+    });
+  });
+
+  it('replaces a miss with a show-scope match', async () => {
+    const s = slug('miss-to-show');
+    await store.saveMiss(source(s), 'no_match', 'rejected');
+    await store.saveMatched({
+      title: {
+        ...title(s, '/b.jpg'),
+        tmdb_season: null,
+        match_scope: 'show' as const,
+      },
+      episodes: [],
+    });
+    expect((await store.find([s])).get(s)).toMatchObject({
+      status: 'matched',
+      matchScope: 'show',
+      tmdbSeason: null,
+      reason: null,
+    });
+  });
+
+  it('refuses a season-scope matched row without a season, but not a show one', async () => {
+    const insert = (s: string, scope: string) =>
+      pool.query(
+        `insert into title_art (source_slug, status, tmdb_id, match_scope, matcher_version)
+         values ($1, 'matched', 100, $2, 4)`,
+        [s, scope],
+      );
+    await expect(insert(slug('no-season'), 'season')).rejects.toThrow(
+      /title_art_matched_has_tmdb/,
+    );
+    await expect(insert(slug('show-ok'), 'show')).resolves.toBeDefined();
+    await expect(insert(slug('bad-scope'), 'galaxy')).rejects.toThrow(
+      /check constraint/,
+    );
   });
 
   it('keeps the first matched write and ignores later misses and matches', async () => {

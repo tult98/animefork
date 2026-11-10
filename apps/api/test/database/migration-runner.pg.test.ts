@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import pg from 'pg';
@@ -61,5 +61,31 @@ describe.skipIf(!url)('MigrationRunner against DATABASE_URL', () => {
       `select name from schema_migrations where name = '001_art.sql'`,
     );
     expect(rows).toHaveLength(1);
+  });
+
+  it('applies migration 004 again without error and keeps its rows', async () => {
+    const runner = new MigrationRunner(pool, DEFAULT_MIGRATIONS_DIR);
+    await runner.run();
+    const sql = await readFile(
+      join(DEFAULT_MIGRATIONS_DIR, '004_show_scope.sql'),
+      'utf8',
+    );
+    const slug = `${tag}-004`;
+    await pool.query(
+      `insert into title_art (source_slug, status, tmdb_id, tmdb_season, matcher_version)
+       values ($1, 'matched', 1, 1, 3)`,
+      [slug],
+    );
+    try {
+      await pool.query(sql);
+      await pool.query(sql);
+      const { rows } = await pool.query(
+        'select match_scope from title_art where source_slug = $1',
+        [slug],
+      );
+      expect(rows).toEqual([{ match_scope: 'season' }]);
+    } finally {
+      await pool.query('delete from title_art where source_slug = $1', [slug]);
+    }
   });
 });

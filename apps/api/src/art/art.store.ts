@@ -10,7 +10,7 @@ import {
   type MissStatus,
   type TitleStatus,
 } from './retry.ts';
-import type { MatcherName } from './tmdb/matcher.ts';
+import type { MatcherName, MatchScope } from './tmdb/matcher.ts';
 import type { MatchedTitle } from './tmdb/sync.ts';
 
 export interface StoredTitle {
@@ -18,6 +18,7 @@ export interface StoredTitle {
   status: TitleStatus;
   tmdbId: number | null;
   tmdbSeason: number | null;
+  matchScope: MatchScope | null;
   backdropPath: string | null;
   backdropLang: string | null;
   posterPath: string | null;
@@ -82,6 +83,7 @@ export class MemoryArtStore implements ArtStore {
       status: 'matched',
       tmdbId: title.tmdb_id,
       tmdbSeason: title.tmdb_season,
+      matchScope: title.match_scope,
       backdropPath: title.backdrop_path,
       backdropLang: title.backdrop_lang,
       posterPath: title.poster_path,
@@ -112,6 +114,7 @@ export class MemoryArtStore implements ArtStore {
       status,
       tmdbId: null,
       tmdbSeason: null,
+      matchScope: null,
       backdropPath: null,
       backdropLang: null,
       posterPath: null,
@@ -132,6 +135,7 @@ interface TitleRow {
   status: TitleStatus;
   tmdb_id: number | null;
   tmdb_season: number | null;
+  match_scope: MatchScope;
   backdrop_path: string | null;
   backdrop_lang: string | null;
   poster_path: string | null;
@@ -157,8 +161,8 @@ export class PostgresArtStore implements ArtStore {
     const found = new Map<string, StoredTitle>();
     if (slugs.length === 0) return found;
     const { rows } = await this.pool.query<TitleRow>(
-      `select source_slug, status, tmdb_id, tmdb_season, backdrop_path,
-              backdrop_lang, poster_path, poster_lang, reason, matcher_version,
+      `select source_slug, status, tmdb_id, tmdb_season, match_scope,
+              backdrop_path, backdrop_lang, poster_path, poster_lang, reason, matcher_version,
               attempted_at, source_name, source_year, source_episode_count,
               matched_by
          from title_art where source_slug = any($1::text[])`,
@@ -170,6 +174,7 @@ export class PostgresArtStore implements ArtStore {
         status: row.status,
         tmdbId: row.tmdb_id,
         tmdbSeason: row.tmdb_season,
+        matchScope: row.status === 'matched' ? row.match_scope : null,
         backdropPath: row.backdrop_path,
         backdropLang: row.backdrop_lang,
         posterPath: row.poster_path,
@@ -204,16 +209,17 @@ export class PostgresArtStore implements ArtStore {
       await client.query('begin');
       const written = await client.query(
         `insert into title_art
-           (source_slug, status, tmdb_id, tmdb_season, backdrop_path,
-            backdrop_lang, poster_path, poster_lang, reason, matcher_version,
-            attempted_at, source_name, source_year, source_episode_count,
-            matched_by)
-         values ($1, 'matched', $2, $3, $4, $5, $6, $7, null, $8, now(),
+           (source_slug, status, tmdb_id, tmdb_season, match_scope,
+            backdrop_path, backdrop_lang, poster_path, poster_lang, reason,
+            matcher_version, attempted_at, source_name, source_year,
+            source_episode_count, matched_by)
+         values ($1, 'matched', $2, $3, $14, $4, $5, $6, $7, null, $8, now(),
                  $9, $10, $11, $12)
          on conflict (source_slug) do update set
            status = excluded.status,
            tmdb_id = excluded.tmdb_id,
            tmdb_season = excluded.tmdb_season,
+           match_scope = excluded.match_scope,
            backdrop_path = excluded.backdrop_path,
            backdrop_lang = excluded.backdrop_lang,
            poster_path = excluded.poster_path,
@@ -242,6 +248,7 @@ export class PostgresArtStore implements ArtStore {
           title.source_episode_count,
           title.matched_by,
           MATCHED_REFRESH_BELOW,
+          title.match_scope,
         ],
       );
       if (written.rowCount && episodes.length > 0) {
