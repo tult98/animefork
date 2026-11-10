@@ -4,7 +4,7 @@ import {
 } from '../../src/art/art.filler.ts';
 import { ArtService } from '../../src/art/art.service.ts';
 import { systemClock } from '../../src/common/clock.ts';
-import { BaselineMatcher } from '../../src/art/tmdb/matcher.ts';
+import { BaselineMatcher, type Matcher } from '../../src/art/tmdb/matcher.ts';
 import { MemoryArtStore } from '../../src/art/art.store.ts';
 import { createTmdbClient } from '../../src/art/tmdb/tmdb.ts';
 import { mockTmdb } from './tmdb/tmdb-mock.ts';
@@ -35,6 +35,7 @@ export function setup(
     fetch?: typeof fetch;
     concurrency?: number;
     now?: () => Date;
+    matcher?: Matcher;
   } = {},
 ) {
   const now = options.now ?? systemClock;
@@ -42,7 +43,7 @@ export function setup(
   const tmdb = countingTmdb(options.fetch);
   const sync = {
     tmdb: createTmdbClient({ apiKey: 'key', fetch: tmdb.fetch }),
-    matcher: new BaselineMatcher(),
+    matcher: options.matcher ?? new BaselineMatcher(),
   };
   const filler = new ArtFiller(
     store,

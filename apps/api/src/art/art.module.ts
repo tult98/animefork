@@ -11,7 +11,7 @@ import {
 } from './art.filler.ts';
 import { ArtService } from './art.service.ts';
 import { ART_STORE, PostgresArtStore } from './art.store.ts';
-import { BaselineMatcher } from './tmdb/matcher.ts';
+import { createMatcher } from './tmdb/jev.ts';
 import type { SyncDeps } from './tmdb/sync.ts';
 import { createTmdbClient } from './tmdb/tmdb.ts';
 
@@ -27,7 +27,7 @@ import { createTmdbClient } from './tmdb/tmdb.ts';
           apiKey: config.tmdbApiKey,
           baseUrl: config.tmdbApiBase,
         }),
-        matcher: new BaselineMatcher(),
+        matcher: createMatcher(config.jev),
       }),
     },
     { provide: ART_STORE, useClass: PostgresArtStore },

@@ -125,3 +125,61 @@ export const SEARCH_ROMAJI = {
     },
   ],
 };
+
+export const CONAN_NAME = 'Thám Tử Lừng Danh Conan';
+
+export const SEARCH_CONAN = {
+  page: 1,
+  results: [
+    {
+      id: 30983,
+      name: 'Detective Conan',
+      original_name: '名探偵コナン',
+      first_air_date: '1996-01-08',
+    },
+    {
+      id: 120089,
+      name: "Detective Conan: Zero's Tea Time",
+      original_name: '名探偵コナン ゼロの日常',
+      first_air_date: '2022-04-05',
+    },
+  ],
+};
+
+export const DETAIL_30983 = {
+  id: 30983,
+  name: 'Detective Conan',
+  original_name: '名探偵コナン',
+  number_of_episodes: 1100,
+  first_air_date: '1996-01-08',
+  overview: 'A high school detective is shrunk into a child.',
+  seasons: [{ season_number: 1, episode_count: 1100, air_date: '1996-01-08' }],
+};
+
+export const DETAIL_120089 = {
+  id: 120089,
+  name: "Detective Conan: Zero's Tea Time",
+  original_name: '名探偵コナン ゼロの日常',
+  number_of_episodes: 6,
+  first_air_date: '2022-04-05',
+  overview: null,
+  seasons: [{ season_number: 1, episode_count: 6, air_date: '2022-04-05' }],
+};
+
+export const ALT_TITLES_30983 = {
+  id: 30983,
+  results: [
+    { title: 'Meitantei Conan', iso_3166_1: 'JP', type: 'Romaji' },
+    { title: 'Case Closed', iso_3166_1: 'US', type: '' },
+  ],
+};
+
+export const CONAN_ROUTES: Record<string, unknown> = {
+  [`/3/search/tv?${CONAN_NAME}`]: SEARCH_CONAN,
+  '/3/tv/30983': DETAIL_30983,
+  '/3/tv/120089': DETAIL_120089,
+  '/3/tv/30983/alternative_titles': ALT_TITLES_30983,
+  '/3/tv/120089/alternative_titles': { id: 120089, results: [] },
+  '/3/tv/30983/images': IMAGES_100,
+  '/3/tv/30983/season/1': SEASON_100_1,
+};

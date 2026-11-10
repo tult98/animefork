@@ -9,9 +9,7 @@ import {
   type MatchQuestion,
 } from '../../../src/art/tmdb/matcher.ts';
 
-const question = (
-  over: Partial<MatchQuestion> = {},
-): MatchQuestion => ({
+const question = (over: Partial<MatchQuestion> = {}): MatchQuestion => ({
   slug: 'tonikaku-kawaii-a3860',
   sourceTitle: 'Tonikaku Kawaii',
   season: 1,

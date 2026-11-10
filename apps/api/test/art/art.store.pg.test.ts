@@ -1,10 +1,7 @@
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PostgresArtStore } from '../../src/art/art.store.ts';
-import {
-  MATCHED_REFRESH_BELOW,
-  MATCHER_VERSION,
-} from '../../src/art/retry.ts';
+import { MATCHED_REFRESH_BELOW, MATCHER_VERSION } from '../../src/art/retry.ts';
 import {
   DEFAULT_MIGRATIONS_DIR,
   MigrationRunner,
