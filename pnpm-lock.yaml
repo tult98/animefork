@@ -112,7 +112,7 @@ importers:
         version: 0.13.3
       hls-to-mp4-browser:
         specifier: git+https://github.com/anime-vsub/hls-to-mp4-browser.git
-        version: https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70
+        version: git+https://git@github.com:anime-vsub/hls-to-mp4-browser.git#3b74c2d55b60d19149e40ece3a42c42dea904c70
       htmlparser2:
         specifier: 8.0.2
         version: 8.0.2
@@ -450,6 +450,9 @@ importers:
       client-ext-animevsub-helper:
         specifier: workspace:*
         version: link:../extension/client
+      lucide-react:
+        specifier: 1.61.0
+        version: 1.61.0(@types/react@19.3.0)(react@19.1.10)
       react:
         specifier: 19.1.10
         version: 19.1.10
@@ -6139,8 +6142,8 @@ packages:
   hls-parser@0.13.3:
     resolution: {integrity: sha512-DXqW7bwx9j2qFcAXS/LBJTDJWitxknb6oUnsnTvECHrecPvPbhRgIu45OgNDUU6gpwKxMJx40SHRRUUhdIM2gA==}
 
-  hls-to-mp4-browser@https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70:
-    resolution: {tarball: https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70}
+  hls-to-mp4-browser@git+https://git@github.com:anime-vsub/hls-to-mp4-browser.git#3b74c2d55b60d19149e40ece3a42c42dea904c70:
+    resolution: {commit: 3b74c2d55b60d19149e40ece3a42c42dea904c70, repo: git@github.com:anime-vsub/hls-to-mp4-browser.git, type: git}
     version: 0.0.0
 
   hls.js@1.5.9:
@@ -7020,6 +7023,15 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  lucide-react@1.61.0:
+    resolution: {integrity: sha512-v2SQPPPNjnr+BlhL9Spuzmo5yR+hLkftfuE4E3jaxdNPgSH0hJKPcLJBP7yAta87jQNPsSERS59PJjCJ/CorBA==}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -16412,7 +16424,7 @@ snapshots:
 
   hls-parser@0.13.3: {}
 
-  hls-to-mp4-browser@https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70:
+  hls-to-mp4-browser@git+https://git@github.com:anime-vsub/hls-to-mp4-browser.git#3b74c2d55b60d19149e40ece3a42c42dea904c70:
     dependencies:
       '@ffmpeg/core': 0.12.6
       '@ffmpeg/ffmpeg': 0.12.10
@@ -17249,6 +17261,12 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lucide-react@1.61.0(@types/react@19.3.0)(react@19.1.10):
+    dependencies:
+      react: 19.1.10
+    optionalDependencies:
+      '@types/react': 19.3.0
 
   lz-string@1.5.0: {}
 
