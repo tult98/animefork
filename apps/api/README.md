@@ -14,8 +14,9 @@ src/
   health/          GET /healthz
   common/          zod validation pipe, error filter, clock token
   art/             the art feature: controller, service, filler, store, retry table, contract
-    tmdb/          TMDB client, matcher, backdrop pick, title parsing, syncTitle
+    tmdb/          TMDB client, matchers (baseline, Jev, cascade), backdrop pick, title parsing, syncTitle
 db/migrations/     numbered SQL files applied at boot
+scripts/           eval-matcher.ts, a read-only matcher comparison
 ```
 
 A new feature module sits beside `art/` and imports nothing from it. It reads its own env from the `ENV` provider with `parseEnv`, the way `art/art.config.ts` does, and adds its tables as the next numbered file in `db/migrations/`. Neither `database/` nor `common/` changes for it.
@@ -44,11 +45,35 @@ The zod schemas in `src/art/contract.ts` are the single source of truth, and `ap
 
 ## How it decides
 
-- **Rows.** `title_art` keeps one row per slug with a status of `matched`, `no_match` or `failed`, and `episode_art` keeps one still per episode. `db/migrations/001_art.sql` creates them and `002_poster.sql` adds `poster_path` and `poster_lang`.
-- **Retry.** `RETRY_AFTER_MS` in `src/art/retry.ts` sets when a row counts as a miss again. A `matched` row is not retried, `no_match` waits 7 days and `failed` waits 10 minutes. A `matched` row written by an older `MATCHER_VERSION` is stale. It still answers `ready` at once with what it stores (`posterPath` null for version 1 rows), and the lookup schedules a background refill. Version 2 added the poster.
-- **First write wins.** Within the current `MATCHER_VERSION` a fill never overwrites a `matched` row. A `no_match` or `failed` row is replaced when it is retried, and a stale `matched` row is replaced by a successful refill. A refill that fails or finds no match keeps the stale row and records nothing, so the next lookup tries again.
+- **Rows.** `title_art` keeps one row per slug with a status of `matched`, `no_match` or `failed`, and `episode_art` keeps one still per episode. `db/migrations/001_art.sql` creates them, `002_poster.sql` adds `poster_path` and `poster_lang`, and `003_source_and_provenance.sql` adds the provenance columns described under **Jev**.
+- **Retry.** `src/art/retry.ts` holds the table. New rows are written with `MATCHER_VERSION` 3. Version 2 added the poster and version 3 added Jev.
+
+  | Status     | Written below version       | Settled for | Then                                          |
+  | ---------- | --------------------------- | ----------- | --------------------------------------------- |
+  | `matched`  | `MATCHED_REFRESH_BELOW` (2) | forever     | answers `ready` and refills in the background |
+  | `matched`  | (2 or later)                | forever     | never refilled                                |
+  | `no_match` | `MISS_RETRY_BELOW` (3)      | not at all  | retried on its next lookup                    |
+  | `no_match` | (3 or later)                | 7 days      | retried on its next lookup                    |
+  | `failed`   | `MISS_RETRY_BELOW` (3)      | not at all  | retried on its next lookup                    |
+  | `failed`   | (3 or later)                | 10 minutes  | retried on its next lookup                    |
+
+  A stale `matched` row (version 1) still answers `ready` at once with what it stores, with `posterPath` null, while the refill runs. The bump to 3 retries every old miss once so Jev gets a look at it, and leaves version 2 matches alone. That retry happens whether or not Jev is on, so set `TYPESAFE_API_KEY` before deploying version 3, or old misses are retried by the baseline alone and then wait their 7 days.
+
+- **First write wins.** A fill never overwrites a `matched` row unless that row is stale. A `no_match` or `failed` row is replaced when it is retried, and a stale `matched` row is replaced by a successful refill. A refill that fails or finds no match keeps the stale row and records nothing, so the next lookup tries again.
 - **Fills.** `ArtFiller` runs at most 2 TMDB syncs at once and queues the rest in order. Concurrent lookups for the same slug share one fill, refills included, and refills use the same cap. `ArtFiller` skips a slug whose row is settled and current.
-- **Matching.** `syncTitle` in `src/art/tmdb/sync.ts` searches TMDB for the name without its season marker, scores the candidates in `matcher.ts`, and picks the backdrop and the poster in `images.ts` (`vi`, then `en`, then textless, then vote average, vote count and width).
+- **Matching.** `syncTitle` in `src/art/tmdb/sync.ts` searches TMDB for the name without its season marker, asks the matcher to pick one of the top 5 candidates, and picks the backdrop and the poster in `images.ts` (`vi`, then `en`, then textless, then vote average, vote count and width). `decide` in `matcher.ts` is the single gate. An answer counts only when its probability is at least `MIN_MATCH_PROBABILITY` (0.85). The baseline matcher scores title similarity, year and episode count. When it does not settle a title, Jev gets a turn (see **Jev**).
+
+## Jev
+
+The baseline scores mostly title string similarity, so a Vietnamese or romanized source name often loses to TMDB's English name. "Thám Tử Lừng Danh Conan" against TMDB 30983 "Detective Conan" scores 0.53 with year and episode count both matching. Jev, TypeSafe's System One model, reads the source and the candidates and judges whether one is the same show.
+
+- **Cascade.** `CascadeMatcher` in `matcher.ts` asks the baseline first. When `decide` accepts the baseline answer, that answer is final and Jev is not called. Otherwise, when there is at least one candidate, it returns Jev's answer instead. Without `TYPESAFE_API_KEY` the module wires the baseline alone and logs `Jev matcher is off` once at boot.
+- **Request.** `JevMatcher` in `src/art/tmdb/jev.ts` sends one `POST /v1/systemone` per title through `@typesafe-ai/sdk`. The state holds the source (`title`, `season`, `year`, `episodeCount`) and the candidates (`id`, `title`, `originalTitle`, up to 10 `alternativeTitles`, `firstAirDate` and `episodeCount` for the source's season, `overview`). It asks two questions. `match` is a choice over the candidate ids, and `any_match` is a noul, "At least one candidate is the same anime and the same season as the source". The noul is there because a choice always picks something, even when nothing fits.
+- **Thresholds.** Jev's answer is accepted only when `any_match.noul >= JEV_MIN_NOUL`, the chosen option's probability `>= JEV_MIN_CHOICE` and its confidence `>= JEV_MIN_CONFIDENCE`. The defaults 0.85, 0.85 and 0.5 are unvalidated starting points. An accepted answer carries `min(noul, choice probability)` as its probability, so it still has to pass `decide`. Setting `JEV_MIN_NOUL` or `JEV_MIN_CHOICE` below 0.85 therefore has no effect until `MIN_MATCH_PROBABILITY` moves too.
+- **Failure.** A Jev network error, timeout, 401, 422 or malformed answer throws, and so does a 429 or 529 once the SDK's retries are spent (2 retries with backoff, 15 s per attempt, so one title can hold a fill slot for about 50 s). The filler then stores `failed`, which is retried after 10 minutes, rather than a `no_match` that would hide the title for 7 days.
+- **Logs.** Each Jev call logs one line with the slug, the chosen id, its probability, the confidence, the noul, every option's probability and the verdict. It logs neither the key nor the state.
+- **Provenance.** Every fill stores `source_name`, `source_year` and `source_episode_count`, whether it ends `matched`, `no_match` or `failed`. A `matched` row also stores `matched_by` (`baseline` or `jev`). Rows written before migration 003 have nulls there.
+- **Evaluating.** `pnpm nx run api:eval-matcher --status=no_match --limit=20` reads `title_art` rows that have `source_name`, re-runs the TMDB search, the baseline and Jev for each, and prints a table: slug, source name, stored status, baseline probability and verdict, Jev's choice, noul, choice probability, confidence and verdict. `--status` is `no_match`, `matched` or `all` (the default), and `--limit` defaults to 50. It opens Postgres read-only and writes nothing, but every row costs one Jev request. It needs `DATABASE_URL`, `TMDB_API_KEY` and `TYPESAFE_API_KEY` and stops with a message naming the missing ones.
 
 **Run a single replica.** The single-flight map and the rate limit counters live in process memory. Two replicas would each call TMDB for the same new slug, and each would allow the full rate.
 
@@ -67,6 +92,11 @@ The zod schemas in `src/art/contract.ts` are the single source of truth, and `ap
 | `RATE_LIMIT_PER_MINUTE` | no       | Requests per client per minute, 60 by default                       |
 | `TMDB_API_KEY`          | yes      | TMDB v3 API key, read by the art module                             |
 | `TMDB_API_BASE`         | no       | TMDB API root, for example `https://api.tmdb.org/3` or a local stub |
+| `TYPESAFE_API_KEY`      | no       | TypeSafe API key. Unset turns Jev off                               |
+| `JEV_MODEL`             | no       | System One model, `jev-latest` by default                           |
+| `JEV_MIN_NOUL`          | no       | Minimum `any_match` noul, 0 to 1, 0.85 by default                   |
+| `JEV_MIN_CHOICE`        | no       | Minimum probability of Jev's choice, 0 to 1, 0.85 by default        |
+| `JEV_MIN_CONFIDENCE`    | no       | Minimum confidence of Jev's choice, 0 to 1, 0.5 by default          |
 
 A missing or invalid variable stops the boot with `missing or invalid env:` and its name.
 
@@ -88,7 +118,7 @@ Vitest compiles the same decorators without a plugin. Vite's built-in transform 
 
 ## Run it locally
 
-Copy `.env.example` to `.env` and fill in `TMDB_API_KEY`. Git ignores `.env`.
+Copy `.env.example` to `.env` and fill in `TMDB_API_KEY`, and `TYPESAFE_API_KEY` to turn Jev on. Git ignores `.env`.
 
 ```sh
 docker compose -f apps/api/docker-compose.yml up -d --wait   # Postgres 17 on localhost:54330, database api
@@ -104,4 +134,4 @@ VITE_API_URL=http://localhost:3100 pnpm nx dev web
 
 `pnpm nx run-many -t typecheck lint test build -p api`
 
-`test/app.test.ts` boots `AppModule` through `@nestjs/testing` and sends requests with supertest. It swaps the env, the pool, the store and the TMDB client for in-memory ones, so it needs neither Postgres nor the network. The `*.pg.test.ts` files run against a real Postgres only when `DATABASE_URL` is set, for example the compose database above. The TMDB fixtures in `test/art/tmdb/fixtures.ts` are hand-written from the API's documented response shapes.
+`test/app.test.ts` boots `AppModule` through `@nestjs/testing` and sends requests with supertest. It swaps the env, the pool, the store and the TMDB client for in-memory ones, so it needs neither Postgres nor the network. The `*.pg.test.ts` files run against a real Postgres only when `DATABASE_URL` is set, for example the compose database above. The TMDB fixtures in `test/art/tmdb/fixtures.ts` are hand-written from the API's documented response shapes. The Jev tests run the real SDK against a fake `fetch` (`test/art/tmdb/jev-mock.ts`), so they check the request body on the wire without calling TypeSafe.
