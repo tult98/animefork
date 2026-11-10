@@ -14,6 +14,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   use: {
     baseURL: `http://localhost:${port}`,
+    // Pinned so the browser's own language never decides which copy a test sees.
+    locale: 'vi-VN',
     // Local runs drive the installed Chrome so no browser download is needed; CI sets PW_CHANNEL=chromium.
     channel:
       process.env.PW_CHANNEL === 'chromium'

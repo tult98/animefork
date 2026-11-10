@@ -1,7 +1,10 @@
 import { Link } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
 import { NAV_ITEMS } from '../nav.ts';
+import { LanguageSwitcher } from './language-switcher.tsx';
 
 export function TopBar() {
+  const { t } = useTranslation();
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-canvas/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-6 px-4 md:px-8">
@@ -12,19 +15,20 @@ export function TopBar() {
         >
           animefork
         </Link>
-        <nav aria-label="Main" className="flex gap-1 overflow-x-auto">
+        <nav aria-label={t('nav.aria')} className="flex gap-1 overflow-x-auto">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.id}
               to={item.to}
               data-testid={`nav:${item.id}`}
               activeOptions={{ exact: item.to === '/' }}
-              className="inline-flex min-h-11 items-center rounded-md px-3 text-sm text-ink-muted hover:text-ink aria-[current=page]:text-ink aria-[current=page]:underline aria-[current=page]:decoration-accent aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-8"
+              className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-3 text-sm text-ink-muted hover:text-ink aria-[current=page]:text-ink aria-[current=page]:underline aria-[current=page]:decoration-accent aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-8"
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           ))}
         </nav>
+        <LanguageSwitcher />
       </div>
     </header>
   );

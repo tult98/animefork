@@ -1,0 +1,34 @@
+{
+  "common": {
+    "loading": "Đang tải",
+    "retry": "Thử lại",
+    "notBuilt": "Trang này chưa được xây dựng."
+  },
+  "nav": {
+    "aria": "Điều hướng chính",
+    "home": "Trang chủ",
+    "browse": "Duyệt phim",
+    "schedule": "Lịch chiếu",
+    "rankings": "Xếp hạng",
+    "myList": "Danh sách của tôi"
+  },
+  "lang": {
+    "label": "Ngôn ngữ"
+  },
+  "home": {
+    "titles": "Danh sách phim"
+  },
+  "title": {
+    "rating": "{{rating, number(minimumFractionDigits: 1; maximumFractionDigits: 1)}}"
+  },
+  "error": {
+    "unreachable": {
+      "title": "Không thể kết nối tới nguồn",
+      "body": "Không thể tải hoặc đọc dữ liệu từ nguồn."
+    },
+    "extensionMissing": {
+      "title": "Cần cài tiện ích",
+      "body": "Hãy cài đặt và bật tiện ích AnimeVsub Helper, rồi thử lại."
+    }
+  }
+}

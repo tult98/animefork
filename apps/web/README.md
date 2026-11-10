@@ -30,6 +30,16 @@ Selection: `?transport=replay` in the URL, else `VITE_TRANSPORT=replay`, else th
 
 In dev, `window.__app` exposes `route()`, `queryKeys()` and the active `transport`.
 
+## i18n
+
+i18next with react-i18next. Vietnamese (`vi`) is the source of truth, the default and the fallback. English (`en`) sits beside it. Keys are semantic and dot-style (`nav.home`, `error.unreachable.title`), and `t()` is typed from `src/i18n/locales/vi.json`, so a misspelled key fails `typecheck`.
+
+The locale is picked from `?lang=`, then `localStorage` (`animefork:lang`, written by the top-bar switcher), then `navigator.languages`, else `vi`. It sets `<html lang>`. Each locale JSON is a dynamic import, so only the active locale and `vi` are fetched.
+
+To add a locale, drop `src/i18n/locales/<code>.json` and add one entry to `LOCALES` in `src/i18n/locales.ts`. The unit test fails until the new file has every key and interpolation variable that `vi` has.
+
+Numbers go through Intl inside the message (`{{rating, number(...)}}`). Title names and episode labels come from the source and are not translated. In dev, `window.__app.locale()` returns the current locale.
+
 ## Fixtures
 
 **The fixtures in `public/fixtures/default/` and `public/fixtures/invalid-title/` are synthetic.** They are hand-written to exercise replay and are not captured from the upstream site. `invalid-title` is deliberately malformed to prove the zod error path.

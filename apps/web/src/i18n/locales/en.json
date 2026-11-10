@@ -1,0 +1,34 @@
+{
+  "common": {
+    "loading": "Loading",
+    "retry": "Retry",
+    "notBuilt": "This page is not built yet."
+  },
+  "nav": {
+    "aria": "Main navigation",
+    "home": "Home",
+    "browse": "Browse",
+    "schedule": "Schedule",
+    "rankings": "Rankings",
+    "myList": "My list"
+  },
+  "lang": {
+    "label": "Language"
+  },
+  "home": {
+    "titles": "Titles"
+  },
+  "title": {
+    "rating": "{{rating, number(minimumFractionDigits: 1; maximumFractionDigits: 1)}}"
+  },
+  "error": {
+    "unreachable": {
+      "title": "The source is unreachable",
+      "body": "We could not load or read the data from the source."
+    },
+    "extensionMissing": {
+      "title": "Extension required",
+      "body": "Install and enable the AnimeVsub Helper extension, then retry."
+    }
+  }
+}

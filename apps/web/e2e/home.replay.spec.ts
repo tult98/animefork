@@ -11,7 +11,7 @@ test('home renders the fixture titles in replay mode', async ({ page }) => {
     /Synthetic Title Three/,
   ]);
   await expect(page.getByTestId('card:/phim/psyren-a1001/')).toContainText(
-    '8.4',
+    '8,4',
   );
   await expect(page.getByTestId('error-screen')).toHaveCount(0);
 });
@@ -28,6 +28,6 @@ test('the shell navigates and exposes window.__app', async ({ page }) => {
   ]);
 
   await page.getByTestId('nav:browse').click();
-  await expect(page.getByTestId('page:Browse')).toBeVisible();
+  await expect(page.getByTestId('page:browse')).toBeVisible();
   expect(await page.evaluate(() => window.__app?.route())).toBe('/browse');
 });
