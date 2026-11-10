@@ -77,3 +77,25 @@ export const SEASON_100_1 = {
     { episode_number: 3, still_path: '/e3.jpg' },
   ],
 };
+
+export const ALT_TITLES_100 = {
+  id: 100,
+  results: [
+    { title: 'Tonikaku Kawaii', iso_3166_1: 'JP', type: 'Romaji' },
+    { title: 'TONIKAWA', iso_3166_1: 'US', type: '' },
+  ],
+};
+
+export const ALT_TITLES_200 = { id: 200, results: [] };
+
+export const SEARCH_ROMAJI = {
+  page: 1,
+  results: [
+    {
+      id: 100,
+      name: 'TONIKAWA: Over the Moon for You',
+      original_name: 'トニカクカワイイ',
+      first_air_date: '2020-10-03',
+    },
+  ],
+};

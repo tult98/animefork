@@ -5,6 +5,7 @@ import type { TmdbClient, TmdbDetail } from './tmdb.ts';
 import { parseSeasonNumber, type TitleInput } from './titles.ts';
 
 const CANDIDATE_LIMIT = 5;
+const ALTERNATIVE_TITLE_LIMIT = 3;
 
 export interface MatchedTitle {
   slug: string;
@@ -28,16 +29,19 @@ export interface SyncDeps {
   matcher: Matcher;
 }
 
-function toCandidate(detail: TmdbDetail, season: number): Candidate {
+function toCandidate(
+  detail: TmdbDetail,
+  season: number,
+  alternativeTitles: string[],
+): Candidate {
   const entry = detail.seasons?.find((s) => s.season_number === season);
   return {
     id: detail.id,
     name: detail.name,
     originalName: detail.original_name,
+    alternativeTitles,
     firstAirDate:
-      (season > 1 ? entry?.air_date : undefined) ??
-      detail.first_air_date ??
-      undefined,
+      (season > 1 ? entry?.air_date : detail.first_air_date) ?? undefined,
     episodeCount: entry?.episode_count ?? detail.number_of_episodes,
   };
 }
@@ -78,12 +82,19 @@ export async function syncTitle(
   const details = await Promise.all(
     results.slice(0, CANDIDATE_LIMIT).map((r) => tmdb.tvDetail(r.id)),
   );
+  const alternativeTitles = await Promise.all(
+    details.map((d, i) =>
+      i < ALTERNATIVE_TITLE_LIMIT ? tmdb.tvAlternativeTitles(d.id) : [],
+    ),
+  );
   const answer = await matcher.match({
     sourceTitle: input.name,
     seasonName: input.seasonName,
     year: input.year,
     episodeCount: input.episodeCount,
-    candidates: details.map((d) => toCandidate(d, season)),
+    candidates: details.map((d, i) =>
+      toCandidate(d, season, alternativeTitles[i] ?? []),
+    ),
   });
   const choice = decide(answer);
   if (choice === null) {

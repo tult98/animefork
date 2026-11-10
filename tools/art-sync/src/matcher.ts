@@ -2,6 +2,7 @@ export interface Candidate {
   id: number;
   name: string;
   originalName: string;
+  alternativeTitles: string[];
   firstAirDate?: string;
   episodeCount?: number;
 }
@@ -85,8 +86,11 @@ export function scoreCandidate(
   candidate: Candidate,
 ): number {
   const title = Math.max(
-    titleSimilarity(question.sourceTitle, candidate.name),
-    titleSimilarity(question.sourceTitle, candidate.originalName),
+    ...[
+      candidate.name,
+      candidate.originalName,
+      ...candidate.alternativeTitles,
+    ].map((name) => titleSimilarity(question.sourceTitle, name)),
   );
   return (
     WEIGHTS.title * title +

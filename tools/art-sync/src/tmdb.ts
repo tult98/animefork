@@ -54,6 +54,16 @@ const SeasonSchema = z.object({
   ),
 });
 
+const AlternativeTitlesSchema = z.object({
+  results: z.array(
+    z.object({
+      title: z.string(),
+      iso_3166_1: z.string().nullish(),
+      type: z.string().nullish(),
+    }),
+  ),
+});
+
 export type TmdbSearchResult = z.infer<typeof SearchResultSchema>;
 export type TmdbImage = z.infer<typeof ImageSchema>;
 export type TmdbDetail = z.infer<typeof DetailSchema>;
@@ -73,6 +83,7 @@ export interface TmdbClient {
   searchTv(query: string): Promise<TmdbSearchResult[]>;
   tvImages(tvId: number): Promise<TmdbImage[]>;
   tvDetail(tvId: number): Promise<TmdbDetail>;
+  tvAlternativeTitles(tvId: number): Promise<string[]>;
   seasonDetail(tvId: number, season: number): Promise<TmdbSeason>;
 }
 
@@ -111,6 +122,10 @@ export function createTmdbClient(options: {
         )
       ).backdrops,
     tvDetail: (tvId) => get(`/tv/${tvId}`, {}, DetailSchema),
+    tvAlternativeTitles: async (tvId) =>
+      (
+        await get(`/tv/${tvId}/alternative_titles`, {}, AlternativeTitlesSchema)
+      ).results.map((r) => r.title),
     seasonDetail: (tvId, season) =>
       get(`/tv/${tvId}/season/${season}`, {}, SeasonSchema),
   };

@@ -5,6 +5,7 @@ import {
   MIN_MATCH_PROBABILITY,
   normalizeTitle,
   titleSimilarity,
+  type Candidate,
   type MatchQuestion,
 } from '../src/matcher.ts';
 
@@ -15,6 +16,7 @@ const question = (over: Partial<MatchQuestion> = {}): MatchQuestion => ({
       id: 1,
       name: 'Tonikaku Kawaii',
       originalName: 'トニカクカワイイ',
+      alternativeTitles: [],
       firstAirDate: '2020-10-03',
       episodeCount: 12,
     },
@@ -22,6 +24,7 @@ const question = (over: Partial<MatchQuestion> = {}): MatchQuestion => ({
       id: 2,
       name: 'Kaguya-sama: Love is War',
       originalName: 'かぐや様は告らせたい',
+      alternativeTitles: [],
       firstAirDate: '2019-01-12',
       episodeCount: 12,
     },
@@ -69,6 +72,40 @@ describe('BaselineMatcher', () => {
       }),
     );
     expect(answer.probability).toBeLessThan(MIN_MATCH_PROBABILITY);
+    expect(decide(answer)).toBeNull();
+  });
+
+  it('matches a romaji source title through an alternative title', async () => {
+    const [show, other] = question().candidates as [Candidate, Candidate];
+    const aliased = {
+      ...show,
+      name: 'TONIKAWA: Over the Moon for You',
+      alternativeTitles: ['Tonikaku Kawaii'],
+    };
+    const answer = await matcher.match(
+      question({ year: 2020, candidates: [aliased, other] }),
+    );
+    expect(decide(answer)).toBe(1);
+    const without = await matcher.match(
+      question({
+        year: 2020,
+        candidates: [{ ...aliased, alternativeTitles: [] }, other],
+      }),
+    );
+    expect(decide(without)).toBeNull();
+  });
+
+  it('rejects a near name that only an alternative title resembles', async () => {
+    const [show] = question().candidates as [Candidate];
+    const answer = await matcher.match(
+      question({
+        sourceTitle: 'Tonikaku Kawaii Gaiden',
+        year: 2020,
+        candidates: [
+          { ...show, name: 'TONIKAWA', alternativeTitles: ['Tonikaku Kawaii'] },
+        ],
+      }),
+    );
     expect(decide(answer)).toBeNull();
   });
 

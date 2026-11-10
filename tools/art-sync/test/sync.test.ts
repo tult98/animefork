@@ -17,6 +17,8 @@ function mockTmdb(overrides: Record<string, unknown> = {}): typeof fetch {
       '/3/search/tv?Nothing Here': fx.SEARCH_NOTHING,
       '/3/tv/100': fx.DETAIL_100,
       '/3/tv/200': fx.DETAIL_200,
+      '/3/tv/100/alternative_titles': fx.ALT_TITLES_100,
+      '/3/tv/200/alternative_titles': fx.ALT_TITLES_200,
       '/3/tv/100/images': fx.IMAGES_100,
       '/3/tv/100/season/1': fx.SEASON_100_1,
       ...overrides,
@@ -192,5 +194,64 @@ describe('art-sync dry run against a mocked TMDB', () => {
   it('requires an API key and a titles file', async () => {
     await expect(run([], env)).rejects.toThrow(/Usage/);
     await expect(run([titlesFile([])], {})).rejects.toThrow(/TMDB_API_KEY/);
+  });
+});
+
+describe('season-aware year and alternative titles in a sync', () => {
+  const env = { TMDB_API_KEY: 'key' };
+  const romajiRoutes = {
+    '/3/search/tv?Tonikaku Kawaii': fx.SEARCH_ROMAJI,
+    '/3/tv/100': {
+      ...fx.DETAIL_100,
+      name: 'TONIKAWA: Over the Moon for You',
+    },
+    '/3/tv/100/season/2': fx.SEASON_100_1,
+  };
+
+  it('matches a romaji title the TMDB names do not contain', async () => {
+    const file = titlesFile([
+      { slug: 'a', name: 'Tonikaku Kawaii', year: 2020 },
+    ]);
+    const report = await run([file], env, mockTmdb(romajiRoutes));
+    expect(report.matches[0]?.tmdbId).toBe(100);
+  });
+
+  it('does not penalise a later season by the show first air date', async () => {
+    const file = titlesFile([
+      {
+        slug: 'b',
+        name: 'Tonikaku Kawaii',
+        seasonName: '2nd Season',
+        year: 2023,
+      },
+    ]);
+    const report = await run([file], env, mockTmdb(romajiRoutes));
+    expect(report.matches[0]?.season).toBe(2);
+    expect(report.matches[0]?.probability).toBe(0.94);
+  });
+
+  it('treats the year as unknown when a later season has no air date', async () => {
+    const detail = {
+      ...fx.DETAIL_100,
+      name: 'TONIKAWA: Over the Moon for You',
+      seasons: [
+        { season_number: 1, episode_count: 12, air_date: '2020-10-03' },
+        { season_number: 2, episode_count: 12, air_date: null },
+      ],
+    };
+    const file = titlesFile([
+      {
+        slug: 'c',
+        name: 'Tonikaku Kawaii',
+        seasonName: 'Season 2',
+        year: 2023,
+      },
+    ]);
+    const report = await run(
+      [file],
+      env,
+      mockTmdb({ ...romajiRoutes, '/3/tv/100': detail }),
+    );
+    expect(report.matches[0]?.season).toBe(2);
   });
 });
