@@ -80,24 +80,21 @@ test('the arrows scroll the shelf and the left arrow hides at the start', async 
   await expect(left).toBeHidden();
 });
 
-test('the arrows are as tall as the card art', async ({ page }) => {
+test('the arrows are 56px pills centred on the card art', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/?transport=replay');
-  const shelf = page.getByTestId(NEW_EPISODES);
-  const art = await shelf.locator('a[data-cover] img').first().boundingBox();
-  const arrow = await shelf
-    .getByTestId(`${NEW_EPISODES}:scroll-right`)
-    .boundingBox();
-  expect(Math.abs(arrow!.height - art!.height)).toBeLessThan(1.5);
-
-  const poster = await page
-    .getByTestId('shelf:top-10-today')
-    .locator('a[data-cover] img')
-    .first()
-    .boundingBox();
-  const topArrow = await page
-    .getByTestId('shelf:top-10-today:scroll-right')
-    .boundingBox();
-  expect(Math.abs(topArrow!.height - poster!.height * 1)).toBeLessThan(1.5);
+  for (const id of [NEW_EPISODES, 'shelf:top-10-today']) {
+    const art = await page
+      .getByTestId(id)
+      .locator('a[data-cover] img')
+      .first()
+      .boundingBox();
+    const arrow = await page.getByTestId(`${id}:scroll-right`).boundingBox();
+    expect(arrow!.width).toBeCloseTo(56, 0);
+    expect(arrow!.height).toBeLessThanOrEqual(art!.height + 0.5);
+    const artMid = art!.y + art!.height / 2;
+    expect(Math.abs(arrow!.y + arrow!.height / 2 - artMid)).toBeLessThan(2);
+  }
 });
 
 test('the hover preview opens after 250 ms and closes on leave', async ({

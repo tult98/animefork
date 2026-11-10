@@ -53,6 +53,8 @@ body {
   --pad: var(--space-gutter);
   --per: 6;
   --gap: 8px;
+  /* Room above the art inside a shelf for the hover preview to grow into. */
+  --shelf-bleed: 32px;
   --rkslot: 208px;
   --rkposter: 139px;
   --rkfs: 210px;
@@ -91,8 +93,8 @@ body {
     overflow-x: auto;
     scroll-snap-type: x proximity;
     scroll-padding-inline: var(--pad);
-    padding: 32px var(--pad) 40px;
-    margin-block: -32px -40px;
+    padding: var(--shelf-bleed) var(--pad) 40px;
+    margin-block: calc(-1 * var(--shelf-bleed)) -40px;
     scrollbar-width: none;
   }
 
@@ -131,18 +133,30 @@ body {
       (100cqw - 2 * var(--pad) - (var(--per) - 1) * var(--gap)) / var(--per) /
         var(--card-art-ratio)
     );
+    --arrow-w: 56px;
+    --arrow-h: min(112px, var(--art-h));
     position: absolute;
-    top: 0;
-    width: var(--pad);
-    height: var(--art-h);
+    top: calc(var(--shelf-bleed) + (var(--art-h) - var(--arrow-h)) / 2);
+    width: var(--arrow-w);
+    height: var(--arrow-h);
+    border-radius: 12px;
     display: grid;
     place-items: center;
     pointer-events: auto;
   }
 
+  /* The pill straddles the edge of the last whole card: half over the card, half over the gap and the peeking card. */
+  .shelf-arrow--prev {
+    left: calc(var(--pad) - var(--arrow-w) / 2);
+  }
+
+  .shelf-arrow--next {
+    right: calc(var(--pad) - var(--arrow-w) / 2);
+  }
+
   /* The 5:7 poster is 1.4 times as tall as it is wide. */
   .shelf--top .shelf-arrow {
-    height: calc(var(--rkposter) * 1.4);
+    --art-h: calc(var(--rkposter) * 1.4);
   }
 }
 

@@ -12,7 +12,7 @@ const SEE_ALL_SHELVES = new Set([
 ]);
 
 const ARROW_CLASS =
-  'bg-canvas/70 text-ink hover:bg-canvas/95 cursor-pointer border-0';
+  'bg-border-strong/70 text-ink hover:bg-border/60 cursor-pointer border-0';
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -89,7 +89,7 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
             data-testid={`shelf:${shelf.id}:scroll-left`}
             hidden={edges.atStart}
             onClick={() => scrollBy(-1)}
-            className={`shelf-arrow left-0 ${ARROW_CLASS}`}
+            className={`shelf-arrow shelf-arrow--prev ${ARROW_CLASS}`}
           >
             <ChevronLeft aria-hidden="true" className="size-6" />
           </button>
@@ -99,7 +99,7 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
             data-testid={`shelf:${shelf.id}:scroll-right`}
             hidden={edges.atEnd}
             onClick={() => scrollBy(1)}
-            className={`shelf-arrow right-0 ${ARROW_CLASS}`}
+            className={`shelf-arrow shelf-arrow--next ${ARROW_CLASS}`}
           >
             <ChevronRight aria-hidden="true" className="size-6" />
           </button>
