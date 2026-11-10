@@ -23,6 +23,12 @@ function finiteOrUndefined(value: number): number | undefined {
   return Number.isFinite(value) ? value : undefined;
 }
 
+// The site renders the label as TẬP<i>19</i>, so its text runs together as TẬP19.
+export function formatEpisodeLabel(raw: string): string {
+  const match = raw.match(/^TẬP\s*(\S.*)$/i);
+  return match ? `Tập ${match[1]!.replace(/^0+(?=\d)/, '')}` : raw;
+}
+
 function pathOf(href: string | null | undefined): string | undefined {
   if (!href) return undefined;
   return new URL(href, 'https://card.invalid').pathname;
@@ -41,7 +47,8 @@ export function parseCard(el: Element): RawCard {
     name: text(el, '.Title'),
     image: el.querySelector('img[src]')?.getAttribute('src') ?? undefined,
     rating: rating === '' ? Number.NaN : Number(rating),
-    episodeLabel: text(el, '.mli-eps') || text(el, '.Info .Time'),
+    episodeLabel:
+      formatEpisodeLabel(text(el, '.mli-eps')) || text(el, '.Info .Time'),
     year: finiteOrUndefined(parseInt(text(el, '.AAIco-date_range'), 10)),
     genres: [...el.querySelectorAll('.Genre > a')]
       .map((a) => a.textContent?.trim() ?? '')

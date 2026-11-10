@@ -56,10 +56,10 @@ test('a card is the art and its badge, with the details in the accessible name',
     .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/');
 
   await expect(
-    card.getByRole('link', { name: 'Ushiro no Shoumen Kamui-san, TẬP19' }),
+    card.getByRole('link', { name: 'Ushiro no Shoumen Kamui-san, Tập 19' }),
   ).toBeVisible();
   await expect(card).toContainText('Tập mới');
-  await expect(card).toContainText('TẬP19');
+  await expect(card).toContainText('Tập 19');
   await expect(card).not.toContainText('Ushiro no Shoumen Kamui-san');
   await expect(card).not.toContainText('8.8');
   await expect(page.locator('body')).not.toContainText(/\bNaN\b/);

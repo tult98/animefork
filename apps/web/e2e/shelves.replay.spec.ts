@@ -33,7 +33,7 @@ test('only the new episodes shelf shows the Tập mới badge', async ({
     .getByTestId(NEW_EPISODES)
     .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/');
   await expect(card).toContainText('Tập mới');
-  await expect(card).toContainText('TẬP19');
+  await expect(card).toContainText('Tập 19');
   await expect(page.getByTestId('shelf:top-10-today')).not.toContainText(
     'Tập mới',
   );
