@@ -16,3 +16,5 @@
 /apps/web/src/design/theme.css
 /apps/web/src/design/tokens.css
 /apps/web/src/design/tokens.json
+# Markup captured from the live site stays byte for byte as captured.
+/apps/web/public/fixtures
