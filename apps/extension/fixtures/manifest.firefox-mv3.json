@@ -1,0 +1,92 @@
+{
+  "manifest_version": 3,
+  "name": "AnimeVsub Helper",
+  "description": "Extension add API helper for AnimeVsub",
+  "version": "1.0.50",
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "cookies",
+    "declarativeNetRequest",
+    "storage"
+  ],
+  "host_permissions": ["*://*/*"],
+  "web_accessible_resources": [
+    {
+      "resources": ["embed.js", "page-patch.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{26005fb7-3d84-4144-a688-a058944123b3}",
+      "strict_min_version": "128.0"
+    }
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "all_frames": true,
+      "run_at": "document_start",
+      "js": ["content-scripts/inject.js"]
+    },
+    {
+      "matches": [
+        "http://animevsub.eu.org/*",
+        "http://animevsub.netlify.app/*",
+        "http://cinevsub.eu.org/*",
+        "http://cinevsub.netlify.app/*",
+        "http://cinevsub.nuxt.dev/*",
+        "http://cinevsub.pages.dev/*",
+        "http://example.com/*",
+        "http://ihentai.eu.org/*",
+        "http://ihentai.netlify.app/*",
+        "http://localhost/*",
+        "http://m.animevsub.eu.org/*",
+        "http://m.mangaraiku.eu.org/*",
+        "http://mangaraiku.eu.org/*",
+        "http://mangaraiku.netlify.app/*",
+        "http://mraiku.eu.org/*",
+        "http://raiku.eu.org/*",
+        "http://raiku.netlify.app/*",
+        "http://tariteam.github.io/download-video/*",
+        "http://vuitruyen.eu.org/*",
+        "http://vuitruyen.netlify.app/*",
+        "https://animevsub.eu.org/*",
+        "https://animevsub.netlify.app/*",
+        "https://cinevsub.eu.org/*",
+        "https://cinevsub.netlify.app/*",
+        "https://cinevsub.nuxt.dev/*",
+        "https://cinevsub.pages.dev/*",
+        "https://example.com/*",
+        "https://ihentai.eu.org/*",
+        "https://ihentai.netlify.app/*",
+        "https://localhost/*",
+        "https://m.animevsub.eu.org/*",
+        "https://m.mangaraiku.eu.org/*",
+        "https://mangaraiku.eu.org/*",
+        "https://mangaraiku.netlify.app/*",
+        "https://mraiku.eu.org/*",
+        "https://raiku.eu.org/*",
+        "https://raiku.netlify.app/*",
+        "https://tariteam.github.io/download-video/*",
+        "https://vuitruyen.eu.org/*",
+        "https://vuitruyen.netlify.app/*"
+      ],
+      "all_frames": true,
+      "run_at": "document_start",
+      "js": ["content-scripts/relay.js"]
+    }
+  ]
+}

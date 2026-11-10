@@ -1,0 +1,2103 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`createRule > rule set for a referrer is frozen 1`] = `
+[
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extra|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyo|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyro|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_extrao|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extraro|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_uafirefox|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_uachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_uaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_uagbot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; YandexAccessibilityBot/3.0; +http://yandex.com/bots)",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_uaybot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_uaachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_uaaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extra_uafirefox|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extra_uachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extra_uaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extra_uagbot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; YandexAccessibilityBot/3.0; +http://yandex.com/bots)",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extra_uaybot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extra_uaachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extra_uaaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyo_uafirefox|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyo_uachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyo_uaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyo_uagbot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; YandexAccessibilityBot/3.0; +http://yandex.com/bots)",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyo_uaybot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyo_uaachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyo_uaaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyro_uafirefox|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyro_uachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyro_uaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyro_uagbot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; YandexAccessibilityBot/3.0; +http://yandex.com/bots)",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyro_uaybot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyro_uaachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#keyro_uaaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_extrao_uafirefox|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_extrao_uachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_extrao_uaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_extrao_uagbot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; YandexAccessibilityBot/3.0; +http://yandex.com/bots)",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_extrao_uaybot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_extrao_uaachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://example.com",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "resourceTypes": [
+        "xmlhttprequest",
+      ],
+      "urlFilter": "#key_extrao_uaaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extraro_uafirefox|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extraro_uachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extraro_uaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extraro_uagbot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (compatible; YandexAccessibilityBot/3.0; +http://yandex.com/bots)",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extraro_uaybot|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extraro_uaachrome|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://example.com/path",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "User-Agent",
+          "operation": "set",
+          "value": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36 Edg/114.0.1823.41",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#key_extraro_uaaedge|",
+    },
+    "priority": 1,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Accept-Encoding",
+          "operation": "set",
+          "value": "gzip, deflate, br, zstd",
+        },
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "Priority",
+          "operation": "set",
+          "value": "i",
+        },
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://lh3.googleusercontent.com/",
+        },
+        {
+          "header": "Sec-Fetch-Dest",
+          "operation": "set",
+          "value": "image",
+        },
+        {
+          "header": "Sec-Fetch-Mode",
+          "operation": "set",
+          "value": "no-cors",
+        },
+        {
+          "header": "Sec-Fetch-Site",
+          "operation": "set",
+          "value": "cross-site",
+        },
+        {
+          "header": "Sec-Gpc",
+          "operation": "set",
+          "value": "1",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "regexFilter": "^https?://([a-zA-Z0-9-]+\\.)?googleusercontent\\.[a-zA-Z]{2,}(/|$)",
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+    },
+    "priority": 999,
+  },
+  {
+    "action": {
+      "requestHeaders": [
+        {
+          "header": "Origin",
+          "operation": "remove",
+        },
+        {
+          "header": "Referer",
+          "operation": "remove",
+        },
+        {
+          "header": "Sec-Fetch-Mode",
+          "operation": "remove",
+        },
+        {
+          "header": "Sec-Fetch-Site",
+          "operation": "remove",
+        },
+        {
+          "header": "Sec-Gpc",
+          "operation": "remove",
+        },
+      ],
+      "responseHeaders": [
+        {
+          "header": "Access-Control-Allow-Origin",
+          "operation": "set",
+          "value": "*",
+        },
+        {
+          "header": "Access-Control-Allow-Methods",
+          "operation": "set",
+          "value": "PUT, GET, HEAD, POST, DELETE, OPTIONS",
+        },
+      ],
+      "type": "modifyHeaders",
+    },
+    "condition": {
+      "initiatorDomains": [
+        "animevsub.netlify.app",
+        "animevsub.eu.org",
+        "m.animevsub.eu.org",
+        "vuitruyen.netlify.app",
+        "vuitruyen.eu.org",
+        "mangaraiku.eu.org",
+        "m.mangaraiku.eu.org",
+        "raiku.eu.org",
+        "mraiku.eu.org",
+        "raiku.netlify.app",
+        "mangaraiku.netlify.app",
+        "tariteam.github.io/download-video",
+        "example.com",
+        "localhost",
+        "ihentai.netlify.app",
+        "ihentai.eu.org",
+        "cinevsub.netlify.app",
+        "cinevsub.eu.org",
+        "cinevsub.pages.dev",
+        "cinevsub.nuxt.dev",
+      ],
+      "resourceTypes": [
+        "xmlhttprequest",
+        "image",
+        "media",
+      ],
+      "urlFilter": "#rm-origin|",
+    },
+    "priority": 1,
+  },
+]
+`;

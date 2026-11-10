@@ -3,7 +3,7 @@
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": ["default"],
-    "sharedGlobals": []
+    "sharedGlobals": ["{workspaceRoot}/tsconfig.base.json"]
   },
   "plugins": [
     {

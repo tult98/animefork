@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc",
+    "tsBuildInfoFile": "out-tsc/tsconfig.tsbuildinfo",
+    "rootDir": "..",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": ["chrome", "node"],
+    "resolveJsonModule": true
+  },
+  "include": ["src", "../src/shared", "../package.json"],
+  "exclude": ["../src/shared/**/*.spec.ts"]
+}

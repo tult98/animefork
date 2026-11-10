@@ -1,0 +1,14 @@
+import { describe, expect, test } from 'vitest';
+
+import { randomUUID } from './uuid';
+
+describe('randomUUID', () => {
+  test('exists crypto', () => {
+    expect(typeof randomUUID()).toBe('string');
+  });
+  test('not exists crypto', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (globalThis as unknown as any).crypto;
+    expect(typeof randomUUID()).toBe('string');
+  });
+});

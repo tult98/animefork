@@ -6,81 +6,97 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsdown",
-    "watch": "tsdown --watch",
-    "dev": "web-ext run --source-dir dist/chrome-mv3 --target chromium",
-    "dev:firefox": "web-ext run --source-dir dist/firefox-mv3 --target firefox-desktop",
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build && wxt build -b firefox",
+    "prepare:types": "wxt prepare",
+    "pack": "wxt zip && wxt zip -b firefox && mkdir -p artifacts && crx pack dist/chrome-mv3 -o artifacts/animevsub-helper-chrome-mv3.crx",
     "test": "vitest run",
-    "lint": "eslint .",
-    "pack": "web-ext build --source-dir dist/chrome-mv3 --artifacts-dir artifacts --filename animevsub-helper-chrome-mv3-{version}.zip --overwrite-dest && web-ext build --source-dir dist/firefox-mv3 --artifacts-dir artifacts --filename animevsub-helper-firefox-mv3-{version}.xpi --overwrite-dest && crx pack dist/chrome-mv3 -o artifacts/animevsub-helper-chrome-mv3.crx"
+    "lint": "eslint ."
   },
   "nx": {
     "targets": {
+      "prepare:types": {
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/wxt.config.ts",
+          "{projectRoot}/package.json",
+          "{projectRoot}/src/entrypoints/**/*",
+          "{projectRoot}/public/**/*"
+        ],
+        "outputs": [
+          "{projectRoot}/.wxt"
+        ]
+      },
+      "typecheck": {
+        "dependsOn": [
+          "^typecheck",
+          "prepare:types"
+        ]
+      },
+      "lint": {
+        "cache": true,
+        "dependsOn": [
+          "prepare:types"
+        ],
+        "inputs": [
+          "default",
+          "{projectRoot}/eslint.config.mjs"
+        ]
+      },
       "build": {
         "cache": true,
+        "dependsOn": [
+          "prepare:types"
+        ],
         "inputs": [
           "production"
         ],
         "outputs": [
-          "{projectRoot}/dist",
-          "{projectRoot}/client/dist"
+          "{projectRoot}/dist"
         ]
       },
-      "watch": {
-        "continuous": true
+      "test": {
+        "cache": true,
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "default"
+        ]
       },
       "dev": {
         "continuous": true,
         "dependsOn": [
-          "build",
-          "watch"
+          "prepare:types"
         ]
       },
       "dev:firefox": {
         "continuous": true,
         "dependsOn": [
-          "build",
-          "watch"
-        ]
-      },
-      "test": {
-        "cache": true,
-        "inputs": [
-          "default"
+          "prepare:types"
         ]
       },
       "pack": {
         "dependsOn": [
-          "build"
+          "prepare:types"
         ],
         "outputs": [
+          "{projectRoot}/dist",
           "{projectRoot}/artifacts"
-        ]
-      },
-      "lint": {
-        "cache": true,
-        "inputs": [
-          "default",
-          "{projectRoot}/eslint.config.mjs"
         ]
       }
     }
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@tachibana-shin/webext-bridge": "6.0.0-rc3",
-    "@types/chrome": "0.3.6",
-    "@types/cookie": "0.5.1",
-    "@types/webextension-polyfill": "0.12.6",
-    "cookie": "0.5.0",
+    "@types/chrome": "0.3.7",
+    "@webext-core/messaging": "4.0.1",
     "crx": "5.0.1",
-    "eslint": "10.13.0",
-    "js-base64": "3.7.8",
-    "tsdown": "0.23.2",
-    "typescript-eslint": "8.72.1",
-    "vite": "8.3.5",
-    "vitest": "5.0.5",
+    "eslint": "10.14.0",
+    "typescript-eslint": "8.72.2",
+    "vitest": "5.1.0",
     "web-ext": "10.8.0",
-    "webextension-polyfill": "0.9.0"
+    "wxt": "0.21.5"
   }
 }
