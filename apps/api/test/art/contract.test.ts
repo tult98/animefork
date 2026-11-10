@@ -57,9 +57,14 @@ describe('contract', () => {
   it('bounds titles and their fields', () => {
     const title = { slug: 'a-1', name: 'A' };
     expect(TitleInputSchema.safeParse(title).success).toBe(true);
+    // Real slugs of long light-novel titles reach 230 characters.
+    expect(
+      TitleInputSchema.safeParse({ ...title, slug: `${'a-'.repeat(115)}a1` })
+        .success,
+    ).toBe(true);
     for (const bad of [
       { ...title, slug: 'A_1' },
-      { ...title, slug: 'a'.repeat(121) },
+      { ...title, slug: 'a'.repeat(401) },
       { ...title, name: '' },
       { ...title, name: 'x'.repeat(201) },
       { ...title, seasonName: 'x'.repeat(101) },

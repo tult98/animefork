@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const MAX_TITLES_PER_LOOKUP = 50;
 
 export const TitleInputSchema = z.object({
-  slug: z.string().regex(/^[a-z0-9-]{1,120}$/),
+  slug: z.string().regex(/^[a-z0-9-]{1,400}$/),
   name: z.string().min(1).max(200),
   seasonName: z.string().min(1).max(100).optional(),
   year: z.number().int().min(1900).max(2100).optional(),
