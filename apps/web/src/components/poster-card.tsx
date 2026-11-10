@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { titleLink } from '../lib/titles/link.ts';
+import { titleLink, titleWatchLink } from '../lib/titles/link.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
   HOVER_WIDTH,
@@ -132,7 +132,8 @@ export function PosterCard({
     [anchor],
   );
 
-  const link = titleLink(title);
+  const detailLink = titleLink(title);
+  const watch = titleWatchLink(title);
   const label = `${isRank ? `Hạng ${rank}: ` : ''}${title.name}, ${title.episodeLabel}`;
   const hd = title.quality && /hd/i.test(title.quality) ? title.quality : null;
 
@@ -163,7 +164,7 @@ export function PosterCard({
       ) : null}
       <div className={isRank ? 'relative z-1 w-(--rkposter)' : 'relative z-1'}>
         <Link
-          {...link}
+          {...detailLink}
           ref={coverRef}
           data-cover=""
           aria-label={label}
@@ -206,13 +207,18 @@ export function PosterCard({
           }}
           className="af-hover card-preview fixed top-0 left-0 z-100 w-[340px]"
         >
-          <div className="aspect-(--card-art-ratio) bg-surface-alt">
+          <Link
+            {...watch}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="block aspect-(--card-art-ratio) bg-surface-alt"
+          >
             <CardImage title={title} alt="" />
-          </div>
+          </Link>
           <div className="af-hover-body card-preview-body">
             <div className="af-hover-actions">
               <Link
-                {...link}
+                {...watch}
                 aria-label={`Phát ${title.name}`}
                 className="af-circle af-circle--play"
               >
@@ -220,7 +226,7 @@ export function PosterCard({
               </Link>
               <span className="af-spacer" />
               <Link
-                {...link}
+                {...detailLink}
                 aria-label={`Xem chi tiết ${title.name}`}
                 className="af-circle"
               >

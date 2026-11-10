@@ -12,3 +12,17 @@ export function titleLink(title: Pick<Title, 'path'>) {
     },
   } as const;
 }
+
+export function watchLink(slug: string, episodeId?: string) {
+  return {
+    to: '/watch/$slug/{-$episode}',
+    params: { slug, episode: episodeId },
+  } as const;
+}
+
+export function titleWatchLink(title: Pick<Title, 'path'>) {
+  const slug = title.path.startsWith(UPSTREAM_TITLE_PREFIX)
+    ? title.path.slice(UPSTREAM_TITLE_PREFIX.length)
+    : title.path;
+  return watchLink(slug.replace(/\/+$/, ''));
+}

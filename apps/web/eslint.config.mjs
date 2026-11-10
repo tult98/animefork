@@ -12,6 +12,7 @@ export default tseslint.config(
       'playwright-report',
       'test-results',
       'src/routeTree.gen.ts',
+      'src/lib/player/dha',
     ],
   },
   js.configs.recommended,
