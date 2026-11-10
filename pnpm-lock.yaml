@@ -112,7 +112,7 @@ importers:
         version: 0.13.3
       hls-to-mp4-browser:
         specifier: git+https://github.com/anime-vsub/hls-to-mp4-browser.git
-        version: git+https://git@github.com:anime-vsub/hls-to-mp4-browser.git#3b74c2d55b60d19149e40ece3a42c42dea904c70
+        version: https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70
       htmlparser2:
         specifier: 8.0.2
         version: 8.0.2
@@ -6142,8 +6142,8 @@ packages:
   hls-parser@0.13.3:
     resolution: {integrity: sha512-DXqW7bwx9j2qFcAXS/LBJTDJWitxknb6oUnsnTvECHrecPvPbhRgIu45OgNDUU6gpwKxMJx40SHRRUUhdIM2gA==}
 
-  hls-to-mp4-browser@git+https://git@github.com:anime-vsub/hls-to-mp4-browser.git#3b74c2d55b60d19149e40ece3a42c42dea904c70:
-    resolution: {commit: 3b74c2d55b60d19149e40ece3a42c42dea904c70, repo: git@github.com:anime-vsub/hls-to-mp4-browser.git, type: git}
+  hls-to-mp4-browser@https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70:
+    resolution: {tarball: https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70}
     version: 0.0.0
 
   hls.js@1.5.9:
@@ -16424,7 +16424,7 @@ snapshots:
 
   hls-parser@0.13.3: {}
 
-  hls-to-mp4-browser@git+https://git@github.com:anime-vsub/hls-to-mp4-browser.git#3b74c2d55b60d19149e40ece3a42c42dea904c70:
+  hls-to-mp4-browser@https://codeload.github.com/anime-vsub/hls-to-mp4-browser/tar.gz/3b74c2d55b60d19149e40ece3a42c42dea904c70:
     dependencies:
       '@ffmpeg/core': 0.12.6
       '@ffmpeg/ffmpeg': 0.12.10
