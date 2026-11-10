@@ -2,11 +2,19 @@ import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { titleLink } from '../lib/titles/link.ts';
 import type { Title } from '../lib/titles/title.ts';
-import { hoverPosition, type Anchor } from '../lib/ui/hover-position.ts';
+import {
+  HOVER_WIDTH,
+  hoverPosition,
+  type Anchor,
+} from '../lib/ui/hover-position.ts';
 import { Play, ChevronDown } from './ui/icons.ts';
 
 const OPEN_DELAY_MS = 250;
 const NO_HOVER_QUERY = '(hover: none), (pointer: coarse)';
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+const CLOSE_FALLBACK_MS = 300;
+
+type Opening = Anchor & { height: number };
 
 interface PosterCardProps {
   title: Title;
@@ -34,28 +42,59 @@ export function PosterCard({
   const isRank = rank !== undefined;
   const coverRef = useRef<HTMLAnchorElement>(null);
   const timer = useRef<number | undefined>(undefined);
-  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const closeTimer = useRef<number | undefined>(undefined);
+  const [anchor, setAnchor] = useState<Opening | null>(null);
+  const [closing, setClosing] = useState(false);
 
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(timer.current);
+      window.clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
+  const unmount = () => {
+    window.clearTimeout(closeTimer.current);
+    setClosing(false);
+    setAnchor(null);
+  };
 
   const close = () => {
     window.clearTimeout(timer.current);
-    setAnchor(null);
+    if (!anchor || closing) return;
+    if (window.matchMedia(REDUCED_MOTION_QUERY).matches) {
+      unmount();
+      return;
+    }
+    setClosing(true);
+    closeTimer.current = window.setTimeout(unmount, CLOSE_FALLBACK_MS);
   };
 
   const scheduleOpen = () => {
     if (window.matchMedia(NO_HOVER_QUERY).matches) return;
     window.clearTimeout(timer.current);
+    if (anchor) {
+      window.clearTimeout(closeTimer.current);
+      setClosing(false);
+      return;
+    }
     timer.current = window.setTimeout(() => {
       const rect = coverRef.current?.getBoundingClientRect();
       if (rect)
-        setAnchor({ left: rect.left, top: rect.top, width: rect.width });
+        setAnchor({
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        });
     }, OPEN_DELAY_MS);
   };
 
   const place = useCallback(
     (el: HTMLDivElement | null) => {
       if (!el || !anchor) return;
+      el.style.setProperty('--grow-scale', String(anchor.width / HOVER_WIDTH));
       const { left, top } = hoverPosition(
         anchor,
         { width: window.innerWidth, height: window.innerHeight },
@@ -63,6 +102,14 @@ export function PosterCard({
       );
       el.style.left = `${left}px`;
       el.style.top = `${top}px`;
+      const scale = anchor.width / HOVER_WIDTH;
+      const art = el.firstElementChild as HTMLElement;
+      const coverX = anchor.left + anchor.width / 2 - left;
+      const coverY = anchor.top + anchor.height / 2 - top;
+      // The origin that maps the preview art onto the cover, so the body hangs below it while it grows.
+      const originOf = (cover: number, artMid: number) =>
+        scale >= 0.99 ? cover : (cover - scale * artMid) / (1 - scale);
+      el.style.transformOrigin = `${originOf(coverX, HOVER_WIDTH / 2)}px ${originOf(coverY, art.offsetHeight / 2)}px`;
       el.style.visibility = 'visible';
     },
     [anchor],
@@ -130,13 +177,22 @@ export function PosterCard({
         <div
           ref={place}
           data-testid={`card:${title.path}:preview`}
+          data-state={closing ? 'closing' : 'open'}
           style={{ visibility: 'hidden' }}
-          className="af-hover fixed top-0 left-0 z-100 w-[340px]"
+          onTransitionEnd={(event) => {
+            if (
+              closing &&
+              event.target === event.currentTarget &&
+              event.propertyName === 'opacity'
+            )
+              unmount();
+          }}
+          className="af-hover card-preview fixed top-0 left-0 z-100 w-[340px]"
         >
           <div className="aspect-(--card-art-ratio) bg-surface-alt">
             <CardImage title={title} alt="" />
           </div>
-          <div className="af-hover-body">
+          <div className="af-hover-body card-preview-body">
             <div className="af-hover-actions">
               <Link
                 {...link}

@@ -54,7 +54,7 @@ The home route runs two queries, `['home']` and `['season', seasonPath]`. A slow
 
 - `components/hero.tsx` is the carousel over the hero shelf. It cross-fades in 600 ms, advances every 7 s, and holds still on hover, on keyboard focus inside it, after the pause button, and always under `prefers-reduced-motion` (the pause button is not rendered then).
 - `components/shelf.tsx` is one shelf: a snap scroller, arrows from 1100px up (as tall as the card art, or 1.4 times the Top 10 poster width), arrow keys between covers, and a skeleton while loading.
-- `components/poster-card.tsx` is one card. After 250 ms of hover or keyboard focus it opens a 340px preview, clamped to the viewport. Touch devices get no preview. Only the new episodes shelf shows the `Tập mới` badge.
+- `components/poster-card.tsx` is one card. After 250 ms of hover or keyboard focus it opens a 340px preview, clamped to the viewport, that grows out of the cover in 220 ms and shrinks back in 140 ms (`data-state` is `open` then `closing`, and there is no motion under `prefers-reduced-motion`). Touch devices get no preview. Only the new episodes shelf shows the `Tập mới` badge.
 - The art of a default card is cropped to `--card-art-ratio` (`src/styles.css`, 16:9). Change that one variable to change the crop. Portrait posters keep their top (`object-top`).
 
 The search, notification and account buttons in the header are rendered but disabled until those features exist. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/phim/$`.

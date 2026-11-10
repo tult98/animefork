@@ -1,6 +1,7 @@
 import { expect, test } from './fixtures.ts';
 
 const NEW_EPISODES = 'shelf:new-episodes';
+const KAMUI = 'card:/phim/ushiro-no-shoumen-kamui-san-a6084/';
 
 test('top 10 draws the rank numerals 1 to 10', async ({ page }) => {
   await page.goto('/?transport=replay');
@@ -134,6 +135,93 @@ test('the hover preview opens after 250 ms and closes on leave', async ({
 
   await page.mouse.move(5, 5);
   await expect(preview).toHaveCount(0);
+});
+
+test('the preview opens, closes through a closing state and reopens on re-entry', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.goto('/?transport=replay');
+  const card = page.getByTestId(NEW_EPISODES).getByTestId(KAMUI);
+  const preview = page.getByTestId(`${KAMUI}:preview`);
+  await expect(card).toBeVisible();
+  await page.addStyleTag({
+    content:
+      ".card-preview[data-state='closing'] { transition-duration: 60s !important; }",
+  });
+  await page.clock.pauseAt(new Date(Date.now() + 5_000));
+
+  await card.locator('a[data-cover]').hover();
+  await page.clock.runFor(300);
+  await expect(preview).toHaveAttribute('data-state', 'open');
+  await expect(preview).toHaveCSS('opacity', '1');
+
+  await page.mouse.move(5, 5);
+  await expect(preview).toHaveAttribute('data-state', 'closing');
+  await expect(preview).toHaveCount(1);
+
+  const box = (await preview.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + 4);
+  await expect(preview).toHaveAttribute('data-state', 'open');
+  await page.clock.runFor(400);
+  await expect(preview).toHaveAttribute('data-state', 'open');
+  await expect(preview).toHaveCSS('opacity', '1');
+
+  await page.mouse.move(5, 5);
+  await expect(preview).toHaveAttribute('data-state', 'closing');
+  await page.clock.runFor(400);
+  await expect(preview).toHaveCount(0);
+});
+
+test('the preview unmounts when the closing transition ends', async ({
+  page,
+}) => {
+  await page.goto('/?transport=replay');
+  const preview = page.getByTestId(`${KAMUI}:preview`);
+  await page
+    .getByTestId(NEW_EPISODES)
+    .getByTestId(KAMUI)
+    .locator('a[data-cover]')
+    .hover();
+  await expect(preview).toHaveAttribute('data-state', 'open');
+  await page.mouse.move(5, 5);
+  await expect(preview).toHaveCount(0);
+});
+
+test.describe('reduced motion', () => {
+  test.use({ reducedMotion: 'reduce' });
+
+  test('the preview appears and disappears with no closing state', async ({
+    page,
+  }) => {
+    await page.goto('/?transport=replay');
+    const preview = page.getByTestId(`${KAMUI}:preview`);
+    await page.evaluate(() => {
+      const states: string[] = [];
+      (window as unknown as { states: string[] }).states = states;
+      new MutationObserver(() => {
+        const el = document.querySelector('[data-testid$=":preview"]');
+        if (el) states.push(el.getAttribute('data-state') ?? '');
+      }).observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+      });
+    });
+    await page
+      .getByTestId(NEW_EPISODES)
+      .getByTestId(KAMUI)
+      .locator('a[data-cover]')
+      .hover();
+    await expect(preview).toHaveAttribute('data-state', 'open');
+    await page.mouse.move(5, 5);
+    await expect(preview).toHaveCount(0);
+    const states = await page.evaluate(
+      () => (window as unknown as { states: string[] }).states,
+    );
+    expect(states).toContain('open');
+    expect(states).not.toContain('closing');
+  });
 });
 
 test('keyboard focus opens the preview and Escape closes it', async ({
