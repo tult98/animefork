@@ -11,6 +11,8 @@ export interface Candidate {
 export interface MatchQuestion {
   slug: string;
   sourceTitle: string;
+  // Hepburn romanization of the original title, read from the source slug.
+  romaji?: string;
   season: number;
   seasonName?: string;
   year?: number;
@@ -93,16 +95,25 @@ function episodeScore(known: number | undefined, candidate?: number): number {
   return Math.min(known, candidate) / Math.max(known, candidate);
 }
 
+const MIN_ROMAJI_WORDS = 2;
+
 export function scoreCandidate(
   question: MatchQuestion,
   candidate: Candidate,
 ): number {
+  const sources = [question.sourceTitle];
+  if (
+    question.romaji &&
+    normalizeTitle(question.romaji).split(' ').length >= MIN_ROMAJI_WORDS
+  ) {
+    sources.push(question.romaji);
+  }
   const title = Math.max(
     ...[
       candidate.name,
       candidate.originalName,
       ...candidate.alternativeTitles,
-    ].map((name) => titleSimilarity(question.sourceTitle, name)),
+    ].flatMap((name) => sources.map((source) => titleSimilarity(source, name))),
   );
   return (
     WEIGHTS.title * title +

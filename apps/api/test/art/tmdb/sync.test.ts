@@ -4,6 +4,7 @@ import {
   type Matcher,
 } from '../../../src/art/tmdb/matcher.ts';
 import {
+  gatherCandidates,
   mapEpisodes,
   syncTitle,
   type SyncOutcome,
@@ -136,7 +137,7 @@ describe('syncTitle against a mocked TMDB', () => {
     };
     const outcome = await sync(
       {
-        slug: 'tonikaku-kawaii-x',
+        slug: 'zzz-qqq-x',
         name: 'Tonikaku Kawaii: Arc Subtitle-hen',
         year: 2020,
         episodeCount: 12,
@@ -164,14 +165,24 @@ describe('syncTitle against a mocked TMDB', () => {
       }
       return inner(input, init);
     };
-    const outcome = await sync(
+    const outcome = await syncTitle(
       {
         slug: 'tonikaku-kawaii-wa-a77',
         name: 'Nothing Here',
         year: 2020,
         episodeCount: 12,
       },
-      spy,
+      {
+        tmdb: createTmdbClient({ apiKey: 'key', fetch: spy }),
+        matcher: {
+          match: async () => ({
+            choice: null,
+            probability: 0,
+            by: 'baseline',
+            scope: 'season',
+          }),
+        },
+      },
     );
     expect(searches).toEqual(['Nothing Here', 'tonikaku kawaii wa']);
     expect(outcome.kind === 'skipped' && outcome.skipped.reason).toMatch(
@@ -408,5 +419,29 @@ describe('season marker in the title name', () => {
       ),
     );
     expect(outcome.title.tmdb_season).toBe(2);
+  });
+});
+
+describe('the question built for the matcher', () => {
+  const gather = (slug: string, name: string) =>
+    gatherCandidates(
+      { slug, name },
+      createTmdbClient({
+        apiKey: 'key',
+        fetch: mockTmdb({ '/3/search/tv?Tonikaku Kawaii': fx.SEARCH_ROMAJI }),
+      }),
+    );
+
+  it('carries the full slug romaji without the id', async () => {
+    const gathered = await gather(
+      'tonikaku-kawaii-wa-dai-ni-ki-a77',
+      'Tonikaku Kawaii',
+    );
+    expect(gathered?.question.romaji).toBe('tonikaku kawaii wa dai ni ki');
+  });
+
+  it('leaves the romaji out when it repeats the display name', async () => {
+    const gathered = await gather('tonikaku-kawaii-a3860', 'Tonikaku Kawaii');
+    expect(gathered?.question.romaji).toBeUndefined();
   });
 });

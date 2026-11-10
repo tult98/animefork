@@ -20,9 +20,13 @@ import {
 export const JEV_TIMEOUT_MS = 15_000;
 const ALTERNATIVE_TITLE_CAP = 10;
 
+const SOURCE_TITLE_NOTE =
+  'The source title may be Vietnamese or a romanization of the Japanese title. ' +
+  'When present, romaji is a Hepburn-style romanization of the original Japanese title, taken from the source site URL slug, so compare it with candidate original names and alternative titles. ';
+
 const MATCH_INSTRUCTIONS =
   'Pick the candidate that is the same anime and the same season as the source. ' +
-  'The source title may be Vietnamese or a romanization of the Japanese title. ' +
+  SOURCE_TITLE_NOTE +
   'Compare names, original names, alternative titles, first air date and episode count. ' +
   "A candidate's firstAirDate and episodeCount describe the season with the source's season number. " +
   'A different season, a movie, a special, a recap or a spin-off is a different show.';
@@ -32,7 +36,7 @@ const ANY_MATCH_INSTRUCTIONS =
 
 const SHOW_MATCH_INSTRUCTIONS =
   'Pick the candidate that is the same anime franchise as the source, ignoring which season, cour, arc or part the source is. ' +
-  'The source title may be Vietnamese or a romanization of the Japanese title. ' +
+  SOURCE_TITLE_NOTE +
   'Compare names, original names, alternative titles and overview. ' +
   'A different franchise, a movie, a special, a recap or a spin-off of another show is not the same.';
 
@@ -105,6 +109,7 @@ export function jevState(question: MatchQuestion): {
   return {
     source: {
       title: question.sourceTitle,
+      ...(question.romaji !== undefined && { romaji: question.romaji }),
       season: question.season,
       ...(question.year !== undefined && { year: question.year }),
       ...(question.episodeCount !== undefined && {

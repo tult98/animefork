@@ -181,6 +181,35 @@ describe('JevMatcher request', () => {
     }
   });
 
+  it('sends the romaji next to the title and omits it when absent', async () => {
+    const { matcher, sent } = matcherFor(confident);
+    await matcher.match(question({ romaji: 'tham tu lung danh conan' }));
+    await matcher.match(question());
+    const sources = sent.map(
+      (r) => (r.body as { state: { source: object } }).state.source,
+    );
+    expect(sources[0]).toMatchObject({
+      title: CONAN.name,
+      romaji: 'tham tu lung danh conan',
+    });
+    expect(sources[1]).not.toHaveProperty('romaji');
+  });
+
+  it('explains the romaji in both choice instructions', async () => {
+    const { matcher, sent } = matcherFor(confident);
+    await matcher.match(question({ romaji: 'tham tu lung danh conan' }));
+    const body = sent[0]?.body as {
+      questions: Record<'match' | 'show_match', { instructions: string }>;
+    };
+    for (const q of [body.questions.match, body.questions.show_match]) {
+      expect(q.instructions).toContain('Hepburn-style romanization');
+      expect(q.instructions).toContain('source site URL slug');
+      expect(q.instructions).toContain(
+        'candidate original names and alternative titles',
+      );
+    }
+  });
+
   it('leaves unknown source fields out of the state', async () => {
     const { matcher, sent } = matcherFor(confident);
     await matcher.match(question({ year: undefined, episodeCount: undefined }));

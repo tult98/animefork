@@ -10,7 +10,7 @@ import {
 } from './matcher.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
 import type { TitleInput } from '../contract.ts';
-import { parseSeasonNumber, searchQueries } from './titles.ts';
+import { distinctRomaji, parseSeasonNumber, searchQueries } from './titles.ts';
 
 export interface TitleArtRow {
   source_slug: string;
@@ -139,6 +139,7 @@ export async function gatherCandidates(
     question: {
       slug: input.slug,
       sourceTitle: input.name,
+      romaji: distinctRomaji(input.slug, input.name),
       season,
       seasonName: input.seasonName,
       year: input.year,

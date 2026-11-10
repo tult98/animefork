@@ -4,6 +4,7 @@ import {
   decide,
   MIN_MATCH_PROBABILITY,
   normalizeTitle,
+  scoreCandidate,
   titleSimilarity,
   type Candidate,
   type MatchQuestion,
@@ -126,5 +127,42 @@ describe('BaselineMatcher', () => {
       by: 'baseline',
       scope: 'season',
     });
+  });
+});
+
+describe('scoreCandidate with a romaji', () => {
+  const vietnamese = 'Thợ Săn Bóng Đêm';
+  const candidate: Candidate = {
+    id: 9,
+    name: 'The Laid-Off Cheat-Granting Mage',
+    originalName: '追放された付与魔術師',
+    alternativeTitles: ['Tsuihou Sareta Cheat Fuyo Majutsushi'],
+    firstAirDate: '2026-01-01',
+    episodeCount: 12,
+  };
+  const ask = (romaji?: string) =>
+    scoreCandidate(
+      question({ sourceTitle: vietnamese, romaji, year: 2026 }),
+      candidate,
+    );
+
+  it('rises when the romaji matches an alternative title', () => {
+    expect(ask('tsuihou sareta cheat fuyo majutsushi')).toBeGreaterThan(
+      ask() + 0.4,
+    );
+  });
+
+  it('is unchanged without a romaji', () => {
+    expect(ask(undefined)).toBe(
+      scoreCandidate(
+        question({ sourceTitle: vietnamese, year: 2026 }),
+        candidate,
+      ),
+    );
+  });
+
+  it('ignores a romaji of fewer than 2 words', () => {
+    expect(ask('tsuihou')).toBe(ask());
+    expect(ask('tsuihou sareta')).toBeGreaterThan(ask());
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  distinctRomaji,
   parseSeasonNumber,
   searchQueries,
   stripSeasonMarker,
@@ -136,5 +137,23 @@ describe('searchQueries', () => {
         ],
       );
     });
+  });
+});
+
+describe('distinctRomaji', () => {
+  it('drops the id and the season marker and keeps every word', () => {
+    expect(
+      distinctRomaji(
+        'tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-season-2-a99',
+        'Tên Việt',
+      ),
+    ).toBe('tsuihou sareta cheat fuyo majutsushi wa kimama na second life');
+  });
+
+  it('is undefined when empty or the same as the name once normalized', () => {
+    expect(distinctRomaji('-a12', 'Anything')).toBeUndefined();
+    expect(
+      distinctRomaji('tonikaku-kawaii-a3860', 'Tonikaku: Kawaii'),
+    ).toBeUndefined();
   });
 });

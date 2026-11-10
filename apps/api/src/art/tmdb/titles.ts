@@ -1,3 +1,5 @@
+import { normalizeTitle } from './matcher.ts';
+
 const SEASON_MARKER_PATTERNS = [
   /(?:season|mùa|phần)\s*(\d+)/i,
   /(\d+)(?:st|nd|rd|th)\s+season/i,
@@ -56,15 +58,27 @@ function stripArcSuffix(query: string): string | undefined {
 const SLUG_LONG_WORDS = 6;
 const SLUG_SHORT_WORDS = 3;
 
-// A display name in another language often finds nothing on TMDB, while the
-// romaji in the source slug does.
-function slugQueries(slug: string): string[] {
-  const romaji = stripSeasonMarker(
+export function slugRomaji(slug: string): string {
+  return stripSeasonMarker(
     slug
       .replace(/-a\d+$/, '')
       .replace(/-+/g, ' ')
       .trim(),
   );
+}
+
+// The slug romaji only helps when it says something the display name does not.
+export function distinctRomaji(slug: string, name: string): string | undefined {
+  const romaji = slugRomaji(slug);
+  return romaji && normalizeTitle(romaji) !== normalizeTitle(name)
+    ? romaji
+    : undefined;
+}
+
+// A display name in another language often finds nothing on TMDB, while the
+// romaji in the source slug does.
+function slugQueries(slug: string): string[] {
+  const romaji = slugRomaji(slug);
   const words = romaji.split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
   const long = words.slice(0, SLUG_LONG_WORDS).join(' ');
