@@ -1,35 +1,41 @@
 @import 'tailwindcss';
-
-/* Dark-first: these are the only colors components may use. A light theme would override them under a selector. */
-@theme {
-  --color-canvas: oklch(0.16 0.01 270);
-  --color-surface: oklch(0.21 0.012 270);
-  --color-surface-raised: oklch(0.26 0.014 270);
-  --color-line: oklch(0.34 0.014 270);
-  --color-ink: oklch(0.96 0.005 270);
-  --color-ink-muted: oklch(0.72 0.01 270);
-  --color-accent: oklch(0.78 0.14 190);
-  --color-accent-ink: oklch(0.2 0.03 190);
-  --color-danger: oklch(0.7 0.19 25);
-
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --radius-card: 0.5rem;
-  --shadow-card: 0 8px 24px oklch(0 0 0 / 0.45);
-}
+@import '@fontsource/archivo/latin-400.css';
+@import '@fontsource/archivo/latin-500.css';
+@import '@fontsource/archivo/latin-600.css';
+@import '@fontsource/archivo/latin-700.css';
+@import '@fontsource/archivo/latin-800.css';
+@import '@fontsource/archivo/latin-900.css';
+@import '@fontsource/archivo/latin-ext-400.css';
+@import '@fontsource/archivo/latin-ext-500.css';
+@import '@fontsource/archivo/latin-ext-600.css';
+@import '@fontsource/archivo/latin-ext-700.css';
+@import '@fontsource/archivo/latin-ext-800.css';
+@import '@fontsource/archivo/latin-ext-900.css';
+@import '@fontsource/archivo/vietnamese-400.css';
+@import '@fontsource/archivo/vietnamese-500.css';
+@import '@fontsource/archivo/vietnamese-600.css';
+@import '@fontsource/archivo/vietnamese-700.css';
+@import '@fontsource/archivo/vietnamese-800.css';
+@import '@fontsource/archivo/vietnamese-900.css';
+@import './design/tokens.css';
+@import './design/theme.css';
 
 :root {
   color-scheme: dark;
 }
 
+[data-theme='paper'] {
+  color-scheme: light;
+}
+
 body {
-  background: var(--color-canvas);
-  color: var(--color-ink);
+  background: var(--canvas);
+  color: var(--ink);
   font-family: var(--font-sans);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
