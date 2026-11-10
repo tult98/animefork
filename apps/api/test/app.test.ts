@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createApp, parseOrigins, type AppOptions } from '../src/app.ts';
-import { MAX_TITLES_PER_LOOKUP } from '../src/contract.ts';
-import { setup, TONIKAWA } from './helpers.ts';
+import {
+  createApp,
+  parseOrigins,
+  type AppOptions,
+} from '../src/art/art.controller.ts';
+import { MAX_TITLES_PER_LOOKUP } from '../src/art/contract.ts';
+import { setup, TONIKAWA } from './art/helpers.ts';
 
 const ORIGIN = 'https://web.test';
 

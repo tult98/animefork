@@ -7,7 +7,7 @@ import {
   titleSimilarity,
   type Candidate,
   type MatchQuestion,
-} from '../src/matcher.ts';
+} from '../../../src/art/tmdb/matcher.ts';
 
 const question = (over: Partial<MatchQuestion> = {}): MatchQuestion => ({
   sourceTitle: 'Tonikaku Kawaii',

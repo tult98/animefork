@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { lookup } from '../src/lookup.ts';
-import { RETRY_AFTER_MS } from '../src/retry.ts';
+import { lookup } from '../../src/art/art.service.ts';
+import { RETRY_AFTER_MS } from '../../src/art/retry.ts';
 import { NOTHING, setup, TONIKAWA } from './helpers.ts';
-import { mockTmdb } from './tmdb-mock.ts';
+import { mockTmdb } from './tmdb/tmdb-mock.ts';
 
 describe('lookup', () => {
   it('answers pending for a miss, fills in the background, then answers ready', async () => {

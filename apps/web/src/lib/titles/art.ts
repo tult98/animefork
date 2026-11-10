@@ -9,7 +9,7 @@ import {
   type ArtEntry,
   type ImageSize,
   type TitleInput,
-} from '../../../../art-api/src/contract.ts';
+} from '../../../../api/src/art/contract.ts';
 import { titleWatchLink } from './link.ts';
 import type { HomeShelves } from './shelves.ts';
 import type { Title } from './title.ts';

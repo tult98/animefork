@@ -1,5 +1,5 @@
 packages:
-  - apps/art-api
+  - apps/api
   - apps/desktop-web
   - apps/extension
   - apps/extension/client

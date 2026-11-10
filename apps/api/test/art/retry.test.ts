@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { isSettled, RETRY_AFTER_MS, type TitleStatus } from '../src/retry.ts';
+import {
+  isSettled,
+  RETRY_AFTER_MS,
+  type TitleStatus,
+} from '../../src/art/retry.ts';
 
 const at = new Date('2026-01-01T00:00:00Z');
 const after = (ms: number) => new Date(at.getTime() + ms);

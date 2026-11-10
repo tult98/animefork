@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NOTHING, setup, TONIKAWA } from './helpers.ts';
-import { mockTmdb } from './tmdb-mock.ts';
+import { mockTmdb } from './tmdb/tmdb-mock.ts';
 
 describe('ArtFiller', () => {
   it('runs one TMDB sync for concurrent fills of the same slug', async () => {

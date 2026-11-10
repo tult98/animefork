@@ -4,7 +4,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import type { z } from 'zod';
 import { LOOKUP_PATH, LookupRequestSchema } from './contract.ts';
-import { lookup, type LookupDeps } from './lookup.ts';
+import { lookup, type LookupDeps } from './art.service.ts';
 
 export const BODY_LIMIT_BYTES = 64 * 1024;
 export const DEFAULT_RATE_PER_MINUTE = 60;

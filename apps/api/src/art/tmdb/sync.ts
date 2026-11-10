@@ -1,7 +1,7 @@
 import { pickBackdrop } from './backdrop.ts';
 import { decide, type Candidate, type Matcher } from './matcher.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
-import type { TitleInput } from './contract.ts';
+import type { TitleInput } from '../contract.ts';
 import { parseSeasonNumber, stripSeasonMarker } from './titles.ts';
 
 export interface TitleArtRow {

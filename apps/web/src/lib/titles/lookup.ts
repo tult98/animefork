@@ -1,8 +1,8 @@
 import {
   TitleInputSchema,
   type TitleInput,
-} from '../../../../art-api/src/contract.ts';
-import { seasonMarker } from '../../../../art-api/src/titles.ts';
+} from '../../../../api/src/art/contract.ts';
+import { seasonMarker } from '../../../../api/src/art/tmdb/titles.ts';
 import { titleWatchLink } from './link.ts';
 import type { HomeShelves } from './shelves.ts';
 import type { WatchPage } from './watch.ts';

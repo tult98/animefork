@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { parseSeasonNumber, stripSeasonMarker } from '../src/titles.ts';
+import {
+  parseSeasonNumber,
+  stripSeasonMarker,
+} from '../../../src/art/tmdb/titles.ts';
 
 describe('parseSeasonNumber', () => {
   it('reads the season name first and the title name as a fallback', () => {

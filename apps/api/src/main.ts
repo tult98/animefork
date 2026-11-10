@@ -1,11 +1,15 @@
 import { serve } from '@hono/node-server';
 import pg from 'pg';
 import { z } from 'zod';
-import { createApp, DEFAULT_RATE_PER_MINUTE, parseOrigins } from './app.ts';
-import { ArtFiller } from './filler.ts';
-import { BaselineMatcher } from './matcher.ts';
-import { migrate, PostgresStore } from './store.ts';
-import { createTmdbClient } from './tmdb.ts';
+import {
+  createApp,
+  DEFAULT_RATE_PER_MINUTE,
+  parseOrigins,
+} from './art/art.controller.ts';
+import { ArtFiller } from './art/art.filler.ts';
+import { BaselineMatcher } from './art/tmdb/matcher.ts';
+import { migrate, PostgresStore } from './art/art.store.ts';
+import { createTmdbClient } from './art/tmdb/tmdb.ts';
 
 const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1),

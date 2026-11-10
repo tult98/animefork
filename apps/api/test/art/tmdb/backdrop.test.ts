@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { pickBackdrop } from '../src/backdrop.ts';
-import type { TmdbImage } from '../src/tmdb.ts';
+import { pickBackdrop } from '../../../src/art/tmdb/backdrop.ts';
+import type { TmdbImage } from '../../../src/art/tmdb/tmdb.ts';
 
 function image(over: Partial<TmdbImage> & { file_path: string }): TmdbImage {
   return {

@@ -1,7 +1,7 @@
 import type { ArtEntry, LookupRequest, LookupResponse } from './contract.ts';
 import { isSettled } from './retry.ts';
-import type { ArtStore } from './store.ts';
-import type { ArtFiller } from './filler.ts';
+import type { ArtStore } from './art.store.ts';
+import type { ArtFiller } from './art.filler.ts';
 
 export interface LookupDeps {
   store: ArtStore;

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import pg from 'pg';
 import { MATCHER_VERSION, type MissStatus, type TitleStatus } from './retry.ts';
-import type { MatchedTitle } from './sync.ts';
+import type { MatchedTitle } from './tmdb/sync.ts';
 
 export interface StoredTitle {
   slug: string;
@@ -98,7 +98,10 @@ interface TitleRow {
   attempted_at: Date;
 }
 
-const MIGRATION = resolve(import.meta.dirname, '../db/001_art.sql');
+const MIGRATION = resolve(
+  import.meta.dirname,
+  '../../db/migrations/001_art.sql',
+);
 
 export async function migrate(pool: pg.Pool): Promise<void> {
   await pool.query(await readFile(MIGRATION, 'utf8'));

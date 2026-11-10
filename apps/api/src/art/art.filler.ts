@@ -1,7 +1,7 @@
 import type { TitleInput } from './contract.ts';
 import { isSettled } from './retry.ts';
-import type { ArtStore } from './store.ts';
-import { syncTitle, type SyncDeps } from './sync.ts';
+import type { ArtStore } from './art.store.ts';
+import { syncTitle, type SyncDeps } from './tmdb/sync.ts';
 
 export const DEFAULT_FILL_CONCURRENCY = 2;
 

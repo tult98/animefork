@@ -39,7 +39,7 @@ importers:
         specifier: npm:@typescript/typescript6@6.0.2
         version: '@typescript/typescript6@6.0.2'
 
-  apps/art-api:
+  apps/api:
     dependencies:
       '@hono/node-server':
         specifier: 2.1.5

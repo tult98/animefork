@@ -6,7 +6,7 @@ import {
   TitleInputSchema,
   tmdbImageUrl,
   type LookupResponse,
-} from '../src/contract.ts';
+} from '../../src/art/contract.ts';
 
 describe('contract', () => {
   it('round-trips a response through JSON', () => {

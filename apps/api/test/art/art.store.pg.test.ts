@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { migrate, PostgresStore } from '../src/store.ts';
+import { migrate, PostgresStore } from '../../src/art/art.store.ts';
 
 const url = process.env.DATABASE_URL;
 const prefix = `test-${process.pid}-${Date.now()}`;

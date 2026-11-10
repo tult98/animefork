@@ -1,8 +1,8 @@
-import { ArtFiller } from '../src/filler.ts';
-import { BaselineMatcher } from '../src/matcher.ts';
-import { MemoryStore } from '../src/store.ts';
-import { createTmdbClient } from '../src/tmdb.ts';
-import { mockTmdb } from './tmdb-mock.ts';
+import { ArtFiller } from '../../src/art/art.filler.ts';
+import { BaselineMatcher } from '../../src/art/tmdb/matcher.ts';
+import { MemoryStore } from '../../src/art/art.store.ts';
+import { createTmdbClient } from '../../src/art/tmdb/tmdb.ts';
+import { mockTmdb } from './tmdb/tmdb-mock.ts';
 
 export const TONIKAWA = {
   slug: 'tonikaku-kawaii-a3860',

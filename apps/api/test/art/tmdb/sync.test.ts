@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { BaselineMatcher } from '../src/matcher.ts';
-import { mapEpisodes, syncTitle, type SyncOutcome } from '../src/sync.ts';
-import type { TitleInput } from '../src/contract.ts';
-import { createTmdbClient } from '../src/tmdb.ts';
+import { BaselineMatcher } from '../../../src/art/tmdb/matcher.ts';
+import {
+  mapEpisodes,
+  syncTitle,
+  type SyncOutcome,
+} from '../../../src/art/tmdb/sync.ts';
+import type { TitleInput } from '../../../src/art/contract.ts';
+import { createTmdbClient } from '../../../src/art/tmdb/tmdb.ts';
 import * as fx from './fixtures.ts';
 import { mockTmdb } from './tmdb-mock.ts';
 

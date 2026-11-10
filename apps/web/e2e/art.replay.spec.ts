@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Page, Route } from '@playwright/test';
-import type { ArtEntry, LookupRequest } from '../../art-api/src/contract.ts';
+import type { ArtEntry, LookupRequest } from '../../api/src/art/contract.ts';
 import { expect, test } from './fixtures.ts';
 
 const SLUG = 'tonikaku-kawaii-a3860';

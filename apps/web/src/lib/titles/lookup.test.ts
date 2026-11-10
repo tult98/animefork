@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { LookupRequestSchema } from '../../../../art-api/src/contract.ts';
+import { LookupRequestSchema } from '../../../../api/src/art/contract.ts';
 import { lookupTitles, watchLookupTitle } from './lookup.ts';
 import type { HomeShelves } from './shelves.ts';
 import type { Title } from './title.ts';
