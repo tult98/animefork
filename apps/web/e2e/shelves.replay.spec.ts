@@ -116,13 +116,9 @@ test('the hover preview opens after 250 ms and closes on leave', async ({
   await expect(preview).toHaveCount(0);
   await page.clock.runFor(100);
   await expect(preview).toBeVisible();
+  await expect(preview.getByRole('link', { name: 'Phát' })).toBeVisible();
   await expect(
-    preview.getByRole('link', { name: 'Phát Ushiro no Shoumen Kamui-san' }),
-  ).toBeVisible();
-  await expect(
-    preview.getByRole('link', {
-      name: 'Xem chi tiết Ushiro no Shoumen Kamui-san',
-    }),
+    preview.getByRole('link', { name: 'Xem chi tiết' }),
   ).toBeVisible();
   await expect(preview).not.toContainText('Thêm vào danh sách');
 

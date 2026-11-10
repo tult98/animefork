@@ -47,20 +47,14 @@ test('shelf contents follow the dedupe rules', async ({ page }) => {
   expect(byId['hero']!.some((p) => top.has(p))).toBe(true);
 });
 
-test('a card is the art and its badge, with the details in the accessible name', async ({
-  page,
-}) => {
+test('cards show the name under the art and no rating', async ({ page }) => {
   await page.goto('/?transport=replay');
   const card = page
     .getByTestId('shelf:new-episodes')
     .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/');
 
-  await expect(
-    card.getByRole('link', { name: 'Ushiro no Shoumen Kamui-san, TẬP19' }),
-  ).toBeVisible();
-  await expect(card).toContainText('Tập mới');
+  await expect(card).toContainText('Ushiro no Shoumen Kamui-san');
   await expect(card).toContainText('TẬP19');
-  await expect(card).not.toContainText('Ushiro no Shoumen Kamui-san');
   await expect(card).not.toContainText('8.8');
   await expect(page.locator('body')).not.toContainText(/\bNaN\b/);
 });

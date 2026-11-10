@@ -124,6 +124,14 @@ export function PosterCard({
               </div>
             ) : null}
           </div>
+          <div className="pt-2">
+            <p className="truncate text-sm/[1.3] font-medium">{title.name}</p>
+            {newEpisode ? null : (
+              <p className="truncate text-legal text-muted">
+                {title.episodeLabel}
+              </p>
+            )}
+          </div>
         </Link>
       </div>
       {anchor ? (
@@ -140,20 +148,17 @@ export function PosterCard({
             <div className="af-hover-actions">
               <Link
                 {...link}
-                aria-label={`Phát ${title.name}`}
+                aria-label="Phát"
                 className="af-circle af-circle--play"
               >
                 <Play aria-hidden="true" />
               </Link>
               <span className="af-spacer" />
-              <Link
-                {...link}
-                aria-label={`Xem chi tiết ${title.name}`}
-                className="af-circle"
-              >
+              <Link {...link} aria-label="Xem chi tiết" className="af-circle">
                 <ChevronDown aria-hidden="true" />
               </Link>
             </div>
+            <p className="mb-2 text-body-strong">{title.name}</p>
             <div className="af-hover-meta">
               <span className="af-box">{title.rating.toFixed(1)}</span>
               {title.year === undefined ? null : <span>{title.year}</span>}
