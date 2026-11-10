@@ -66,7 +66,7 @@ describe('fetchArt', () => {
       },
     });
     const art = await fetchArt(TITLE, { env, fetch: fetchImpl });
-    expect(art.backdrop).toBe('https://image.tmdb.org/t/p/w1280/b.jpg');
+    expect(art.backdrop).toBe('https://image.tmdb.org/t/p/original/b.jpg');
     expect(art.stills.get(2)).toBe('https://image.tmdb.org/t/p/w300/s2.jpg');
     expect(art.pending).toBe(false);
     const [url, init] = vi.mocked(fetchImpl).mock.calls[0]!;
@@ -124,7 +124,7 @@ describe('applyArt', () => {
   it('replaces the image and only the thumbnails that have a still', () => {
     const art: TitleArt = {
       pending: false,
-      backdrop: 'https://image.tmdb.org/t/p/w1280/b.jpg',
+      backdrop: 'https://image.tmdb.org/t/p/original/b.jpg',
       stills: new Map([
         [1, 'https://image.tmdb.org/t/p/w300/e1.jpg'],
         [3, 'https://image.tmdb.org/t/p/w300/e3.jpg'],
@@ -278,10 +278,10 @@ describe('applyHomeArt', () => {
     ['c-3', { backdropPath: '/c.jpg', posterPath: null }],
   ]);
 
-  it('puts w1280 on the hero and w780 on the cards, and leaves the rest', () => {
+  it('puts the original size on the hero and w780 on the cards, and leaves the rest', () => {
     const [hero, cards] = applyHomeArt(home(), art);
     expect(hero?.items.map((t) => t.image)).toEqual([
-      'https://image.tmdb.org/t/p/w1280/a.jpg',
+      'https://image.tmdb.org/t/p/original/a.jpg',
       'https://cdn.test/b-2.jpg',
     ]);
     expect(cards?.items.map((t) => t.image)).toEqual([

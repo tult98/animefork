@@ -21,7 +21,7 @@ Playwright drives the installed Google Chrome so no browser download is needed. 
 
 ## TMDB art
 
-The home hero (w1280), the new episodes and airing shelves (w780) and the watch screen (backdrop and episode stills) swap in TMDB art from the art module of `apps/api`. Set `VITE_API_URL` to the service root (for example `http://localhost:3100`, see `apps/api/README.md`) to turn the lookup on. The service holds the TMDB key and the database, so the bundle carries neither.
+The home hero and watch backdrop (original size), the new episodes and airing shelves (w780) and the watch screen (backdrop and episode stills) swap in TMDB art from the art module of `apps/api`. Set `VITE_API_URL` to the service root (for example `http://localhost:3100`, see `apps/api/README.md`) to turn the lookup on. The service holds the TMDB key and the database, so the bundle carries neither.
 
 The page posts its titles to `/v1/art/lookup` and applies the `ready` entries. A title the service has not seen answers `pending` while it is matched in the background, so the page asks again after 3, 6 and 12 seconds and stops as soon as nothing is pending. The home art loads after the home data so a slow art API never delays first paint. The Top 10 posters keep the source image. Without `VITE_API_URL`, or when the request fails, times out after 3 seconds or answers an unexpected shape, the page shows the source site's own images.
 

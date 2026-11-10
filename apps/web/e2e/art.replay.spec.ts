@@ -63,7 +63,7 @@ test('TMDB episode stills replace the source thumbnail where a still exists', as
   await page.getByTestId('episode:2:toggle').click();
   await expect(
     page.getByTestId('episode:2:play').locator('img'),
-  ).toHaveAttribute('src', 'https://image.tmdb.org/t/p/w1280/backdrop.jpg');
+  ).toHaveAttribute('src', 'https://image.tmdb.org/t/p/original/backdrop.jpg');
 
   expect(bodies[0]).toEqual({
     titles: [{ slug: SLUG, name: 'Tonikaku Kawaii' }],
@@ -101,7 +101,7 @@ test('the home hero shows a TMDB backdrop for a stubbed slug and keeps the sourc
   await page.goto('/?transport=replay');
   await expect(page.getByTestId('hero:slide:0').locator('img')).toHaveAttribute(
     'src',
-    'https://image.tmdb.org/t/p/w1280/hero.jpg',
+    'https://image.tmdb.org/t/p/original/hero.jpg',
   );
   await expect(page.getByTestId('hero:slide:1').locator('img')).toHaveAttribute(
     'src',
@@ -131,7 +131,7 @@ test('the home hero swaps in the backdrop after a pending answer, then stops pol
   );
   await expect(hero).toHaveAttribute(
     'src',
-    'https://image.tmdb.org/t/p/w1280/late.jpg',
+    'https://image.tmdb.org/t/p/original/late.jpg',
     { timeout: 10_000 },
   );
   const settled = bodies.length;

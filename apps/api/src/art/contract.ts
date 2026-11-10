@@ -44,7 +44,7 @@ export type LookupResponse = z.infer<typeof LookupResponseSchema>;
 export const LOOKUP_PATH = '/v1/art/lookup';
 
 export const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
-export const BACKDROP_SIZE = 'w1280';
+export const BACKDROP_SIZE = 'original';
 export const CARD_BACKDROP_SIZE = 'w780';
 export const POSTER_SIZE = 'w342';
 export const STILL_SIZE = 'w300';
