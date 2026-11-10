@@ -1,16 +1,23 @@
 {
-  "name": "art-sync",
+  "name": "art-api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "sync": "node --env-file-if-exists=.env src/cli.ts",
+    "dev": "node --env-file-if-exists=.env --watch src/main.ts",
+    "start": "node --env-file-if-exists=.env src/main.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run"
   },
   "nx": {
     "targets": {
+      "dev": {
+        "continuous": true
+      },
+      "start": {
+        "continuous": true
+      },
       "typecheck": {
         "cache": true,
         "inputs": [
@@ -35,6 +42,8 @@
     }
   },
   "dependencies": {
+    "@hono/node-server": "2.1.5",
+    "hono": "4.13.14",
     "pg": "8.16.3",
     "zod": "4.6.7"
   },

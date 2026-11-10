@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TitlesFileSchema } from '../../../../../tools/art-sync/src/titles.ts';
+import { TitlesFileSchema } from '../../../../../apps/art-api/src/titles.ts';
 import { exportTitles } from './export.ts';
 import type { HomeShelves } from './shelves.ts';
 import type { Title } from './title.ts';

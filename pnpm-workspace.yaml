@@ -1,7 +1,7 @@
 packages:
+  - apps/art-api
   - apps/desktop-web
   - apps/extension
   - apps/extension/client
   - apps/web
-  - tools/art-sync
   - tools/avs-loader

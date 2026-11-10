@@ -1,7 +1,7 @@
 import {
   seasonMarker,
   type TitleInput,
-} from '../../../../../tools/art-sync/src/titles.ts';
+} from '../../../../../apps/art-api/src/titles.ts';
 import { titleWatchLink } from './link.ts';
 import type { HomeShelves } from './shelves.ts';
 

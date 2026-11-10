@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { AnyRouter } from '@tanstack/react-router';
-import type { TitleInput } from '../../../../tools/art-sync/src/titles.ts';
+import type { TitleInput } from '../../../../apps/art-api/src/titles.ts';
 import { exportTitles } from './titles/export.ts';
 import type { HomeShelves } from './titles/shelves.ts';
 import type { Transport } from './transport/index.ts';
