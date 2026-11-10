@@ -1,0 +1,32 @@
+# Local stack for verifying the art tables against real Postgres and PostgREST.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: animefork
+      POSTGRES_PASSWORD: local-postgres
+    ports:
+      - '54329:5432'
+    volumes:
+      - ./db/local/000_roles.sql:/docker-entrypoint-initdb.d/000_roles.sql:ro
+      - ./db/migrations/001_title_art.sql:/docker-entrypoint-initdb.d/001_title_art.sql:ro
+      - ./db/local/002_grants.sql:/docker-entrypoint-initdb.d/002_grants.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d animefork']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    image: postgrest/postgrest:v12.2.3
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:local-authenticator@db:5432/animefork
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: web_anon
+      PGRST_SERVER_PORT: '3000'
+      PGRST_SERVER_CORS_ALLOWED_ORIGINS: '*'
+    ports:
+      - '3000:3000'
