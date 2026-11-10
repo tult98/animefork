@@ -54,14 +54,14 @@ describe('ArtService.lookup', () => {
     expect((await service.lookup({ titles: [NOTHING] })).art).toEqual({
       [NOTHING.slug]: { status: 'none' },
     });
-    expect(searches).toHaveLength(1);
+    expect(searches).toHaveLength(2);
 
     now = new Date(now.getTime() + 1);
     expect((await service.lookup({ titles: [NOTHING] })).art).toEqual({
       [NOTHING.slug]: { status: 'pending' },
     });
     await filler.idle();
-    expect(searches).toHaveLength(2);
+    expect(searches).toHaveLength(4);
   });
 
   it('answers none for a failed row inside its window', async () => {
@@ -108,7 +108,7 @@ describe('ArtService.lookup', () => {
     });
     expect(Object.keys(out.art)).toEqual([TONIKAWA.slug, NOTHING.slug]);
     await filler.idle();
-    expect(searches).toEqual(['Tonikaku Kawaii', 'Nothing Here']);
+    expect(searches).toEqual(['Tonikaku Kawaii', 'Nothing Here', 'nothing']);
   });
 
   const storedRow = (over: Partial<StoredTitle>): StoredTitle => ({

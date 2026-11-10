@@ -80,4 +80,61 @@ describe('searchQueries', () => {
   it('dedupes queries that collapse to the same text', () => {
     expect(searchQueries('Show: Arc')).toEqual(['Show: Arc', 'Show']);
   });
+
+  describe('with a slug', () => {
+    const slug =
+      'tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-a6125';
+
+    it('adds the slug romaji at 6 words, then 3 words, after the name queries', () => {
+      expect(searchQueries('Pháp Sư Bá Đạo', slug)).toEqual([
+        'Pháp Sư Bá Đạo',
+        'tsuihou sareta cheat fuyo majutsushi wa',
+        'tsuihou sareta cheat',
+      ]);
+    });
+
+    it('drops the id and the season marker from the slug', () => {
+      expect(searchQueries('Tên', 'show-name-2nd-season-a12')).toEqual([
+        'Tên',
+        'show name',
+      ]);
+      expect(searchQueries('Tên', 'a-b-c-d-e-f-g-3rd-season-a1')).toEqual([
+        'Tên',
+        'a b c d e f',
+        'a b c',
+      ]);
+    });
+
+    it('gives one slug query when the romaji is 3 words or fewer', () => {
+      expect(searchQueries('Tên', 'one-two-three-a9')).toEqual([
+        'Tên',
+        'one two three',
+      ]);
+    });
+
+    it('dedupes a slug query equal to a name query', () => {
+      expect(searchQueries('Tonikaku Kawaii', 'tonikaku-kawaii-a3860')).toEqual(
+        ['Tonikaku Kawaii', 'tonikaku kawaii'],
+      );
+      expect(searchQueries('tonikaku kawaii', 'tonikaku-kawaii-a3860')).toEqual(
+        ['tonikaku kawaii'],
+      );
+    });
+
+    it('never returns an empty list', () => {
+      expect(searchQueries('Name', '-a1')).toEqual(['Name']);
+    });
+
+    it('lists the slug queries after all four name queries', () => {
+      expect(searchQueries('Franchise: Sub Arc-hen', 'a-b-c-d-e-f-a1')).toEqual(
+        [
+          'Franchise: Sub Arc-hen',
+          'Franchise',
+          'Franchise: Sub Arc',
+          'a b c d e f',
+          'a b c',
+        ],
+      );
+    });
+  });
 });

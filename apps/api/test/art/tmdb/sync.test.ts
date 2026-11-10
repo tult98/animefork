@@ -152,6 +152,57 @@ describe('syncTitle against a mocked TMDB', () => {
     );
   });
 
+  it('falls back to the slug romaji and stops at the first non-empty query', async () => {
+    const searches: string[] = [];
+    const inner = mockTmdb({
+      '/3/search/tv?tonikaku kawaii wa': fx.SEARCH_TONIKAWA,
+    });
+    const spy: typeof fetch = async (input, init) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/3/search/tv') {
+        searches.push(url.searchParams.get('query') ?? '');
+      }
+      return inner(input, init);
+    };
+    const outcome = await sync(
+      {
+        slug: 'tonikaku-kawaii-wa-a77',
+        name: 'Nothing Here',
+        year: 2020,
+        episodeCount: 12,
+      },
+      spy,
+    );
+    expect(searches).toEqual(['Nothing Here', 'tonikaku kawaii wa']);
+    expect(outcome.kind === 'skipped' && outcome.skipped.reason).toMatch(
+      /via query 'tonikaku kawaii wa'$/,
+    );
+  });
+
+  it('stops at the 3-word slug query when the 6-word one finds nothing', async () => {
+    const searches: string[] = [];
+    const inner = mockTmdb({
+      '/3/search/tv?tonikaku kawaii wa ii na desu': fx.SEARCH_NOTHING,
+      '/3/search/tv?tonikaku kawaii wa': fx.SEARCH_TONIKAWA,
+    });
+    const spy: typeof fetch = async (input, init) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/3/search/tv') {
+        searches.push(url.searchParams.get('query') ?? '');
+      }
+      return inner(input, init);
+    };
+    await sync(
+      { slug: 'tonikaku-kawaii-wa-ii-na-desu-zzz-a77', name: 'Nothing Here' },
+      spy,
+    );
+    expect(searches).toEqual([
+      'Nothing Here',
+      'tonikaku kawaii wa ii na desu',
+      'tonikaku kawaii wa',
+    ]);
+  });
+
   it('makes no extra search when the first one has results', async () => {
     const searches: string[] = [];
     const inner = mockTmdb();
@@ -169,17 +220,18 @@ describe('syncTitle against a mocked TMDB', () => {
     expect(searches).toEqual(['Tonikaku Kawaii']);
   });
 
-  it('searches at most 3 queries and still reports no results', async () => {
+  it('searches at most 5 queries and still reports no results', async () => {
     const searches: string[] = [];
     const spy: typeof fetch = async (input) => {
       searches.push(new URL(String(input)).searchParams.get('query') ?? '');
       return Response.json({ results: [] });
     };
     const outcome = await sync(
-      { slug: 'none', name: 'Nothing Here: Sub Story-hen' },
+      { slug: 'a-b-c-d-e-f-a1', name: 'Nothing Here-hen: Sub Story-hen' },
       spy,
     );
-    expect(searches).toHaveLength(3);
+    expect(searches).toHaveLength(5);
+    expect(searches.at(-1)).toBe('a b c d e f');
     expect(outcome.kind === 'skipped' && outcome.skipped.reason).toBe(
       'no TMDB search results',
     );

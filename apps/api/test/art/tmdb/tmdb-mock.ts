@@ -10,6 +10,7 @@ export function mockTmdb(
     const table: Record<string, unknown> = {
       '/3/search/tv?Tonikaku Kawaii': fx.SEARCH_TONIKAWA,
       '/3/search/tv?Nothing Here': fx.SEARCH_NOTHING,
+      '/3/search/tv?nothing': fx.SEARCH_NOTHING,
       '/3/tv/100': fx.DETAIL_100,
       '/3/tv/200': fx.DETAIL_200,
       '/3/tv/100/alternative_titles': fx.ALT_TITLES_100,

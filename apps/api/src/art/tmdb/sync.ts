@@ -35,7 +35,7 @@ export interface EpisodeArtRow {
 
 const CANDIDATE_LIMIT = 5;
 const ALTERNATIVE_TITLE_LIMIT = 3;
-const MAX_SEARCHES = 3;
+const MAX_SEARCHES = 5;
 
 export interface MatchedTitle {
   slug: string;
@@ -116,7 +116,8 @@ export async function gatherCandidates(
   const season = parseSeasonNumber(input.seasonName, input.name);
   let query = '';
   let results: Awaited<ReturnType<TmdbClient['searchTv']>> = [];
-  for (const candidate of searchQueries(input.name).slice(0, MAX_SEARCHES)) {
+  const queries = searchQueries(input.name, input.slug).slice(0, MAX_SEARCHES);
+  for (const candidate of queries) {
     query = candidate;
     results = await tmdb.searchTv(candidate);
     if (results.length > 0) break;

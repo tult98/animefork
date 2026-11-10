@@ -53,9 +53,28 @@ function stripArcSuffix(query: string): string | undefined {
   return stripped && stripped !== query ? stripped : undefined;
 }
 
+const SLUG_LONG_WORDS = 6;
+const SLUG_SHORT_WORDS = 3;
+
+// A display name in another language often finds nothing on TMDB, while the
+// romaji in the source slug does.
+function slugQueries(slug: string): string[] {
+  const romaji = stripSeasonMarker(
+    slug
+      .replace(/-a\d+$/, '')
+      .replace(/-+/g, ' ')
+      .trim(),
+  );
+  const words = romaji.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const long = words.slice(0, SLUG_LONG_WORDS).join(' ');
+  const short = words.slice(0, SLUG_SHORT_WORDS).join(' ');
+  return [long, short];
+}
+
 // TMDB search is literal, so a full name with an arc subtitle often finds
 // nothing while the franchise name alone does. Ordered from most to least specific.
-export function searchQueries(name: string): string[] {
+export function searchQueries(name: string, slug?: string): string[] {
   const full = stripSeasonMarker(name);
   const prefix = beforeSubtitle(full);
   const ordered = [
@@ -63,6 +82,7 @@ export function searchQueries(name: string): string[] {
     prefix,
     stripArcSuffix(full),
     prefix === undefined ? undefined : stripArcSuffix(prefix),
+    ...(slug ? slugQueries(slug) : []),
   ];
   const queries = ordered.filter((q): q is string => q !== undefined);
   return [...new Set(queries)];
