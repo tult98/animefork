@@ -1,0 +1,105 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "verify": "node scripts/verify.ts",
+    "capture-fixtures": "node scripts/capture-fixtures.ts"
+  },
+  "nx": {
+    "targets": {
+      "dev": {
+        "continuous": true
+      },
+      "build": {
+        "cache": true,
+        "dependsOn": [
+          "^build"
+        ],
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ]
+      },
+      "typecheck": {
+        "cache": true,
+        "dependsOn": [
+          "^build"
+        ],
+        "inputs": [
+          "default",
+          "^production"
+        ]
+      },
+      "lint": {
+        "cache": true,
+        "inputs": [
+          "default",
+          "{projectRoot}/eslint.config.mjs"
+        ]
+      },
+      "test": {
+        "cache": true,
+        "dependsOn": [
+          "^build"
+        ],
+        "inputs": [
+          "default",
+          "^production"
+        ]
+      },
+      "e2e": {
+        "dependsOn": [
+          "^build"
+        ],
+        "outputs": [
+          "{projectRoot}/artifacts/e2e"
+        ]
+      },
+      "verify": {
+        "dependsOn": [
+          "^build"
+        ],
+        "outputs": [
+          "{projectRoot}/artifacts/verify"
+        ]
+      }
+    }
+  },
+  "dependencies": {
+    "@base-ui/react": "1.9.0",
+    "@tanstack/react-query": "5.105.0",
+    "@tanstack/react-router": "1.170.46",
+    "client-ext-animevsub-helper": "workspace:*",
+    "react": "19.1.10",
+    "react-dom": "19.1.10",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
+    "@tailwindcss/vite": "4.3.3",
+    "@tanstack/router-plugin": "1.168.48",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "tailwindcss": "4.3.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "4.1.12"
+  }
+}

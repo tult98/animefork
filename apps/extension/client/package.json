@@ -25,16 +25,37 @@
   ],
   "nx": {
     "targets": {
+      "build": {
+        "cache": true,
+        "inputs": [
+          "production",
+          "{workspaceRoot}/apps/extension/src/shared/**/*",
+          "{workspaceRoot}/apps/extension/package.json"
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ]
+      },
+      "typecheck": {
+        "cache": true,
+        "inputs": [
+          "production",
+          "{workspaceRoot}/apps/extension/src/shared/**/*",
+          "{workspaceRoot}/apps/extension/package.json"
+        ]
+      },
       "nx-release-publish": {
         "dependsOn": [
-          {
-            "projects": [
-              "extension-animevsub-helper"
-            ],
-            "target": "build"
-          }
+          "build"
         ]
       }
     }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc -p tsconfig.typecheck.json"
+  },
+  "devDependencies": {
+    "tsdown": "0.23.7"
   }
 }

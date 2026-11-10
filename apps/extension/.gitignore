@@ -10,6 +10,7 @@
 *.zip
 dist
 dist-ssr
+.wxt
 extension/
 node_modules
 src/auto-imports.d.ts

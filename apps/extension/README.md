@@ -32,7 +32,7 @@ Install for
 >
 > Since stable version `1.0.1` utility will not inject code anymore use npm package [client-ext-animevsub-helper](https://npmjs.org/package/client-ext-animevsub-helper) replaceable
 
-~~Here is the API that this extension embeds in websites [Check here](./src/contentScripts/inject.ts)~~
+~~Here is the API that this extension embeds in websites [Check here](./src/entrypoints/inject.content.ts)~~
 
 ~~Use them by calling `window.Http.get` or `window.Http.post` in your website~~
 
@@ -120,19 +120,26 @@ embedded page (`method`, `cache`, `redirect`, ...).
 
 ## Development
 
-The extension is an Nx project in the pnpm workspace. Both targets are Manifest V3
-(Chrome and Firefox 128+). Run everything from the repo root:
+The extension is built with [WXT](https://wxt.dev) and is an Nx project in the pnpm
+workspace. Both targets are Manifest V3 (Chrome and Firefox 128+). The npm client
+(`client-ext-animevsub-helper`, in `client/`) is its own Nx project built with tsdown.
+Run everything from the repo root:
 
 ```bash
 pnpm install
-pnpm nx build extension-animevsub-helper   # dist/chrome-mv3, dist/firefox-mv3, client/dist
+pnpm nx build extension-animevsub-helper   # dist/chrome-mv3, dist/firefox-mv3
+pnpm nx build client-ext-animevsub-helper  # client/dist
 pnpm nx test extension-animevsub-helper
 ```
+
+Entrypoints live in `src/entrypoints/`, shared code in `src/shared/`, and the manifest
+is generated from `wxt.config.ts`. The `prepare:types` target (`wxt prepare`) generates
+`.wxt/` and runs before lint, typecheck and build.
 
 Try a build in a browser:
 
 ```bash
 pnpm nx dev extension-animevsub-helper           # Chromium, rebuilds on change
 pnpm nx dev:firefox extension-animevsub-helper   # Firefox
-pnpm nx pack extension-animevsub-helper          # zip, xpi and crx in artifacts/
+pnpm nx pack extension-animevsub-helper          # dist/*.zip for both browsers, crx in artifacts/
 ```
