@@ -241,6 +241,130 @@ test('the preview unmounts when the closing transition ends', async ({
   await expect(preview).toHaveCount(0);
 });
 
+test.describe('the preview closes when the page scrolls', () => {
+  const cover = (page: Page) =>
+    page.getByTestId(NEW_EPISODES).locator('a[data-cover]').nth(3);
+  const previewOf = (page: Page) => page.locator('[data-testid$=":preview"]');
+
+  const openPreview = async (page: Page) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/?transport=replay');
+    await cover(page).scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="shelf:new-episodes"]')!;
+      window.scrollBy(
+        0,
+        el.getBoundingClientRect().top - window.innerHeight / 3,
+      );
+    });
+    await expect
+      .poll(async () => (await cover(page).boundingBox())!.y)
+      .toBeLessThan(450);
+    await cover(page).hover();
+    const preview = previewOf(page);
+    await expect(preview).toHaveAttribute('data-state', 'open');
+    await expect(preview).toHaveCSS('opacity', '1');
+    return page.getByTestId((await preview.getAttribute('data-testid'))!);
+  };
+
+  test('a page scroll closes the preview through the closing state', async ({
+    page,
+  }) => {
+    const preview = await openPreview(page);
+    await page.addStyleTag({
+      content:
+        ".card-preview[data-state='closing'] { transition-duration: 60s !important; }",
+    });
+    await page.mouse.wheel(0, 150);
+    await expect(preview).toHaveAttribute('data-state', 'closing');
+    await page.addStyleTag({
+      content:
+        ".card-preview[data-state='closing'] { transition-duration: 1ms !important; }",
+    });
+    await expect(preview).toHaveCount(0);
+  });
+
+  test('a shelf scroll closes the preview', async ({ page }) => {
+    const preview = await openPreview(page);
+    await page
+      .getByTestId(NEW_EPISODES)
+      .getByRole('list')
+      .evaluate((el) => el.scrollBy(150, 0));
+    await expect(preview).toHaveCount(0);
+  });
+
+  test('a card focused by the arrow keys still opens its preview after the scroll it causes', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/?transport=replay');
+    const covers = page.getByTestId(NEW_EPISODES).locator('a[data-cover]');
+    const scroller = page.getByTestId(NEW_EPISODES).getByRole('list');
+    await covers.first().focus();
+    for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowRight');
+    await expect(covers.nth(8)).toBeFocused();
+    await expect
+      .poll(() => scroller.evaluate((el) => el.scrollLeft))
+      .toBeGreaterThan(0);
+    const preview = page.getByTestId(
+      (await covers
+        .nth(8)
+        .locator('xpath=ancestor::*[@data-testid][1]')
+        .getAttribute('data-testid'))! + ':preview',
+    );
+    await expect(preview).toHaveAttribute('data-state', 'open');
+  });
+
+  test('scroll listeners are balanced after repeated open and close', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const counts = { add: 0, remove: 0 };
+      Object.assign(window, { scrollListeners: counts });
+      const captured = (opts?: boolean | AddEventListenerOptions) =>
+        typeof opts === 'object' ? !!opts.capture : !!opts;
+      const add = window.addEventListener.bind(window);
+      const remove = window.removeEventListener.bind(window);
+      (window as Window).addEventListener = (
+        type: string,
+        fn: EventListenerOrEventListenerObject,
+        opts?: boolean | AddEventListenerOptions,
+      ) => {
+        if (type === 'scroll' && captured(opts)) counts.add++;
+        add(type, fn, opts);
+      };
+      (window as Window).removeEventListener = (
+        type: string,
+        fn: EventListenerOrEventListenerObject,
+        opts?: boolean | AddEventListenerOptions,
+      ) => {
+        if (type === 'scroll' && captured(opts)) counts.remove++;
+        remove(type, fn, opts);
+      };
+    });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/?transport=replay');
+    const preview = previewOf(page);
+    await cover(page).scrollIntoViewIfNeeded();
+    for (let i = 0; i < 3; i++) {
+      await cover(page).hover();
+      await expect(preview).toHaveAttribute('data-state', 'open');
+      await page.mouse.move(5, 5);
+      await expect(preview).toHaveCount(0);
+    }
+    const counts = await page.evaluate(
+      () =>
+        (
+          window as unknown as {
+            scrollListeners: { add: number; remove: number };
+          }
+        ).scrollListeners,
+    );
+    expect(counts.add).toBeGreaterThanOrEqual(3);
+    expect(counts.remove).toBe(counts.add);
+  });
+});
+
 test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
 
@@ -274,6 +398,20 @@ test.describe('reduced motion', () => {
     );
     expect(states).toContain('open');
     expect(states).not.toContain('closing');
+  });
+
+  test('a scroll removes the preview immediately', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/?transport=replay');
+    const preview = page.locator('[data-testid$=":preview"]');
+    await page
+      .getByTestId(NEW_EPISODES)
+      .locator('a[data-cover]')
+      .nth(3)
+      .hover();
+    await expect(preview).toHaveAttribute('data-state', 'open');
+    await page.mouse.wheel(0, 150);
+    await expect(preview).toHaveCount(0);
   });
 });
 

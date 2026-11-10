@@ -54,6 +54,8 @@ export function PosterCard({
     [],
   );
 
+  const closeRef = useRef<() => void>(() => undefined);
+
   const unmount = () => {
     window.clearTimeout(closeTimer.current);
     setClosing(false);
@@ -70,6 +72,22 @@ export function PosterCard({
     setClosing(true);
     closeTimer.current = window.setTimeout(unmount, CLOSE_FALLBACK_MS);
   };
+
+  useEffect(() => {
+    closeRef.current = close;
+  });
+
+  const isOpen = anchor !== null && !closing;
+  useEffect(() => {
+    if (!isOpen) return;
+    const onScroll = () => closeRef.current();
+    window.addEventListener('scroll', onScroll, {
+      capture: true,
+      passive: true,
+    });
+    return () =>
+      window.removeEventListener('scroll', onScroll, { capture: true });
+  }, [isOpen]);
 
   const scheduleOpen = () => {
     if (window.matchMedia(NO_HOVER_QUERY).matches) return;
