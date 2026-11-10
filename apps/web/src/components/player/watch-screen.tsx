@@ -110,10 +110,6 @@ export function WatchScreen({
     : browsedQuery.error
       ? { status: 'error' }
       : { status: 'pending' };
-  const counts: Record<string, number> = { [slug]: episodes.length };
-  if (browsedQuery.data) {
-    counts[browseSlug] = browsedQuery.data.episodes.length;
-  }
 
   return (
     <Player
@@ -125,9 +121,11 @@ export function WatchScreen({
       episodesPanel={(progress) => (
         <EpisodesPanel
           view={view}
+          title={page.title}
+          image={page.image}
+          description={page.description}
           onView={setView}
           seasons={page.seasons}
-          seasonEpisodeCounts={counts}
           browseSlug={browseSlug}
           browsed={browsed}
           playingSlug={slug}

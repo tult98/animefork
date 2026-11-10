@@ -125,7 +125,7 @@ export function Player({
       <IconButton
         label={PLAYER_COPY.back}
         data-testid="player:back"
-        className="absolute top-8 right-gutter z-1 bg-hero-overlay max-[720px]:right-4"
+        className="absolute top-8 left-gutter z-1 bg-hero-overlay max-[720px]:left-4"
         onClick={onBack}
       >
         <ArrowLeft aria-hidden="true" />
@@ -134,7 +134,7 @@ export function Player({
       {ageRating ? (
         <div
           data-testid="player:rating"
-          className={`pointer-events-none absolute top-14 left-gutter flex gap-4 transition-opacity duration-[600ms] max-[720px]:left-4 ${
+          className={`pointer-events-none absolute top-28 left-gutter flex gap-4 transition-opacity duration-[600ms] max-[720px]:left-4 ${
             state.time < RATING_SECONDS ? 'opacity-100' : 'opacity-0'
           }`}
         >

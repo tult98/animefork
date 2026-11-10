@@ -1,5 +1,6 @@
 export {
   ArrowLeft,
+  AudioLines,
   Bell,
   Bookmark,
   CalendarDays,

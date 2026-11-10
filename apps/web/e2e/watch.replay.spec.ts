@@ -188,7 +188,14 @@ test('the episodes popup lists the season and switching plays the pick', async (
     'data-current',
     'true',
   );
-  await expect(page.getByTestId('episode:progress')).toBeVisible();
+  await expect(page.getByTestId('episode:now-playing')).toBeVisible();
+  await expect(page.getByTestId('episode:now-playing')).toContainText(
+    'Đang phát',
+  );
+  await expect(
+    page.getByTestId('episode:now-playing').locator('img'),
+  ).toBeVisible();
+  await expect(page.getByTestId('episode:now-playing')).toContainText('Mô tả');
 
   await page.getByTestId('episode:3').click();
   await expect(page).toHaveURL(new RegExp(`/watch/${SLUG}/${EPISODES[2]}`));
@@ -218,7 +225,9 @@ test('the seasons view opens from the back button and opens another season', asy
     'data-current',
     'true',
   );
-  await expect(page.getByTestId(`season:${SLUG}`)).toContainText('5 tập');
+  await expect(page.getByTestId('player:seasons-panel')).toContainText(
+    'Tonikaku Kawaii [BD]',
+  );
 
   await page.getByTestId(`season:${SEASON_2}`).click();
   const panel = page.getByTestId('player:episodes-panel');

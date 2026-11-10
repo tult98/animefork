@@ -1,5 +1,6 @@
 export const PLAYER_COPY = {
   back: 'Quay lại',
+  nowPlaying: 'Đang phát',
   play: 'Phát',
   pause: 'Tạm dừng',
   back10: 'Lùi 10 giây',
@@ -21,5 +22,4 @@ export const PLAYER_COPY = {
   failed: 'Không phát được tập này',
   retry: 'Thử lại',
   rated: 'Phân loại',
-  episodeCount: (n: number) => `${n} tập`,
 } as const;
