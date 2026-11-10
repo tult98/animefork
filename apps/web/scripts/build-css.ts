@@ -40,6 +40,15 @@ export const HEADER =
 
 const DEFAULT_THEME = 'stage';
 
+// A --spacing-<key> entry hijacks Tailwind's max-w-* and w-* container sizes (max-w-md would become 16px).
+const SPACING_KEYS_COLLIDING_WITH_SIZES = new Set([
+  'xs',
+  'sm',
+  'md',
+  'lg',
+  'xl',
+]);
+
 const resolve = (value: string) => value.replace(/^\{([\w-]+)\}$/, 'var(--$1)');
 
 const block = (selector: string, decls: string[]) =>
@@ -81,9 +90,11 @@ export function buildCss(tokens: Tokens): {
 
   const inline = [
     ...color.tokens.map((t) => `--color-${t.name}: var(--${t.name});`),
-    ...spacing.tokens.map((t) => {
+    ...spacing.tokens.flatMap((t) => {
       const suffix = t.name.replace(/^space-/, '');
-      return `--spacing-${suffix}: var(--${t.name});`;
+      return SPACING_KEYS_COLLIDING_WITH_SIZES.has(suffix)
+        ? []
+        : [`--spacing-${suffix}: var(--${t.name});`];
     }),
   ];
 

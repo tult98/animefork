@@ -16,6 +16,7 @@ AnimeFork design tokens, vendored from the design system artifact.
 ## Deliberate deviations
 
 - Fonts. The artifact's Archivo woff2 files are a Latin subset with no Vietnamese glyphs and no weight 500, while the tokens use 500. We load `@fontsource/archivo` instead (`@fontsource/archivo/<weight>.css` for weights 400 to 900, which carry the latin, latin-ext and vietnamese faces with their unicode-range; the per-subset files such as `vietnamese-500.css` have no unicode-range and would shadow the other subsets, so do not import them) and do not vendor the artifact's font files. The family stack from the tokens is unchanged. `Noto Sans JP` stays in the stack as a fallback but is not loaded.
+- Spacing. The T-shirt spacing tokens (`space-xs` to `space-xl`) are emitted only as `--space-*` variables and get no `--spacing-*` theme entry, because that entry makes Tailwind resolve `max-w-md` and `w-lg` to 16px and 24px instead of the container sizes; use the numeric scale (`p-4`, `gap-6`) for those values.
 
 ## Not vendored yet
 
