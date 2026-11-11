@@ -85,7 +85,10 @@ describe('overview retry table', () => {
       isOverviewSettled(overview('ok'), after(10 * 365 * 86_400_000)),
     ).toBe(true);
     expect(
-      isOverviewSettled({ overviewStatus: 'ok', overviewAttemptedAt: null }, at),
+      isOverviewSettled(
+        { overviewStatus: 'ok', overviewAttemptedAt: null },
+        at,
+      ),
     ).toBe(true);
   });
 

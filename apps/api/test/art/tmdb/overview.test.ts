@@ -62,9 +62,7 @@ describe('fetchOverview', () => {
 
   it('throws a TmdbError when TMDB fails on either language', async () => {
     const failsVi = client({ '/3/tv/100?vi': undefined }).tmdb;
-    await expect(fetchOverview(failsVi, 100)).rejects.toBeInstanceOf(
-      TmdbError,
-    );
+    await expect(fetchOverview(failsVi, 100)).rejects.toBeInstanceOf(TmdbError);
     const failsEn = client({ '/3/tv/100?vi': fx.DETAIL_100_VI_EMPTY }).tmdb;
     await expect(fetchOverview(failsEn, 100)).rejects.toThrow(
       'TMDB /tv/100 answered 404',
