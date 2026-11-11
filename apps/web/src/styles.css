@@ -38,7 +38,7 @@ body {
 }
 
 @theme {
-  --breakpoint-desk: 1100px;
+  --breakpoint-desk: 68.75rem;
   --animate-shimmer: shimmer 1.4s infinite;
 
   @keyframes shimmer {
