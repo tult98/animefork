@@ -62,3 +62,48 @@ describe('loadArtConfig', () => {
     },
   );
 });
+
+describe('loadArtConfig DeepSeek', () => {
+  it.each([{}, { DEEPSEEK_API_KEY: '' }, { DEEPSEEK_API_KEY: '  ' }])(
+    'leaves translation off without a DeepSeek key (%o)',
+    (env) => {
+      expect(loadArtConfig({ ...BASE, ...env }).deepseek).toBeUndefined();
+    },
+  );
+
+  it('fills the public base and the default model when only the key is set', () => {
+    expect(
+      loadArtConfig({
+        ...BASE,
+        DEEPSEEK_API_KEY: 'ds',
+        DEEPSEEK_API_BASE: '',
+        DEEPSEEK_MODEL: '',
+      }).deepseek,
+    ).toEqual({
+      apiKey: 'ds',
+      baseUrl: 'https://api.deepseek.com',
+      model: 'deepseek-flash',
+    });
+  });
+
+  it('reads the base and model overrides', () => {
+    expect(
+      loadArtConfig({
+        ...BASE,
+        DEEPSEEK_API_KEY: 'ds',
+        DEEPSEEK_API_BASE: 'http://127.0.0.1:9/stub',
+        DEEPSEEK_MODEL: 'deepseek-v4-pro',
+      }).deepseek,
+    ).toEqual({
+      apiKey: 'ds',
+      baseUrl: 'http://127.0.0.1:9/stub',
+      model: 'deepseek-v4-pro',
+    });
+  });
+
+  it('refuses a base that is not a url and names the variable', () => {
+    expect(() =>
+      loadArtConfig({ ...BASE, DEEPSEEK_API_BASE: 'not a url' }),
+    ).toThrow('missing or invalid env: DEEPSEEK_API_BASE');
+  });
+});
