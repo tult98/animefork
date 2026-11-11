@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   MIN_SHELF_TITLES,
   SEASON_SHELF_LIMIT,
+  UPCOMING_MIN_TITLES,
+  UPCOMING_SHELF_LIMIT,
   buildHome,
   type HomeInput,
 } from './shelves.ts';
@@ -24,6 +26,7 @@ const base: HomeInput = {
   hero: range(0, 5),
   newEpisodes: range(100, 110),
   top: range(200, 210),
+  upcoming: [],
   season: range(300, 330),
 };
 
@@ -154,5 +157,87 @@ describe('buildHome', () => {
 
   it('shows the hero even when it has few titles', () => {
     expect(ids({ ...base, hero: range(0, 1) })[0]).toBe('hero');
+  });
+});
+
+describe('buildHome upcoming shelf', () => {
+  const NOW = 1_000_000;
+  const soon = (n: number, releasesAt: number | undefined): Title => ({
+    ...t(n),
+    releasesAt,
+  });
+  const upcomingShelf = (upcoming: Title[], input = base) =>
+    buildHome({ ...input, upcoming }, NOW).find((s) => s.id === 'upcoming');
+
+  it('comes last and is titled Sắp ra mắt', () => {
+    const shelves = buildHome(
+      {
+        ...base,
+        upcoming: [soon(1, NOW + 1), soon(2, NOW + 2), soon(3, NOW + 3)],
+      },
+      NOW,
+    );
+    expect(shelves.map((s) => s.id).at(-1)).toBe('upcoming');
+    expect(shelves.at(-1)).toMatchObject({
+      kind: 'default',
+      title: 'Sắp ra mắt',
+    });
+  });
+
+  it('sorts by release time, soonest first', () => {
+    const shelf = upcomingShelf([
+      soon(1, NOW + 30),
+      soon(2, NOW + 10),
+      soon(3, NOW + 20),
+    ]);
+    expect(paths(shelf!.items)).toEqual([t(2).path, t(3).path, t(1).path]);
+  });
+
+  it('drops titles that are past, due now or have no date', () => {
+    const shelf = upcomingShelf([
+      soon(1, NOW - 1),
+      soon(2, NOW),
+      soon(3, undefined),
+      soon(4, NOW + 1),
+      soon(5, NOW + 2),
+      soon(6, NOW + 3),
+    ]);
+    expect(paths(shelf!.items)).toEqual([t(4).path, t(5).path, t(6).path]);
+  });
+
+  it('needs its own floor of three, not the eight of the other shelves', () => {
+    expect(UPCOMING_MIN_TITLES).toBeLessThan(MIN_SHELF_TITLES);
+    expect(upcomingShelf([soon(1, NOW + 1), soon(2, NOW + 2)])).toBeUndefined();
+    expect(
+      upcomingShelf([soon(1, NOW + 1), soon(2, NOW + 2), soon(3, NOW + 3)]),
+    ).toBeDefined();
+  });
+
+  it('counts the floor after dropping the past ones', () => {
+    expect(
+      upcomingShelf([soon(1, NOW - 5), soon(2, NOW + 2), soon(3, NOW + 3)]),
+    ).toBeUndefined();
+  });
+
+  it('is absent for an empty block', () => {
+    expect(upcomingShelf([])).toBeUndefined();
+  });
+
+  it('caps the shelf', () => {
+    const many = Array.from({ length: 20 }, (_, i) => soon(i, NOW + 20 - i));
+    expect(upcomingShelf(many)!.items).toHaveLength(UPCOMING_SHELF_LIMIT);
+  });
+
+  it('does not dedupe against other shelves', () => {
+    const shared = { ...base.newEpisodes[0]!, releasesAt: NOW + 5 };
+    const shelf = upcomingShelf([shared, soon(1, NOW + 6), soon(2, NOW + 7)]);
+    expect(paths(shelf!.items)).toContain(shared.path);
+    expect(
+      paths(
+        buildHome({ ...base, upcoming: [shared] }, NOW).find(
+          (s) => s.id === 'new-episodes',
+        )!.items,
+      ),
+    ).toContain(shared.path);
   });
 });
