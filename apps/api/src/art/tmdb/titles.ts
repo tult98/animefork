@@ -23,6 +23,21 @@ export function parseSeasonNumber(
   return found && found.season > 0 ? found.season : 1;
 }
 
+// A translated display name often drops the season marker the source slug still carries.
+export function slugSeasonNumber(slug: string): number {
+  const text = slug.replace(/-a\d+$/, '').replace(/-+/g, ' ');
+  const found = findSeasonMarker(text);
+  return found && found.season > 0 ? found.season : 1;
+}
+
+const PART_MARKER = /\b(?:part|cour)\s*(\d+)\b/i;
+
+// "Part 2" and "Cour 2" split one season into halves; none means the first half.
+export function parseCourNumber(text: string): number {
+  const found = PART_MARKER.exec(text);
+  return found?.[1] ? Number.parseInt(found[1], 10) || 1 : 1;
+}
+
 export function seasonMarker(name: string): string | undefined {
   return findSeasonMarker(name)?.match[0];
 }

@@ -182,3 +182,71 @@ describe('matchMal', () => {
     expect(found?.candidate.id).toBe(61578);
   });
 });
+
+describe('matchMal on translated names and split seasons', () => {
+  it('reads the season from the slug when the translated name has no marker', () => {
+    const found = matchMal(
+      {
+        slug: 'sekai-saikou-no-ansatsusha-isekai-kizoku-ni-tensei-suru-2nd-season-a6188',
+        name: 'Sát Thủ Đệ Nhất Thế Giới Chuyển Sinh Thành Quý Tộc 2',
+      },
+      [
+        candidate({
+          id: 1,
+          title: 'Sekai Saikou no Ansatsusha, Isekai Kizoku ni Tensei suru',
+          year: 2021,
+        }),
+        candidate({
+          id: 2,
+          title:
+            'Sekai Saikou no Ansatsusha, Isekai Kizoku ni Tensei suru Season 2',
+          year: 2027,
+          episodes: undefined,
+        }),
+      ],
+    );
+    expect(found?.candidate.id).toBe(2);
+  });
+
+  it('takes the season over its Part 2 when the source asks for no part', () => {
+    const input = {
+      slug: 'yozakura-san-chi-no-daisakusen-2nd-season-a5475',
+      name: 'Yozakura-san Chi no Daisakusen 2nd Season',
+    };
+    const found = matchMal(input, [
+      candidate({
+        id: 2,
+        title: 'Yozakura-san Chi no Daisakusen 2nd Season Part 2',
+        year: 2026,
+        episodes: undefined,
+      }),
+      candidate({
+        id: 1,
+        title: 'Yozakura-san Chi no Daisakusen 2nd Season',
+        year: 2026,
+        episodes: 12,
+      }),
+    ]);
+    expect(found?.candidate.id).toBe(1);
+  });
+});
+
+describe('matchMal with aliases', () => {
+  it('matches a Vietnamese-only title through the English name TMDB knows', () => {
+    const input = {
+      slug: 'tham-tu-lung-danh-conan-a3',
+      name: 'Thám Tử Lừng Danh Conan',
+    };
+    const detective = candidate({
+      id: 235,
+      title: 'Meitantei Conan',
+      english: 'Case Closed',
+      year: 1996,
+      episodes: undefined,
+    });
+    expect(matchMal(input, [detective])).toBeNull();
+    expect(matchMal(input, [detective], ['Case Closed'])?.candidate.id).toBe(
+      235,
+    );
+  });
+});

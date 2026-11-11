@@ -101,6 +101,42 @@ describe('MalFiller.fill', () => {
     });
   });
 
+  it('searches the aliases only after the source name finds nothing', async () => {
+    const searches: string[] = [];
+    const conan = candidate({
+      id: 235,
+      title: 'Meitantei Conan',
+      english: 'Case Closed',
+      year: 1996,
+      episodes: undefined,
+    });
+    const { filler, store } = setup({
+      search: async (q) => {
+        searches.push(q);
+        return q === 'Case Closed' ? [conan] : [];
+      },
+    });
+    await filler.fill(
+      { slug: 'tham-tu-lung-danh-conan-a3', name: 'Thám Tử Lừng Danh Conan' },
+      async () => ['Case Closed'],
+    );
+    expect(searches.at(-1)).toBe('Case Closed');
+    expect(store.rows.get('tham-tu-lung-danh-conan-a3')).toMatchObject({
+      status: 'ok',
+      malId: 235,
+    });
+  });
+
+  it('never asks for aliases when the source name already matches', async () => {
+    let asked = false;
+    const { filler } = setup();
+    await filler.fill(INPUT, async () => {
+      asked = true;
+      return [];
+    });
+    expect(asked).toBe(false);
+  });
+
   it('stores a no-match when candidates exist but none clears the bar', async () => {
     const { filler, store } = setup({
       search: async () => [candidate({ title: 'Naruto', year: 2002 })],
