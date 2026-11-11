@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   applyArt,
   applyHomeArt,
+  applyRatings,
   artPollDelay,
   fetchArt,
   fetchHomeArt,
@@ -268,7 +269,12 @@ describe('fetchHomeArt', () => {
       env,
       fetch: answer({ 'a-1': { status: 'pending' } }),
     });
-    expect(art).toEqual({ paths: new Map(), pending: true });
+    expect(art).toEqual({
+      paths: new Map(),
+      ratings: new Map(),
+      avsStale: [],
+      pending: true,
+    });
   });
 
   it('splits more than 50 titles into several lookups', async () => {
@@ -289,7 +295,12 @@ describe('fetchHomeArt', () => {
 
   it('answers nothing without a base url or titles, without fetching', async () => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
-    const empty = { paths: new Map(), pending: false };
+    const empty = {
+      paths: new Map(),
+      ratings: new Map(),
+      avsStale: [],
+      pending: false,
+    };
     expect(await fetchHomeArt(titles, { env: {}, fetch: fetchImpl })).toEqual(
       empty,
     );
@@ -310,7 +321,12 @@ describe('fetchHomeArt', () => {
         env,
         fetch: a as unknown as typeof fetch,
       });
-      expect(art).toEqual({ paths: new Map(), pending: false });
+      expect(art).toEqual({
+        paths: new Map(),
+        ratings: new Map(),
+        avsStale: [],
+        pending: false,
+      });
     }
   });
 });
@@ -433,5 +449,75 @@ describe('applyHomeArt', () => {
     const shelves = home();
     applyHomeArt(shelves, art);
     expect(shelves).toEqual(home());
+  });
+});
+
+describe('ratings in a lookup', () => {
+  const titles = [{ slug: 'a-1', name: 'A' }];
+
+  it('carries the API ratings and the stale slugs through fetchHomeArt', async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json({
+        art: { 'a-1': { status: 'none' } },
+        ratings: {
+          'a-1': { avs: { score: 8.2, voters: 1284 }, quality: 'HD' },
+        },
+        avsStale: ['b-2'],
+      }),
+    ) as unknown as typeof fetch;
+    const art = await fetchHomeArt(titles, { env, fetch: fetchImpl });
+    expect(art.ratings.get('a-1')).toEqual({
+      avs: { score: 8.2, voters: 1284 },
+      quality: 'HD',
+    });
+    expect(art.avsStale).toEqual(['b-2']);
+  });
+});
+
+describe('applyRatings', () => {
+  const card = (path: string, quality?: string): Title => ({
+    path,
+    name: path,
+    image: 'i.jpg',
+    rating: 8,
+    episodeLabel: 'Tập 1',
+    genres: [],
+    ...(quality && { quality }),
+  });
+  const shelves = [
+    {
+      kind: 'default',
+      id: 'x',
+      items: [card('/phim/a-1/'), card('/phim/b-2/', 'FHD')],
+    },
+  ] as unknown as HomeShelves;
+  const items = (s: HomeShelves) => s[0]!.items;
+
+  it('adds the voter count and a missing quality, never replacing a card quality', () => {
+    const out = applyRatings(
+      shelves,
+      new Map([
+        ['a-1', { avs: { score: 8.2, voters: 1284 }, quality: 'HD' }],
+        ['b-2', { quality: 'HD' }],
+      ]),
+    );
+    expect(items(out)[0]).toMatchObject({ avsVoters: 1284, quality: 'HD' });
+    expect(items(out)[1]).toMatchObject({ quality: 'FHD' });
+    expect(items(out)[1]).not.toHaveProperty('avsVoters');
+  });
+
+  it('keeps the count read from the card over the API one', () => {
+    const withCount = [
+      { ...shelves[0]!, items: [{ ...card('/phim/a-1/'), avsVoters: 1300 }] },
+    ] as unknown as HomeShelves;
+    const out = applyRatings(
+      withCount,
+      new Map([['a-1', { avs: { score: 7, voters: 10 } }]]),
+    );
+    expect(items(out)[0]).toMatchObject({ avsVoters: 1300 });
+  });
+
+  it('returns the same shelves when there is nothing to apply', () => {
+    expect(applyRatings(shelves, new Map())).toBe(shelves);
   });
 });

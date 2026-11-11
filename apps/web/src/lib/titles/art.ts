@@ -10,6 +10,7 @@ import {
   type ArtEntry,
   type ImageSize,
   type TitleInput,
+  type TitleRatings,
 } from '../../../../api/src/art/contract.ts';
 import { titleWatchLink } from './link.ts';
 import type { HomeShelves } from './shelves.ts';
@@ -34,6 +35,8 @@ export interface HomeArtPaths {
 
 export interface HomeArt {
   paths: Map<string, HomeArtPaths>;
+  ratings: Map<string, TitleRatings>;
+  avsStale: string[];
   pending: boolean;
 }
 
@@ -55,8 +58,17 @@ type ReadyEntry = Extract<ArtEntry, { status: 'ready' }>;
 
 interface LookupResult {
   ready: Map<string, ReadyEntry>;
+  ratings: Map<string, TitleRatings>;
+  avsStale: string[];
   pending: boolean;
 }
+
+const EMPTY_LOOKUP: LookupResult = {
+  ready: new Map(),
+  ratings: new Map(),
+  avsStale: [],
+  pending: false,
+};
 
 async function lookupChunk(
   url: string,
@@ -72,14 +84,21 @@ async function lookupChunk(
     body: JSON.stringify(episodes ? { titles, episodes } : { titles }),
   });
   if (!res.ok) throw new Error(`art lookup answered ${res.status}`);
-  const { art } = LookupResponseSchema.parse(await res.json());
+  const { art, ratings, avsStale } = LookupResponseSchema.parse(
+    await res.json(),
+  );
   const ready = new Map<string, ReadyEntry>();
   let pending = false;
   for (const [slug, entry] of Object.entries(art)) {
     if (entry.status === 'ready') ready.set(slug, entry);
     else if (entry.status === 'pending') pending = true;
   }
-  return { ready, pending };
+  return {
+    ready,
+    ratings: new Map(Object.entries(ratings ?? {})),
+    avsStale: avsStale ?? [],
+    pending,
+  };
 }
 
 async function lookupArt(
@@ -92,7 +111,7 @@ async function lookupArt(
   },
 ): Promise<LookupResult> {
   const base = options.env.VITE_API_URL?.replace(/\/+$/, '');
-  if (!base || titles.length === 0) return { ready: new Map(), pending: false };
+  if (!base || titles.length === 0) return EMPTY_LOOKUP;
   const timeout = AbortSignal.timeout(TIMEOUT_MS);
   const signal = options.signal
     ? AbortSignal.any([options.signal, timeout])
@@ -115,10 +134,12 @@ async function lookupArt(
     );
     return {
       ready: new Map(results.flatMap((r) => [...r.ready])),
+      ratings: new Map(results.flatMap((r) => [...r.ratings])),
+      avsStale: results.flatMap((r) => r.avsStale),
       pending: results.some((r) => r.pending),
     };
   } catch {
-    return { ready: new Map(), pending: false };
+    return EMPTY_LOOKUP;
   }
 }
 
@@ -173,7 +194,10 @@ export async function fetchHomeArt(
   titles: TitleInput[],
   options: { env: ArtEnv; signal?: AbortSignal; fetch?: typeof fetch },
 ): Promise<HomeArt> {
-  const { ready, pending } = await lookupArt(titles, options);
+  const { ready, ratings, avsStale, pending } = await lookupArt(
+    titles,
+    options,
+  );
   const paths = new Map<string, HomeArtPaths>();
   for (const [slug, entry] of ready) {
     const overview = entry.overview ?? null;
@@ -185,7 +209,7 @@ export async function fetchHomeArt(
       });
     }
   }
-  return { paths, pending };
+  return { paths, ratings, avsStale, pending };
 }
 
 function slugOf(title: Pick<Title, 'path'>): string {
@@ -234,4 +258,28 @@ export function applyHomeArt(
       }),
     };
   });
+}
+
+function withRatings(title: Title, ratings: Map<string, TitleRatings>): Title {
+  const found = ratings.get(slugOf(title));
+  // The card's own count is read from the page just loaded, so it beats what the API stored earlier.
+  const avsVoters = title.avsVoters ?? found?.avs?.voters;
+  const quality = title.quality ?? found?.quality;
+  if (avsVoters === undefined && !quality) return title;
+  return {
+    ...title,
+    ...(avsVoters !== undefined && { avsVoters }),
+    ...(quality && { quality }),
+  };
+}
+
+export function applyRatings(
+  shelves: HomeShelves,
+  ratings: Map<string, TitleRatings>,
+): HomeShelves {
+  if (ratings.size === 0) return shelves;
+  return shelves.map((shelf) => ({
+    ...shelf,
+    items: shelf.items.map((t) => withRatings(t, ratings)),
+  })) as HomeShelves;
 }

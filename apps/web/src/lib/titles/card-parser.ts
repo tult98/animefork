@@ -12,6 +12,7 @@ export interface RawCard {
   studio: string | undefined;
   views: number | undefined;
   quality: string | undefined;
+  avsVoters: number | undefined;
 }
 
 const text = (el: Element, selector: string): string =>
@@ -32,6 +33,17 @@ export function formatEpisodeLabel(raw: string): string {
 function pathOf(href: string | null | undefined): string | undefined {
   if (!href) return undefined;
   return new URL(href, 'https://card.invalid').pathname;
+}
+
+// The site words it "8.4 trong số 10 dựa trên 44 thành viên đánh giá" in the title attribute of the score badge.
+const VOTERS = /dựa trên\s+([\d.,]+)/;
+
+function parseVoters(el: Element): number | undefined {
+  const label = el
+    .querySelector('.anime-avg-user-rating')
+    ?.getAttribute('title');
+  const digits = VOTERS.exec(label ?? '')?.[1]?.replace(/\D/g, '');
+  return digits ? Number(digits) : undefined;
 }
 
 export function parseCard(el: Element): RawCard {
@@ -57,6 +69,7 @@ export function parseCard(el: Element): RawCard {
     studio: orUndefined(studioLine.split(':').slice(1).join(':').trim()),
     views: views === undefined ? undefined : Number(views),
     quality: orUndefined(text(el, '.Qlty')),
+    avsVoters: parseVoters(el),
   };
 }
 

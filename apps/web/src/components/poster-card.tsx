@@ -16,6 +16,12 @@ const CLOSE_FALLBACK_MS = 300;
 
 type Opening = Anchor & { height: number };
 
+function formatVoters(n: number): string {
+  return n >= 1000
+    ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`
+    : String(n);
+}
+
 interface PosterCardProps {
   title: Title;
   rank?: number;
@@ -247,6 +253,9 @@ export function PosterCard({
             </div>
             <div className="af-hover-meta">
               <span className="af-box">{title.rating.toFixed(1)}</span>
+              {title.avsVoters === undefined ? null : (
+                <span>{formatVoters(title.avsVoters)}</span>
+              )}
               {title.year === undefined ? null : <span>{title.year}</span>}
               <span>{title.episodeLabel}</span>
               {hd ? <span className="af-box">{hd}</span> : null}

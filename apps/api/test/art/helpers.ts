@@ -6,6 +6,7 @@ import { ArtService } from '../../src/art/art.service.ts';
 import { systemClock } from '../../src/common/clock.ts';
 import { BaselineMatcher, type Matcher } from '../../src/art/tmdb/matcher.ts';
 import { MemoryArtStore } from '../../src/art/art.store.ts';
+import { MemoryRatingsStore } from '../../src/ratings/ratings.store.ts';
 import { createTmdbClient } from '../../src/art/tmdb/tmdb.ts';
 import type { OverviewTranslator } from '../../src/art/translator.ts';
 import { mockTmdb } from './tmdb/tmdb-mock.ts';
@@ -42,6 +43,7 @@ export function setup(
 ) {
   const now = options.now ?? systemClock;
   const store = new MemoryArtStore(now);
+  const ratings = new MemoryRatingsStore(now);
   const tmdb = countingTmdb(options.fetch);
   const sync = {
     tmdb: createTmdbClient({ apiKey: 'key', fetch: tmdb.fetch }),
@@ -54,6 +56,6 @@ export function setup(
     now,
     options.translator ?? null,
   );
-  const service = new ArtService(store, filler, now);
-  return { store, filler, service, sync, searches: tmdb.searches };
+  const service = new ArtService(store, filler, now, ratings);
+  return { store, ratings, filler, service, sync, searches: tmdb.searches };
 }

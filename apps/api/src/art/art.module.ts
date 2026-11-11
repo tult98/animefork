@@ -11,12 +11,14 @@ import {
 } from './art.filler.ts';
 import { ArtService } from './art.service.ts';
 import { ART_STORE, PostgresArtStore } from './art.store.ts';
+import { RatingsModule } from '../ratings/ratings.module.ts';
 import { createMatcher } from './tmdb/jev.ts';
 import type { SyncDeps } from './tmdb/sync.ts';
 import { createTmdbClient } from './tmdb/tmdb.ts';
 import { createTranslator, OVERVIEW_TRANSLATOR } from './translator.ts';
 
 @Module({
+  imports: [RatingsModule],
   controllers: [ArtController],
   providers: [
     { provide: ART_CONFIG, inject: [ENV], useFactory: loadArtConfig },

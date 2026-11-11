@@ -1,6 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, type Clock } from '../common/clock.ts';
-import type { ArtEntry, LookupRequest, LookupResponse } from './contract.ts';
+import { isAvsStale } from '../ratings/ratings.ts';
+import {
+  MemoryRatingsStore,
+  RATINGS_STORE,
+  type RatingsStore,
+} from '../ratings/ratings.store.ts';
+import type {
+  ArtEntry,
+  LookupRequest,
+  LookupResponse,
+  TitleRatings,
+} from './contract.ts';
 import { isOverviewSettled, isSettled, isStale } from './retry.ts';
 import { ART_STORE, type ArtStore } from './art.store.ts';
 import { ArtFiller } from './art.filler.ts';
@@ -10,15 +21,18 @@ export class ArtService {
   private readonly store: ArtStore;
   private readonly filler: ArtFiller;
   private readonly clock: Clock;
+  private readonly ratings: RatingsStore;
 
   constructor(
     @Inject(ART_STORE) store: ArtStore,
     @Inject(ArtFiller) filler: ArtFiller,
     @Inject(CLOCK) clock: Clock,
+    @Inject(RATINGS_STORE) ratings: RatingsStore = new MemoryRatingsStore(),
   ) {
     this.store = store;
     this.filler = filler;
     this.clock = clock;
+    this.ratings = ratings;
   }
 
   async lookup(request: LookupRequest): Promise<LookupResponse> {
@@ -74,6 +88,19 @@ export class ArtService {
         }),
       );
     }
-    return { art };
+    const stored = await this.ratings.find([...titles.keys()]);
+    const ratings: Record<string, TitleRatings> = {};
+    const avsStale: string[] = [];
+    for (const slug of titles.keys()) {
+      const row = stored.get(slug);
+      if (isAvsStale(row, now)) avsStale.push(slug);
+      const entry: TitleRatings = {};
+      if (row?.avsScore != null && row.avsVoters != null) {
+        entry.avs = { score: row.avsScore, voters: row.avsVoters };
+      }
+      if (row?.quality) entry.quality = row.quality;
+      if (entry.avs || entry.quality) ratings[slug] = entry;
+    }
+    return { art, ratings, avsStale };
   }
 }
