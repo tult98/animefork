@@ -39,6 +39,24 @@ export function joinSeasonPages(pages: Title[][]): Title[] {
   });
 }
 
+export function pagesNeeded(
+  sourcePageCount: number,
+  firstPageCardCount: number,
+  limit?: number,
+): number {
+  const available = Math.min(Math.max(1, sourcePageCount), MAX_SEASON_PAGES);
+  if (limit === undefined) return available;
+  if (firstPageCardCount <= 0) return 1;
+  return Math.max(
+    1,
+    Math.min(available, Math.ceil(limit / firstPageCardCount)),
+  );
+}
+
+export function limitTitles(titles: Title[], limit?: number): Title[] {
+  return limit === undefined ? titles : titles.slice(0, Math.max(0, limit));
+}
+
 export async function fetchSeasonFirstPage(
   transport: Transport,
   seasonPath: string,
