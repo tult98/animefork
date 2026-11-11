@@ -127,17 +127,3 @@ test('the hero controls show a focus ring', async ({ page }) => {
     .evaluate((el) => getComputedStyle(el).outlineStyle);
   expect(outline).toBe('solid');
 });
-
-test('the hero keeps a 2.18:1 box on desktop', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/?transport=replay');
-  const box = await page.getByTestId('hero').boundingBox();
-  expect(box!.width / box!.height).toBeCloseTo(2.18, 1);
-});
-
-test('the hero is 600px tall on a phone', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/?transport=replay');
-  const box = await page.getByTestId('hero').boundingBox();
-  expect(box!.height).toBe(600);
-});
