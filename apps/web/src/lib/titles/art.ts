@@ -28,6 +28,7 @@ export interface TitleArt {
 
 export interface HomeArtPaths {
   backdropPath: string | null;
+  backdropLang: string | null;
   posterPath: string | null;
 }
 
@@ -178,6 +179,7 @@ export async function fetchHomeArt(
     if (entry.backdropPath || entry.posterPath) {
       paths.set(slug, {
         backdropPath: entry.backdropPath,
+        backdropLang: entry.backdropLang,
         posterPath: entry.posterPath,
       });
     }
@@ -202,7 +204,14 @@ export function applyHomeArt(
     if (shelf.kind === 'hero') {
       return {
         ...shelf,
-        items: shelf.items.map((t) => withBackdrop(t, BACKDROP_SIZE)),
+        items: shelf.items.map((t) => {
+          const out = withBackdrop(t, BACKDROP_SIZE);
+          const { backdropPath, backdropLang } = art.get(slugOf(t)) ?? {};
+          // A backdrop with a language has the show's title printed in the art.
+          return backdropPath && backdropLang
+            ? { ...out, backdropHasTitle: true as const }
+            : out;
+        }),
       };
     }
     if (shelf.kind === 'default') {

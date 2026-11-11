@@ -87,7 +87,13 @@ export function Hero({ items }: { items: Title[] }) {
               />
               <div className="hero-scrim absolute inset-0" />
               <div className="af-billboard-body absolute bottom-0 left-0 pb-8 max-md:right-0 max-md:max-w-none max-md:p-4">
-                <h2 className="af-billboard-title line-clamp-2 max-md:text-4xl">
+                <h2
+                  className={
+                    title.backdropHasTitle
+                      ? 'af-billboard-title sr-only'
+                      : 'af-billboard-title line-clamp-2 max-md:text-4xl'
+                  }
+                >
                   {title.name}
                 </h2>
                 <div className="af-billboard-meta flex flex-wrap items-center gap-x-2 gap-y-1">

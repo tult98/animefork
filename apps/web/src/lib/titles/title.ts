@@ -13,6 +13,7 @@ export const TitleSchema = z.object({
   studio: z.string().min(1).optional(),
   views: z.number().int().nonnegative().optional(),
   quality: z.string().min(1).optional(),
+  backdropHasTitle: z.literal(true).optional(),
 });
 
 export type Title = z.infer<typeof TitleSchema>;
