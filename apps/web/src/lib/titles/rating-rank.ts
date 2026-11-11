@@ -32,8 +32,9 @@ export function ratingRanks(titles: readonly Title[]): number[] {
   const deviations = SOURCES.map((read) => {
     const scored = titles
       .map(read)
-      .filter((r): r is { score: number; votes: number | null | undefined } =>
-        r.score != null,
+      .filter(
+        (r): r is { score: number; votes: number | null | undefined } =>
+          r.score != null,
       );
     if (scored.length === 0) return () => null;
     const voted = scored.filter((r) => (r.votes ?? 0) > 0) as {
