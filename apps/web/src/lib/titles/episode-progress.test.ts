@@ -12,6 +12,7 @@ const mal = (over: object) => ({
   episodes: 12,
   startDate: null,
   startSeason: null,
+  broadcast: null,
   ...over,
 });
 

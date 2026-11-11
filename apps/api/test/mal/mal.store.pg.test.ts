@@ -23,6 +23,7 @@ const ok = (s: string, over: Partial<StoredMal> = {}): StoredMal => ({
   episodes: 12,
   startDate: '2027-01',
   startSeason: { year: 2027, season: 'winter' },
+  broadcast: { day: 'monday', time: '23:30' },
   datesKnown: true,
   matchedTitle: 'Black Clover',
   matchScore: 0.987,
@@ -92,6 +93,46 @@ describe.skipIf(!url)('PostgresMalStore against DATABASE_URL', () => {
     });
   });
 
+  it('round-trips a broadcast with and without a time, and keeps an absent one null', async () => {
+    const a = slug('cast');
+    await store.save(ok(a));
+    expect((await store.find([a])).get(a)?.broadcast).toEqual({
+      day: 'monday',
+      time: '23:30',
+    });
+    const b = slug('casttimeless');
+    await store.save(ok(b, { broadcast: { day: 'friday', time: null } }));
+    expect((await store.find([b])).get(b)?.broadcast).toEqual({
+      day: 'friday',
+      time: null,
+    });
+    const c = slug('nocast');
+    await store.save(ok(c, { broadcast: null }));
+    expect((await store.find([c])).get(c)?.broadcast).toBeNull();
+  });
+
+  it('refuses a broadcast of the wrong shape', async () => {
+    await expect(
+      store.save(
+        ok(slug('badday'), {
+          broadcast: { day: 'other' as 'monday', time: null },
+        }),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      store.save(
+        ok(slug('badtime'), { broadcast: { day: 'monday', time: '9:5' } }),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      pool.query(
+        `insert into title_mal (source_slug, status, mal_broadcast_time)
+         values ($1, 'none', '09:05')`,
+        [slug('timeonly')],
+      ),
+    ).rejects.toThrow();
+  });
+
   it('marks a row that existed before the migration as not yet checked for dates', async () => {
     const s = slug('legacy');
     await pool.query(
@@ -134,6 +175,7 @@ describe.skipIf(!url)('PostgresMalStore against DATABASE_URL', () => {
       episodes: null,
       startDate: null,
       startSeason: null,
+      broadcast: null,
       datesKnown: false,
       matchedTitle: null,
       matchScore: null,

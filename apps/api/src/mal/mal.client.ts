@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
+  MAL_BROADCAST_TIME_PATTERN,
   MAL_START_DATE_PATTERN,
+  MalWeekdaySchema,
   MalAiringSchema,
   MalSeasonSchema,
   type MalStats,
@@ -14,9 +16,9 @@ export const MIN_QUERY_LENGTH = 3;
 // MAL answers 400 "invalid q" for a longer query.
 export const MAX_QUERY_LENGTH = 64;
 const FIELDS =
-  'alternative_titles,start_season,num_episodes,media_type,mean,num_scoring_users,rank,popularity,num_list_users,status,start_date';
+  'alternative_titles,start_season,num_episodes,media_type,mean,num_scoring_users,rank,popularity,num_list_users,status,start_date,broadcast';
 const STATS_FIELDS =
-  'mean,num_scoring_users,rank,popularity,num_list_users,status,num_episodes,start_date,start_season';
+  'mean,num_scoring_users,rank,popularity,num_list_users,status,num_episodes,start_date,start_season,broadcast';
 
 export interface MalCandidate extends Omit<MalStats, 'episodes'> {
   title: string;
@@ -55,6 +57,12 @@ const NodeSchema = z.object({
     .object({ year: z.number().int(), season: z.string().optional() })
     .optional(),
   start_date: z.string().optional(),
+  broadcast: z
+    .object({
+      day_of_the_week: z.string().optional(),
+      start_time: z.string().optional(),
+    })
+    .optional(),
   num_episodes: z.number().int().optional(),
   media_type: z.string().optional(),
   mean: z.number().optional(),
@@ -76,6 +84,13 @@ function toStartSeason(raw: Node['start_season']): MalStats['startSeason'] {
   return raw && season ? { year: raw.year, season } : null;
 }
 
+function toBroadcast(raw: Node['broadcast']): MalStats['broadcast'] {
+  const day = MalWeekdaySchema.safeParse(raw?.day_of_the_week).data;
+  if (!day) return null;
+  const time = raw?.start_time ?? '';
+  return { day, time: MAL_BROADCAST_TIME_PATTERN.test(time) ? time : null };
+}
+
 function toStats(node: Node): MalStats {
   return {
     id: node.id,
@@ -92,6 +107,7 @@ function toStats(node: Node): MalStats {
       ? (node.start_date ?? null)
       : null,
     startSeason: toStartSeason(node.start_season),
+    broadcast: toBroadcast(node.broadcast),
   };
 }
 

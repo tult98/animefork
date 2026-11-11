@@ -37,6 +37,7 @@ function withMal(client: Partial<MalClient> = {}) {
       episodes: 170,
       startDate: '2017-10-03',
       startSeason: { year: 2017, season: 'fall' },
+      broadcast: { day: 'tuesday', time: '18:25' },
     }),
     ...client,
   };
@@ -80,6 +81,7 @@ describe('lookup with MyAnimeList', () => {
       episodes: 170,
       startDate: null,
       startSeason: { year: 2017, season: 'fall' },
+      broadcast: { day: 'tuesday', time: '18:25' },
     });
     expect(searches).toHaveLength(1);
   });

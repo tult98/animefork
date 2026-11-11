@@ -43,6 +43,7 @@ function setup(over: Partial<MalClient> = {}) {
         episodes: 12,
         startDate: '2017-10-03',
         startSeason: { year: 2017, season: 'fall' },
+        broadcast: { day: 'tuesday', time: '18:25' },
       };
     },
     ...over,
@@ -74,11 +75,38 @@ describe('MalFiller.fill', () => {
       episodes: 170,
       startDate: null,
       startSeason: { year: 2017, season: 'fall' },
+      broadcast: { day: 'tuesday', time: '18:25' },
       datesKnown: true,
       matchedTitle: 'Black Clover',
       reason: null,
     });
     expect(store.rows.get(INPUT.slug)?.matchScore).toBeGreaterThan(0.9);
+  });
+
+  it('keeps a broadcast the refresh finds, and clears one MAL dropped', async () => {
+    const { filler, store, advance } = setup({
+      stats: async (id) => ({
+        id,
+        score: 8,
+        voters: 1,
+        rank: 1,
+        popularity: 1,
+        members: 1,
+        airing: 'currently_airing',
+        episodes: 12,
+        startDate: null,
+        startSeason: null,
+        broadcast: null,
+      }),
+    });
+    await filler.fill(INPUT);
+    expect(store.rows.get(INPUT.slug)?.broadcast).toEqual({
+      day: 'tuesday',
+      time: '18:25',
+    });
+    advance(MAL_REFRESH_AFTER_MS);
+    await filler.fill(INPUT);
+    expect(store.rows.get(INPUT.slug)?.broadcast).toBeNull();
   });
 
   it('tries the next query when the first finds nothing, up to a limit', async () => {
@@ -197,6 +225,7 @@ describe('MalFiller.fill', () => {
       ...store.rows.get(INPUT.slug)!,
       startDate: null,
       startSeason: null,
+      broadcast: null,
       datesKnown: false,
     });
     await filler.fill(INPUT);
@@ -210,6 +239,7 @@ describe('MalFiller.fill', () => {
     expect(store.rows.get(INPUT.slug)).toMatchObject({
       startDate: '2017-10-03',
       startSeason: { year: 2017, season: 'fall' },
+      broadcast: { day: 'tuesday', time: '18:25' },
       datesKnown: true,
     });
   });
@@ -230,6 +260,7 @@ describe('MalFiller.fill', () => {
           episodes: 12,
           startDate: null,
           startSeason: null,
+          broadcast: null,
         };
       },
     });

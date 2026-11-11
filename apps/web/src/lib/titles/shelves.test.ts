@@ -307,6 +307,7 @@ describe('buildHome upcoming shelf with MyAnimeList dates', () => {
       episodes: null,
       startDate: null,
       startSeason: null,
+      broadcast: null,
       ...over,
     },
   });

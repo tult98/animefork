@@ -279,6 +279,7 @@ test('MAL start dates make the upcoming tags precise and reorder the shelf', asy
     episodes: null,
     startDate: null,
     startSeason: null,
+    broadcast: null,
   } as const;
   await stubArt(page, () => ({}), {
     'akatsuki-no-ryuu-a7009': {

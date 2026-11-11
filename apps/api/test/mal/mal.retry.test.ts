@@ -40,6 +40,17 @@ describe('isMalSettled airing', () => {
     ).toBe(true);
   });
 
+  it('refreshes a title that has not aired yet daily, so it picks up a broadcast day', () => {
+    const at = (age: number) =>
+      row({
+        airing: 'not_yet_aired',
+        attemptedAt: ago(age),
+        fetchedAt: ago(age),
+      });
+    expect(isMalSettled(at(MAL_AIRING_REFRESH_AFTER_MS - 1), now)).toBe(true);
+    expect(isMalSettled(at(MAL_AIRING_REFRESH_AFTER_MS), now)).toBe(false);
+  });
+
   it('fetches a row saved before start dates were stored once more', () => {
     const old = (datesKnown: boolean) =>
       row({

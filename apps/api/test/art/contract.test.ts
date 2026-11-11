@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   LookupRequestSchema,
   LookupResponseSchema,
+  MalStatsSchema,
   MAX_TITLES_PER_LOOKUP,
   TitleInputSchema,
   tmdbImageUrl,
@@ -9,6 +10,30 @@ import {
 } from '../../src/art/contract.ts';
 
 describe('contract', () => {
+  it('reads a MAL answer without a broadcast as no broadcast', () => {
+    const old = {
+      id: 1,
+      score: null,
+      voters: null,
+      rank: null,
+      popularity: null,
+      members: null,
+      airing: null,
+      episodes: null,
+    };
+    expect(MalStatsSchema.parse(old).broadcast).toBeNull();
+    const cast = { day: 'monday', time: '23:30' };
+    expect(MalStatsSchema.parse({ ...old, broadcast: cast }).broadcast).toEqual(
+      cast,
+    );
+    expect(
+      MalStatsSchema.safeParse({
+        ...old,
+        broadcast: { day: 'other', time: null },
+      }).success,
+    ).toBe(false);
+  });
+
   it('round-trips a response through JSON', () => {
     const response: LookupResponse = {
       art: {

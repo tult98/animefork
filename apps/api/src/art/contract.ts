@@ -27,6 +27,30 @@ export const MalStartSeasonSchema = z.object({
 
 export type MalStartSeason = z.infer<typeof MalStartSeasonSchema>;
 
+export const MAL_WEEKDAYS = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+] as const;
+
+export const MalWeekdaySchema = z.enum(MAL_WEEKDAYS);
+
+export type MalWeekday = z.infer<typeof MalWeekdaySchema>;
+
+export const MAL_BROADCAST_TIME_PATTERN = /^\d\d:\d\d$/;
+
+// Japan time, as MAL gives it.
+export const MalBroadcastSchema = z.object({
+  day: MalWeekdaySchema,
+  time: z.string().regex(MAL_BROADCAST_TIME_PATTERN).nullable(),
+});
+
+export type MalBroadcast = z.infer<typeof MalBroadcastSchema>;
+
 // MyAnimeList leaves out what it does not know: an unscored title has no mean, an unranked one no rank.
 export const MalStatsSchema = z.object({
   id: z.number().int(),
@@ -41,6 +65,7 @@ export const MalStatsSchema = z.object({
   // An answer from before these were stored leaves them out, which reads as unknown.
   startDate: z.string().regex(MAL_START_DATE_PATTERN).nullable().default(null),
   startSeason: MalStartSeasonSchema.nullable().default(null),
+  broadcast: MalBroadcastSchema.nullable().default(null),
 });
 
 export type MalStats = z.infer<typeof MalStatsSchema>;

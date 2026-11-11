@@ -17,6 +17,7 @@ export function candidate(over: Partial<MalCandidate> = {}): MalCandidate {
     airing: 'finished_airing',
     startDate: null,
     startSeason: { year: 2017, season: 'fall' },
+    broadcast: { day: 'tuesday', time: '18:25' },
     ...over,
   };
 }

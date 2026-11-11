@@ -159,6 +159,49 @@ describe('MalClient.search', () => {
     expect(calls[0]?.url.searchParams.get('fields')).toContain('start_date');
   });
 
+  it('reads the broadcast day and time, and keeps a day MAL has no time for', async () => {
+    const { client, calls } = make(() =>
+      Response.json({
+        data: [
+          {
+            node: node({
+              id: 1,
+              broadcast: { day_of_the_week: 'monday', start_time: '23:30' },
+            }),
+          },
+          {
+            node: node({
+              id: 2,
+              broadcast: { day_of_the_week: 'friday' },
+            }),
+          },
+          { node: node({ id: 3 }) },
+          {
+            node: node({
+              id: 4,
+              broadcast: { day_of_the_week: 'other', start_time: '23:30' },
+            }),
+          },
+          {
+            node: node({
+              id: 5,
+              broadcast: { day_of_the_week: 'sunday', start_time: '9:5' },
+            }),
+          },
+        ],
+      }),
+    );
+    const found = await client.search('x');
+    expect(found.map((c) => c.broadcast)).toEqual([
+      { day: 'monday', time: '23:30' },
+      { day: 'friday', time: null },
+      null,
+      null,
+      { day: 'sunday', time: null },
+    ]);
+    expect(calls[0]?.url.searchParams.get('fields')).toContain('broadcast');
+  });
+
   it('throws a MalError carrying the status', async () => {
     const { client } = make(() => new Response('no', { status: 500 }));
     await expect(client.search('abc')).rejects.toMatchObject({
@@ -176,6 +219,20 @@ describe('MalClient.search', () => {
 });
 
 describe('MalClient.stats', () => {
+  it('reads the broadcast of one id', async () => {
+    const { client } = make(() =>
+      Response.json(
+        node({
+          broadcast: { day_of_the_week: 'saturday', start_time: '01:05' },
+        }),
+      ),
+    );
+    expect((await client.stats(34572))?.broadcast).toEqual({
+      day: 'saturday',
+      time: '01:05',
+    });
+  });
+
   it('reads the stats of one id and asks only for them', async () => {
     const { client, calls } = make(() => Response.json(node()));
     expect(await client.stats(34572)).toEqual({
@@ -189,10 +246,12 @@ describe('MalClient.stats', () => {
       episodes: 170,
       startDate: null,
       startSeason: { year: 2017, season: 'fall' },
+      broadcast: null,
     });
     expect(calls[0]?.url.pathname).toBe('/v2/anime/34572');
     expect(calls[0]?.url.searchParams.get('fields')).toContain('start_date');
     expect(calls[0]?.url.searchParams.get('fields')).toContain('start_season');
+    expect(calls[0]?.url.searchParams.get('fields')).toContain('broadcast');
     expect(calls[0]?.url.searchParams.get('fields')).not.toContain(
       'alternative_titles',
     );

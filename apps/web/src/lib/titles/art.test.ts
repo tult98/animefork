@@ -491,6 +491,7 @@ describe('MAL ratings in a lookup', () => {
     episodes: 12,
     startDate: '2027-01',
     startSeason: { year: 2027, season: 'winter' as const },
+    broadcast: { day: 'monday' as const, time: '23:30' },
   };
   const answer = (body: object) =>
     vi.fn(async () => Response.json(body)) as unknown as typeof fetch;
@@ -511,6 +512,7 @@ describe('MAL ratings in a lookup', () => {
     const old: Record<string, unknown> = { ...mal };
     delete old.startDate;
     delete old.startSeason;
+    delete old.broadcast;
     const art = await fetchHomeArt(titles, {
       env,
       fetch: answer({
@@ -522,6 +524,7 @@ describe('MAL ratings in a lookup', () => {
       ...old,
       startDate: null,
       startSeason: null,
+      broadcast: null,
     });
   });
 
@@ -624,6 +627,7 @@ describe('applyRatings on the upcoming shelf', () => {
       episodes: null,
       startDate: null,
       startSeason: null,
+      broadcast: null,
       ...over,
     },
   });
