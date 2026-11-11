@@ -1,0 +1,51 @@
+name: animefork
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: api
+      POSTGRES_USER: api
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U api -d api']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://api:${POSTGRES_PASSWORD}@db:5432/api
+      PORT: 3100
+      ALLOWED_ORIGINS: ${PUBLIC_URL:?set PUBLIC_URL in deploy/.env}
+      TRUST_PROXY: '1'
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      TMDB_API_KEY: ${TMDB_API_KEY:?set TMDB_API_KEY in deploy/.env}
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      MAL_CLIENT_ID: ${MAL_CLIENT_ID:-}
+
+  edge:
+    build:
+      context: ..
+      dockerfile: deploy/edge.Dockerfile
+      args:
+        VITE_API_URL: ${PUBLIC_URL}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '80:80'
+
+volumes:
+  db:

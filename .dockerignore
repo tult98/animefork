@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+.git
+.nx
+tmp
+docs
+tools/art-sync
+tools/avs-loader/out
+apps/desktop-web
+apps/web/artifacts
+apps/web/e2e
+apps/api/.env
+**/.env
+deploy/.env

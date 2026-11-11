@@ -1,0 +1,16 @@
+# No domain yet, so plain HTTP on the server's IP. With a domain, replace :80 with
+# the hostname and Caddy gets a certificate on its own.
+:80 {
+	encode zstd gzip
+
+	@api path /v1/* /healthz
+	handle @api {
+		reverse_proxy api:3100
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
