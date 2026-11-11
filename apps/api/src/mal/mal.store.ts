@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
 import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
 import { PG_POOL } from '../database/migration-runner.ts';
+import type { MalAiring } from '../art/contract.ts';
 import type { MalStatus } from './mal.retry.ts';
 
 export const MAL_STORE = Symbol('MalStore');
@@ -15,6 +16,8 @@ export interface StoredMal {
   rank: number | null;
   popularity: number | null;
   members: number | null;
+  airing: MalAiring | null;
+  episodes: number | null;
   // What the matcher chose and how sure it was, so a wrong match can be spotted by eye.
   matchedTitle: string | null;
   matchScore: number | null;
@@ -68,6 +71,8 @@ interface MalRow {
   mal_rank: number | null;
   mal_popularity: number | null;
   mal_members: number | null;
+  mal_airing: MalAiring | null;
+  mal_episodes: number | null;
   matched_title: string | null;
   match_score: string | null;
   matcher_version: number;
@@ -92,8 +97,8 @@ export class PostgresMalStore implements MalStore {
     if (slugs.length === 0) return found;
     const { rows } = await this.pool.query<MalRow>(
       `select source_slug, status, mal_id, mal_score, mal_voters, mal_rank,
-              mal_popularity, mal_members, matched_title, match_score,
-              matcher_version, reason, attempted_at, fetched_at
+              mal_popularity, mal_members, mal_airing, mal_episodes,
+              matched_title, match_score, matcher_version, reason, attempted_at, fetched_at
          from title_mal where source_slug = any($1::text[])`,
       [slugs],
     );
@@ -107,6 +112,8 @@ export class PostgresMalStore implements MalStore {
         rank: row.mal_rank,
         popularity: row.mal_popularity,
         members: row.mal_members,
+        airing: row.mal_airing,
+        episodes: row.mal_episodes,
         matchedTitle: row.matched_title,
         matchScore: toNumber(row.match_score),
         matcherVersion: row.matcher_version,
@@ -122,9 +129,11 @@ export class PostgresMalStore implements MalStore {
     await this.pool.query(
       `insert into title_mal
          (source_slug, status, mal_id, mal_score, mal_voters, mal_rank,
-          mal_popularity, mal_members, matched_title, match_score,
-          matcher_version, reason, attempted_at, fetched_at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          mal_popularity, mal_members, mal_airing, mal_episodes,
+          matched_title, match_score, matcher_version, reason, attempted_at,
+          fetched_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+               $15, $16)
        on conflict (source_slug) do update set
          status = excluded.status,
          mal_id = excluded.mal_id,
@@ -133,6 +142,8 @@ export class PostgresMalStore implements MalStore {
          mal_rank = excluded.mal_rank,
          mal_popularity = excluded.mal_popularity,
          mal_members = excluded.mal_members,
+         mal_airing = excluded.mal_airing,
+         mal_episodes = excluded.mal_episodes,
          matched_title = excluded.matched_title,
          match_score = excluded.match_score,
          matcher_version = excluded.matcher_version,
@@ -148,6 +159,8 @@ export class PostgresMalStore implements MalStore {
         row.rank,
         row.popularity,
         row.members,
+        row.airing,
+        row.episodes,
         row.matchedTitle,
         row.matchScore,
         row.matcherVersion,

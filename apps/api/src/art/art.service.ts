@@ -120,6 +120,8 @@ export class ArtService {
           rank: mal.rank,
           popularity: mal.popularity,
           members: mal.members,
+          airing: mal.airing,
+          episodes: mal.episodes,
         };
       }
       if (this.malFiller && !isMalSettled(mal, now)) {

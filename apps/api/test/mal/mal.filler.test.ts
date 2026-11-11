@@ -39,6 +39,8 @@ function setup(over: Partial<MalClient> = {}) {
         rank: 10,
         popularity: 20,
         members: 300,
+        airing: 'finished_airing',
+        episodes: 12,
       };
     },
     ...over,
@@ -66,6 +68,8 @@ describe('MalFiller.fill', () => {
       rank: 2006,
       popularity: 1762,
       members: 157000,
+      airing: 'finished_airing',
+      episodes: 170,
       matchedTitle: 'Black Clover',
       reason: null,
     });
@@ -150,7 +154,16 @@ describe('MalFiller.fill', () => {
     const { filler, store, statsCalls, advance } = setup({
       stats: async (id) => {
         if (fail) throw new MalError('boom', 500);
-        return { id, score: 8, voters: 1, rank: 1, popularity: 1, members: 1 };
+        return {
+          id,
+          score: 8,
+          voters: 1,
+          rank: 1,
+          popularity: 1,
+          members: 1,
+          airing: 'finished_airing',
+          episodes: 12,
+        };
       },
     });
     await filler.fill(INPUT);
@@ -187,6 +200,8 @@ describe('MalFiller.fill', () => {
       rank: null,
       popularity: null,
       members: null,
+      airing: null,
+      episodes: undefined,
     });
     const { filler, store } = setup({ search: async () => [bare] });
     await filler.fill(INPUT);

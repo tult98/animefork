@@ -483,6 +483,8 @@ describe('MAL ratings in a lookup', () => {
     rank: 2006,
     popularity: 1762,
     members: 157000,
+    airing: 'currently_airing' as const,
+    episodes: 12,
   };
   const answer = (body: object) =>
     vi.fn(async () => Response.json(body)) as unknown as typeof fetch;

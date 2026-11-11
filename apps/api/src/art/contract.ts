@@ -4,6 +4,14 @@ export const MAX_TITLES_PER_LOOKUP = 50;
 
 export const SLUG_PATTERN = /^[a-z0-9-]{1,400}$/;
 
+export const MalAiringSchema = z.enum([
+  'currently_airing',
+  'finished_airing',
+  'not_yet_aired',
+]);
+
+export type MalAiring = z.infer<typeof MalAiringSchema>;
+
 // MyAnimeList leaves out what it does not know: an unscored title has no mean, an unranked one no rank.
 export const MalStatsSchema = z.object({
   id: z.number().int(),
@@ -12,6 +20,9 @@ export const MalStatsSchema = z.object({
   rank: z.number().int().nullable(),
   popularity: z.number().int().nullable(),
   members: z.number().int().nullable(),
+  airing: MalAiringSchema.nullable(),
+  // MAL reports no total for a show whose episode count is not known yet.
+  episodes: z.number().int().positive().nullable(),
 });
 
 export type MalStats = z.infer<typeof MalStatsSchema>;

@@ -60,6 +60,7 @@ describe('MalClient.search', () => {
       rank: 2006,
       popularity: 1762,
       members: 157000,
+      airing: 'finished_airing',
     });
   });
 
@@ -76,6 +77,7 @@ describe('MalClient.search', () => {
       rank: null,
       popularity: null,
       members: null,
+      airing: null,
       year: undefined,
       episodes: undefined,
     });
@@ -86,6 +88,24 @@ describe('MalClient.search', () => {
       Response.json({ data: [{ node: node({ num_episodes: 0 }) }] }),
     );
     expect((await client.search('x'))[0]?.episodes).toBeUndefined();
+  });
+
+  it('reads an airing status, and null for one it does not know', async () => {
+    const { client } = make(() =>
+      Response.json({
+        data: [
+          { node: node({ status: 'currently_airing' }) },
+          { node: node({ id: 2, status: 'on_hiatus' }) },
+          { node: node({ id: 3, status: undefined }) },
+        ],
+      }),
+    );
+    const found = await client.search('x');
+    expect(found.map((c) => c.airing)).toEqual([
+      'currently_airing',
+      null,
+      null,
+    ]);
   });
 
   it('throws a MalError carrying the status', async () => {
@@ -114,6 +134,8 @@ describe('MalClient.stats', () => {
       rank: 2006,
       popularity: 1762,
       members: 157000,
+      airing: 'finished_airing',
+      episodes: 170,
     });
     expect(calls[0]?.url.pathname).toBe('/v2/anime/34572');
     expect(calls[0]?.url.searchParams.get('fields')).not.toContain(
