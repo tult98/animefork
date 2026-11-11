@@ -3,7 +3,7 @@ import { expectOk } from '../transport/index.ts';
 import { parseSeason } from './home.ts';
 import type { Title } from './title.ts';
 
-export const MAX_SEASON_PAGES = 10;
+export const MAX_SEASON_PAGES = 15;
 
 const PAGER_TEXT = /(\d+)\s+của\s+(\d+)/;
 
