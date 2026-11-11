@@ -17,13 +17,15 @@ Run everything through Nx from the repo root.
 
 `verify` writes logs to `apps/web/artifacts/verify/` (and `summary.json`) and points at the Playwright report, results and screenshots under `apps/web/artifacts/e2e/`.
 
-Playwright drives the installed Google Chrome so no browser download is needed. CI sets `PW_CHANNEL=chromium` after `playwright install chromium`.
+Playwright drives the installed Google Chrome so no browser download is needed. CI sets `PW_CHANNEL=chromium` after `playwright install chromium`. The replay tests run against a dev server on port 5181 with `VITE_API_URL=https://api.test`, and the `*.no-api.spec.ts` files run against a second one on 5182 without it.
 
 ## TMDB art
 
 The home hero and watch backdrop (original size), the new episodes and airing shelves (w780) and the watch screen (backdrop and episode stills) swap in TMDB art from the art module of `apps/api`. Set `VITE_API_URL` to the service root (for example `http://localhost:3100`, see `apps/api/README.md`) to turn the lookup on. The service holds the TMDB key and the database, so the bundle carries neither. The hero also replaces each slide's description with the service's Vietnamese `overview` when the lookup answers one. The source site cuts its card excerpt at about 70 characters and ends it with `...`, so the hero keeps that excerpt only when `overview` is null or missing. Cards and the top 10 hover keep the source excerpt.
 
 The page posts its titles to `/v1/art/lookup` and applies the `ready` entries. A title the service has not seen answers `pending` while it is matched in the background, so the page asks again after 3, 6 and 12 seconds and stops as soon as nothing is pending. The home art loads after the home data so a slow art API never delays first paint. The Top 10 posters keep the source image. Without `VITE_API_URL`, or when the request fails, times out after 3 seconds or answers an unexpected shape, the page shows the source site's own images.
+
+A card or hero slide does not show the source image first and swap it later. `HomeArt` records which slugs an answer covers (`answered`) and which it left `pending`, and `markArtPending` sets `artPending` on every title that is still waiting, so `PosterCard` (cover, thumb and hover preview) and `Hero` render a shimmer skeleton (`card:art-skeleton`, `hero:art-skeleton`) in the same box. A title waits while the API is configured and no answer covers its slug yet, which also holds for slugs a later shelf or listing page adds, or while its own entry is `pending` and polls remain. It settles on `ready` (TMDB image, else the source image), `none`, an absent slug, a failed or timed out lookup, or a `pending` that outlives the last poll. The worst case is about 33 seconds: the polls wait 3, 6 and 12 seconds and each of the four requests can take up to 3 seconds. Without `VITE_API_URL` nothing waits. The watch page does not use this.
 
 ## Transport
 
@@ -65,7 +67,7 @@ The listing page reads every season page; see Airing listing below. The home rou
 
 The search, notification and account buttons in the header are rendered but disabled until those features exist. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/title/$`.
 
-The `data-testid` names the e2e tests use: `hero`, `hero:slide:<index>`, `hero:description`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.
+The `data-testid` names the e2e tests use: `hero`, `hero:slide:<index>`, `hero:description`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:art-skeleton`, `hero:art-skeleton`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.
 
 ## Airing listing
 

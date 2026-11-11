@@ -1,4 +1,9 @@
-import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  skipToken,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo } from 'react';
 import { ErrorScreen } from '../components/error-screen.tsx';
@@ -10,6 +15,7 @@ import {
   applyRatings,
   artPollDelay,
   fetchHomeArt,
+  markArtPending,
 } from '../lib/titles/art.ts';
 import { useAvsSubmit } from '../lib/titles/use-avs-submit.ts';
 import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
@@ -43,8 +49,10 @@ function Home() {
     return buildHome({ ...home.data, upcoming, season: season.data });
   }, [home.data, season.data, seasonLoading]);
   const titles = useMemo(() => lookupTitles(built), [built]);
+  const queryClient = useQueryClient();
+  const artKey = ['home-art', titles];
   const art = useQuery({
-    queryKey: ['home-art', titles],
+    queryKey: artKey,
     queryFn: ({ signal }) =>
       fetchHomeArt(titles, { env: import.meta.env, signal }),
     enabled: titles.length > 0 && Boolean(import.meta.env.VITE_API_URL),
@@ -52,10 +60,24 @@ function Home() {
     refetchInterval: (query) =>
       artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
   });
+  const apiOn = Boolean(import.meta.env.VITE_API_URL);
+  const pollsLeft =
+    art.isPlaceholderData ||
+    artPollDelay(
+      true,
+      queryClient.getQueryState(artKey)?.dataUpdateCount ?? 0,
+    ) !== false;
   const shelves = useMemo(() => {
-    if (!art.data) return built;
-    return applyRatings(applyHomeArt(built, art.data.paths), art.data.ratings);
-  }, [built, art.data]);
+    const applied = art.data
+      ? applyRatings(applyHomeArt(built, art.data.paths), art.data.ratings)
+      : built;
+    return markArtPending(applied, {
+      apiOn,
+      art: art.data,
+      pollsLeft,
+      failed: art.isError,
+    });
+  }, [built, art.data, art.isError, apiOn, pollsLeft]);
   useAvsSubmit(
     shelves,
     art.data?.avsStale ?? NO_SLUGS,

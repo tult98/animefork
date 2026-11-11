@@ -17,6 +17,7 @@ export const TitleSchema = z.object({
   avsVoters: z.number().int().nonnegative().optional(),
   releasesAt: z.number().int().optional(),
   mal: MalStatsSchema.optional(),
+  artPending: z.boolean().optional(),
 });
 
 export type Title = z.infer<typeof TitleSchema>;

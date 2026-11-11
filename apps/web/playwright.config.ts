@@ -1,6 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
 const port = 5181;
+// A second server built without VITE_API_URL, for the specs that prove the page works with the lookup off.
+const noApiPort = 5182;
 
 export default defineConfig({
   testDir: 'e2e',
@@ -22,13 +24,32 @@ export default defineConfig({
     screenshot: 'on',
     trace: 'retain-on-failure',
   },
-  webServer: {
-    command: `pnpm exec vite --port ${port} --strictPort`,
-    url: `http://localhost:${port}`,
-    env: {
-      VITE_API_URL: 'https://api.test',
+  projects: [
+    { name: 'default', testIgnore: '**/*.no-api.spec.ts' },
+    {
+      name: 'no-api',
+      testMatch: '**/*.no-api.spec.ts',
+      use: { baseURL: `http://localhost:${noApiPort}` },
     },
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  ],
+  webServer: [
+    {
+      command: `pnpm exec vite --port ${port} --strictPort`,
+      url: `http://localhost:${port}`,
+      env: {
+        VITE_API_URL: 'https://api.test',
+      },
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      command: `pnpm exec vite --port ${noApiPort} --strictPort`,
+      url: `http://localhost:${noApiPort}`,
+      env: {
+        VITE_API_URL: '',
+      },
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
 });

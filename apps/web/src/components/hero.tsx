@@ -11,6 +11,7 @@ import {
 } from '../lib/ui/carousel.ts';
 import { useDetails } from './details/details-context.tsx';
 import { ChevronLeft, ChevronRight, Info, Pause, Play } from './ui/icons.ts';
+import { SHIMMER } from './ui/shimmer.ts';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 
@@ -80,13 +81,20 @@ export function Hero({ items }: { items: Title[] }) {
               data-active={active ? '' : undefined}
               className="hero-slide absolute inset-0"
             >
-              <img
-                src={title.image}
-                alt=""
-                loading={slide === 0 ? 'eager' : 'lazy'}
-                decoding="async"
-                className="af-billboard-art object-cover object-[50%_15%]"
-              />
+              {title.artPending ? (
+                <div
+                  data-testid="hero:art-skeleton"
+                  className={`af-billboard-art ${SHIMMER}`}
+                />
+              ) : (
+                <img
+                  src={title.image}
+                  alt=""
+                  loading={slide === 0 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  className="af-billboard-art object-cover object-[50%_15%]"
+                />
+              )}
               <div className="hero-scrim absolute inset-0" />
               <div className="af-billboard-body absolute bottom-0 left-0 pb-8 max-md:right-0 max-md:max-w-none max-md:p-4">
                 <h2

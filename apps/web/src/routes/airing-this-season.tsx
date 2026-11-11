@@ -1,4 +1,9 @@
-import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  skipToken,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   createFileRoute,
   stripSearchParams,
@@ -24,6 +29,7 @@ import {
   applyRatings,
   artPollDelay,
   fetchHomeArt,
+  markArtPending,
 } from '../lib/titles/art.ts';
 import { fetchHome } from '../lib/titles/home.ts';
 import {
@@ -114,6 +120,7 @@ function AiringThisSeason() {
   );
   const lookup = useMemo(() => lookupTitles(shelf), [shelf]);
   const apiOn = Boolean(import.meta.env.VITE_API_URL);
+  const queryClient = useQueryClient();
   const artKey = ['home-art', lookup];
   const art = useQuery({
     queryKey: artKey,
@@ -124,15 +131,24 @@ function AiringThisSeason() {
     refetchInterval: (query) =>
       artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
   });
+  const pollsLeft =
+    art.isPlaceholderData ||
+    artPollDelay(
+      true,
+      queryClient.getQueryState(artKey)?.dataUpdateCount ?? 0,
+    ) !== false;
   const titles = useMemo(() => {
-    const items = shelf[0]?.items ?? [];
-    if (!art.data) return items;
-    const [applied] = applyRatings(
-      applyHomeArt(shelf, art.data.paths),
-      art.data.ratings,
-    );
-    return applied?.items ?? items;
-  }, [shelf, art.data]);
+    const applied = art.data
+      ? applyRatings(applyHomeArt(shelf, art.data.paths), art.data.ratings)
+      : shelf;
+    const [marked] = markArtPending(applied, {
+      apiOn,
+      art: art.data,
+      pollsLeft,
+      failed: art.isError,
+    });
+    return marked?.items ?? shelf[0]?.items ?? [];
+  }, [shelf, art.data, art.isError, apiOn, pollsLeft]);
 
   const entries = useMemo(() => arrange(titles, { sort }), [titles, sort]);
   const paged = paginate(entries, page);

@@ -11,6 +11,7 @@ import {
 } from '../lib/ui/hover-position.ts';
 import { useDetails } from './details/details-context.tsx';
 import { Play, ChevronDown, Star } from './ui/icons.ts';
+import { SHIMMER } from './ui/shimmer.ts';
 
 const OPEN_DELAY_MS = 250;
 const NO_HOVER_QUERY = '(hover: none), (pointer: coarse)';
@@ -62,6 +63,11 @@ function CardImage({
   alt: string;
   src?: string;
 }) {
+  if (title.artPending) {
+    return (
+      <div data-testid="card:art-skeleton" className={`size-full ${SHIMMER}`} />
+    );
+  }
   return (
     <img
       src={src}
