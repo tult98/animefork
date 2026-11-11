@@ -193,7 +193,7 @@ describe('buildHome upcoming shelf', () => {
     expect(paths(shelf!.items)).toEqual([t(2).path, t(3).path, t(1).path]);
   });
 
-  it('drops titles that are past, due now or have no date', () => {
+  it('drops titles that are past, due now or have neither date nor year', () => {
     const shelf = upcomingShelf([
       soon(1, NOW - 1),
       soon(2, NOW),
@@ -239,5 +239,53 @@ describe('buildHome upcoming shelf', () => {
         )!.items,
       ),
     ).toContain(shared.path);
+  });
+
+  describe('year-only titles', () => {
+    const year = new Date(NOW).getFullYear();
+    const yr = (n: number, y: number | undefined): Title => ({
+      ...t(n),
+      year: y,
+    });
+
+    it('come after exact dates, sorted by year and stable within a year', () => {
+      const shelf = upcomingShelf([
+        yr(1, year + 2),
+        yr(2, year + 1),
+        soon(3, NOW + 50),
+        yr(4, year + 1),
+        soon(5, NOW + 10),
+      ]);
+      expect(paths(shelf!.items)).toEqual(
+        [5, 3, 2, 4, 1].map((n) => t(n).path),
+      );
+    });
+
+    it('keep the current year but drop earlier years', () => {
+      const shelf = upcomingShelf([
+        yr(1, year - 1),
+        yr(2, year),
+        yr(3, year + 1),
+        yr(4, year + 1),
+      ]);
+      expect(paths(shelf!.items)).toEqual([2, 3, 4].map((n) => t(n).path));
+    });
+
+    it('ignore the year of a title that has a past release time', () => {
+      const past = { ...yr(1, year + 5), releasesAt: NOW - 1 };
+      const shelf = upcomingShelf([
+        past,
+        yr(2, year),
+        yr(3, year),
+        yr(4, year),
+      ]);
+      expect(paths(shelf!.items)).not.toContain(past.path);
+    });
+
+    it('count toward the floor and the cap', () => {
+      expect(upcomingShelf([yr(1, year), yr(2, year)])).toBeUndefined();
+      const many = Array.from({ length: 20 }, (_, i) => yr(i, year + 1));
+      expect(upcomingShelf(many)!.items).toHaveLength(UPCOMING_SHELF_LIMIT);
+    });
   });
 });

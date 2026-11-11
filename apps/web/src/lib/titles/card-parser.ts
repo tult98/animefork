@@ -65,6 +65,15 @@ function parseReleasesAt(el: Element, now: number): number | undefined {
     : undefined;
 }
 
+const BARE_YEAR = /^\d{4}$/;
+
+function parseYear(el: Element): number | undefined {
+  const year = finiteOrUndefined(parseInt(text(el, '.AAIco-date_range'), 10));
+  if (year !== undefined) return year;
+  const bare = text(el, '.b');
+  return BARE_YEAR.test(bare) ? Number(bare) : undefined;
+}
+
 export function parseCard(el: Element, now: number = Date.now()): RawCard {
   const rating =
     text(el, '.anime-avg-user-rating') || text(el, '.AAIco-star') || '';
@@ -82,7 +91,7 @@ export function parseCard(el: Element, now: number = Date.now()): RawCard {
       formatEpisodeLabel(text(el, '.mli-eps')) ||
       text(el, '.Info .Time') ||
       (el.querySelector('.mli-timeschedule') ? UPCOMING_FALLBACK_LABEL : ''),
-    year: finiteOrUndefined(parseInt(text(el, '.AAIco-date_range'), 10)),
+    year: parseYear(el),
     genres: [...el.querySelectorAll('.Genre > a')]
       .map((a) => a.textContent?.trim() ?? '')
       .filter(Boolean),

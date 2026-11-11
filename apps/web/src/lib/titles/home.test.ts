@@ -127,7 +127,7 @@ describe('parseHome upcoming block', () => {
   const home = parseHome(homeHtml, NOW);
 
   it('reads the Sắp chiếu cards from the fixture', () => {
-    expect(home.upcoming).toHaveLength(7);
+    expect(home.upcoming).toHaveLength(11);
     expect(home.upcoming[0]).toMatchObject({
       name: 'Tsuki no Sakamichi',
       episodeLabel: 'PV/12',
@@ -135,9 +135,14 @@ describe('parseHome upcoming block', () => {
     });
   });
 
-  it('keeps cards with no usable date but without a releasesAt', () => {
-    expect(home.upcoming.at(-1)?.releasesAt).toBeUndefined();
-    expect(home.upcoming.at(-2)?.releasesAt).toBe(Date.UTC(2099, 0, 1));
+  it('reads a date span as an exact release time', () => {
+    const umi = home.upcoming.find((t) => t.name === 'Umi no Shiro Gekijouban');
+    expect(umi?.releasesAt).toBe(Date.UTC(2099, 0, 1));
+  });
+
+  it('keeps year-only cards with a year and no releasesAt', () => {
+    const yearOnly = home.upcoming.filter((t) => t.releasesAt === undefined);
+    expect(yearOnly.map((t) => t.year)).toEqual([2022, 2030, 2027, 2028, 2027]);
   });
 
   it('is empty, not an error, when the page has no block', () => {
@@ -151,7 +156,7 @@ describe('parseHome upcoming block', () => {
       '$1',
     );
     const parsed = parseHome(html, NOW);
-    expect(parsed.upcoming).toHaveLength(6);
+    expect(parsed.upcoming).toHaveLength(10);
     expect(parsed.hero).toHaveLength(10);
   });
 });

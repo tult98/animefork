@@ -83,13 +83,22 @@ export function buildHome(
     }
   }
 
-  const soon = upcoming
+  const thisYear = new Date(now).getFullYear();
+  const dated = upcoming
     .filter(
       (title): title is Title & { releasesAt: number } =>
         title.releasesAt !== undefined && title.releasesAt > now,
     )
-    .sort((a, b) => a.releasesAt - b.releasesAt)
-    .slice(0, UPCOMING_SHELF_LIMIT);
+    .sort((a, b) => a.releasesAt - b.releasesAt);
+  const yearOnly = upcoming
+    .filter(
+      (title): title is Title & { year: number } =>
+        title.releasesAt === undefined &&
+        title.year !== undefined &&
+        title.year >= thisYear,
+    )
+    .sort((a, b) => a.year - b.year);
+  const soon = [...dated, ...yearOnly].slice(0, UPCOMING_SHELF_LIMIT);
   if (soon.length >= UPCOMING_MIN_TITLES) {
     shelves.push({
       kind: 'default',

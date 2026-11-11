@@ -41,7 +41,7 @@ test('shelf contents follow the dedupe rules', async ({ page }) => {
   expect(byId['new-episodes']).toHaveLength(10);
   expect(byId['top-10-today']).toHaveLength(10);
   expect(byId['airing-this-season']).toHaveLength(12);
-  expect(byId['upcoming']).toHaveLength(6);
+  expect(byId['upcoming']).toHaveLength(10);
 
   const news = new Set(byId['new-episodes']);
   expect(byId['airing-this-season']!.filter((p) => news.has(p))).toEqual([]);
@@ -262,7 +262,7 @@ test('a long description in the details modal is clamped and expands on click', 
   expect(await height()).toBe(clamped);
 });
 
-test('the upcoming shelf shows countdown tags, soonest first, without a see-all link', async ({
+test('the upcoming shelf shows countdown tags, soonest first then year-only, without a see-all link', async ({
   page,
 }) => {
   await page.goto('/?transport=replay');
@@ -272,7 +272,7 @@ test('the upcoming shelf shows countdown tags, soonest first, without a see-all 
   await expect(shelf.getByTestId('shelf:upcoming:see-all')).toHaveCount(0);
 
   const tags = shelf.getByTestId('card:countdown');
-  await expect(tags).toHaveCount(6);
+  await expect(tags).toHaveCount(10);
   const year = new Date().getFullYear();
   const texts = await tags.allTextContents();
   expect(texts.slice(0, 4)).toEqual([
@@ -284,6 +284,12 @@ test('the upcoming shelf shows countdown tags, soonest first, without a see-all 
   expect(texts[4]).toMatch(/^20\d\d$/);
   expect(Number(texts[4])).toBeGreaterThan(year);
   expect(texts[5]).toBe('2099');
+  expect(texts.slice(6)).toEqual(['2027', '2027', '2028', '2030']);
+  await expect(
+    shelf
+      .getByTestId('card:/phim/akatsuki-no-ryuu-a7009/')
+      .locator('[data-cover]'),
+  ).toHaveAttribute('aria-label', 'Akatsuki no Ryuu, PV/??, 2027');
   await expect(
     page.getByTestId('shelf:new-episodes').getByTestId('card:countdown'),
   ).toHaveCount(0);

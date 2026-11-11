@@ -122,6 +122,28 @@ describe('parseCard upcoming', () => {
     expect(parseCard(el, NOW).releasesAt).toBe(Date.UTC(2027, 2, 5));
   });
 
+  it('reads the live year-only card as a year with no releasesAt', () => {
+    const el = upcoming(
+      '<span class="mli-timeschedule">SẮP CHIẾU</span><span class="b">2027</span>',
+      '<span class="Time AAIco-access_time">PV/??</span><span class="Date AAIco-date_range">2027</span>',
+    );
+    const parsed = parseCard(el, NOW);
+    expect(parsed.releasesAt).toBeUndefined();
+    expect(parsed.year).toBe(2027);
+    expect(parsed.episodeLabel).toBe('PV/??');
+  });
+
+  it('falls back to the bare .b year when the date icon is missing', () => {
+    const el = upcoming(
+      '<span class="mli-timeschedule">SẮP CHIẾU</span><span class="b">2028</span>',
+    );
+    expect(parseCard(el, NOW).year).toBe(2028);
+    const dated = upcoming(
+      '<span class="mli-timeschedule">SẮP CHIẾU</span><span class="b">2028-02-01</span>',
+    );
+    expect(parseCard(dated, NOW).year).toBeUndefined();
+  });
+
   it('leaves releasesAt unset for a bare year or no schedule', () => {
     expect(
       parseCard(
