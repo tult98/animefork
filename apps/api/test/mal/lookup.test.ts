@@ -33,6 +33,8 @@ function withMal(client: Partial<MalClient> = {}) {
       rank: 10,
       popularity: 20,
       members: 300,
+      airing: 'finished_airing',
+      episodes: 170,
     }),
     ...client,
   };
@@ -72,6 +74,8 @@ describe('lookup with MyAnimeList', () => {
       rank: 2006,
       popularity: 1762,
       members: 157000,
+      airing: 'finished_airing',
+      episodes: 170,
     });
     expect(searches).toHaveLength(1);
   });

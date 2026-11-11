@@ -1,3 +1,5 @@
+import type { MalAiring } from '../art/contract.ts';
+
 export type MalStatus = 'ok' | 'none' | 'failed';
 
 const MINUTE = 60_000;
@@ -7,6 +9,8 @@ const DAY = 24 * 60 * MINUTE;
 export const MAL_MATCHER_VERSION = 1;
 
 export const MAL_REFRESH_AFTER_MS = 7 * DAY;
+// Episodes keep coming while a show airs and its status flips when it ends, so those are checked often.
+export const MAL_AIRING_REFRESH_AFTER_MS = DAY;
 export const MAL_RETRY_AFTER_MS: Record<Exclude<MalStatus, 'ok'>, number> = {
   none: 7 * DAY,
   failed: 10 * MINUTE,
@@ -17,20 +21,28 @@ interface RetryRow {
   matcherVersion: number;
   attemptedAt: Date;
   fetchedAt: Date | null;
+  airing?: MalAiring | null;
 }
 
 // | status | settled for                                  | then                                       |
 // | ------ | -------------------------------------------- | ------------------------------------------ |
 // | (none) | not at all                                   | matched on its next lookup                 |
-// | ok     | 7 days since fetched, or 10 min since a try  | served as is, refreshed in the background  |
+// | ok     | 7 days since fetched (1 day while airing), or 10 min since a try | served as is, refreshed in the background  |
 // | none   | 7 days (not at all below the matcher version)| matched again on its next lookup           |
 // | failed | 10 minutes                                   | matched again on its next lookup           |
 export function isMalSettled(row: RetryRow | undefined, now: Date): boolean {
   if (!row) return false;
   const since = (at: Date) => now.getTime() - at.getTime();
   if (row.status === 'ok') {
+    // A row saved before airing status was stored has none, and is fetched once more to get it.
+    const ttl =
+      row.airing === undefined || row.airing === 'finished_airing'
+        ? MAL_REFRESH_AFTER_MS
+        : MAL_AIRING_REFRESH_AFTER_MS;
     return (
-      (row.fetchedAt !== null && since(row.fetchedAt) < MAL_REFRESH_AFTER_MS) ||
+      (row.fetchedAt !== null &&
+        row.airing !== null &&
+        since(row.fetchedAt) < ttl) ||
       since(row.attemptedAt) < MAL_RETRY_AFTER_MS.failed
     );
   }

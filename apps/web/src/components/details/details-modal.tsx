@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
+import { episodeProgress } from '../../lib/titles/episode-progress.ts';
 import { titleWatchLink, watchLink } from '../../lib/titles/link.ts';
 import type { Title } from '../../lib/titles/title.ts';
 import { useWatchPage } from '../../lib/titles/use-watch-page.ts';
@@ -324,7 +325,7 @@ export function DetailsModal({
           <div className="details-main">
             <div className="af-hover-meta" style={{ fontSize: 16 }}>
               {title.year === undefined ? null : <span>{title.year}</span>}
-              <span>{title.episodeLabel}</span>
+              <span>{episodeProgress(title)}</span>
               {hd ? <span className="af-box">{hd}</span> : null}
             </div>
             {title.description ? (

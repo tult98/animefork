@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { episodeProgress } from '../lib/titles/episode-progress.ts';
 import { titleWatchLink } from '../lib/titles/link.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
@@ -69,6 +70,8 @@ function CardImage({
     />
   );
 }
+
+const HOVER_GENRES = 3;
 
 export function PosterCard({
   title,
@@ -175,6 +178,7 @@ export function PosterCard({
   };
   const watch = titleWatchLink(title);
   const label = `${isRank ? `Hạng ${rank}: ` : ''}${title.name}, ${title.episodeLabel}`;
+  const airing = title.mal?.airing === 'currently_airing';
   const hd = title.quality && /hd/i.test(title.quality) ? title.quality : null;
 
   return (
@@ -226,6 +230,12 @@ export function PosterCard({
                 <span className="af-tag">Tập mới</span>
                 <span className="af-tag af-tag--watch">
                   {title.episodeLabel}
+                </span>
+              </div>
+            ) : airing ? (
+              <div className="af-tags bottom-2 z-2">
+                <span className="af-tag" data-testid="card:airing">
+                  Đang chiếu
                 </span>
               </div>
             ) : null}
@@ -305,12 +315,12 @@ export function PosterCard({
             </div>
             <div className="af-hover-meta">
               {title.year === undefined ? null : <span>{title.year}</span>}
-              <span>{title.episodeLabel}</span>
+              <span>{episodeProgress(title)}</span>
               {hd ? <span className="af-box">{hd}</span> : null}
             </div>
             {title.genres.length > 0 ? (
               <div className="af-hover-genres flex-wrap">
-                {title.genres.map((genre) => (
+                {title.genres.slice(0, HOVER_GENRES).map((genre) => (
                   <span key={genre}>{genre}</span>
                 ))}
               </div>

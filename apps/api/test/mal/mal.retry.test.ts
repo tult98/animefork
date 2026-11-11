@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   MAL_MATCHER_VERSION,
+  MAL_AIRING_REFRESH_AFTER_MS,
   MAL_REFRESH_AFTER_MS,
   MAL_RETRY_AFTER_MS,
   isMalSettled,
@@ -16,6 +17,32 @@ const row = (
   attemptedAt: ago(0),
   fetchedAt: ago(0),
   ...over,
+});
+
+describe('isMalSettled airing', () => {
+  const at = (
+    age: number,
+    airing: 'currently_airing' | 'finished_airing' | null,
+  ) => row({ airing, attemptedAt: ago(age), fetchedAt: ago(age) });
+
+  it('checks an airing title daily and a finished one weekly', () => {
+    expect(
+      isMalSettled(
+        at(MAL_AIRING_REFRESH_AFTER_MS - 1, 'currently_airing'),
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isMalSettled(at(MAL_AIRING_REFRESH_AFTER_MS, 'currently_airing'), now),
+    ).toBe(false);
+    expect(
+      isMalSettled(at(MAL_AIRING_REFRESH_AFTER_MS, 'finished_airing'), now),
+    ).toBe(true);
+  });
+
+  it('fetches a row saved without a status once more', () => {
+    expect(isMalSettled(at(60_000 * 20, null), now)).toBe(false);
+  });
 });
 
 describe('isMalSettled', () => {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { MalStats } from '../art/contract.ts';
+import { MalAiringSchema, type MalStats } from '../art/contract.ts';
 import { DEFAULT_MAL_API } from './mal.config.ts';
 
 export type { MalStats };
@@ -9,10 +9,11 @@ export const MIN_QUERY_LENGTH = 3;
 // MAL answers 400 "invalid q" for a longer query.
 export const MAX_QUERY_LENGTH = 64;
 const FIELDS =
-  'alternative_titles,start_season,num_episodes,media_type,mean,num_scoring_users,rank,popularity,num_list_users';
-const STATS_FIELDS = 'mean,num_scoring_users,rank,popularity,num_list_users';
+  'alternative_titles,start_season,num_episodes,media_type,mean,num_scoring_users,rank,popularity,num_list_users,status';
+const STATS_FIELDS =
+  'mean,num_scoring_users,rank,popularity,num_list_users,status,num_episodes';
 
-export interface MalCandidate extends MalStats {
+export interface MalCandidate extends Omit<MalStats, 'episodes'> {
   title: string;
   english: string | undefined;
   synonyms: string[];
@@ -53,6 +54,7 @@ const NodeSchema = z.object({
   rank: z.number().int().optional(),
   popularity: z.number().int().optional(),
   num_list_users: z.number().int().optional(),
+  status: z.string().optional(),
 });
 
 type Node = z.infer<typeof NodeSchema>;
@@ -69,6 +71,10 @@ function toStats(node: Node): MalStats {
     rank: node.rank ?? null,
     popularity: node.popularity ?? null,
     members: node.num_list_users ?? null,
+    // A status MAL adds later is read as unknown rather than failing the whole title.
+    airing: MalAiringSchema.safeParse(node.status).data ?? null,
+    // MAL reports 0 episodes for a show whose count is not known yet.
+    episodes: node.num_episodes || null,
   };
 }
 

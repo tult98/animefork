@@ -14,6 +14,7 @@ export function candidate(over: Partial<MalCandidate> = {}): MalCandidate {
     rank: 2006,
     popularity: 1762,
     members: 157000,
+    airing: 'finished_airing',
     ...over,
   };
 }
@@ -32,6 +33,7 @@ export function node(over: Record<string, unknown> = {}) {
     rank: 2006,
     popularity: 1762,
     num_list_users: 157000,
+    status: 'finished_airing',
     ...over,
   };
 }
