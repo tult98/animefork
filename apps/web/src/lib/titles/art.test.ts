@@ -212,8 +212,8 @@ describe('fetchHomeArt', () => {
     });
     const art = await fetchHomeArt(titles, { env, fetch: fetchImpl });
     expect([...art.paths]).toEqual([
-      ['a-1', { backdropPath: '/a.jpg', backdropLang: 'en', posterPath: '/pa.jpg' }],
-      ['c-3', { backdropPath: null, backdropLang: null, posterPath: '/pc.jpg' }],
+      ['a-1', { backdropPath: '/a.jpg', posterPath: '/pa.jpg' }],
+      ['c-3', { backdropPath: null, posterPath: '/pc.jpg' }],
     ]);
     expect(art.pending).toBe(false);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
@@ -274,11 +274,8 @@ describe('fetchHomeArt', () => {
 
 describe('applyHomeArt', () => {
   const art = new Map<string, HomeArtPaths>([
-    [
-      'a-1',
-      { backdropPath: '/a.jpg', backdropLang: null, posterPath: '/pa.jpg' },
-    ],
-    ['c-3', { backdropPath: '/c.jpg', backdropLang: 'en', posterPath: null }],
+    ['a-1', { backdropPath: '/a.jpg', posterPath: '/pa.jpg' }],
+    ['c-3', { backdropPath: '/c.jpg', posterPath: null }],
   ]);
 
   it('puts the original size on the hero and w780 on the cards, and leaves the rest', () => {
@@ -319,9 +316,7 @@ describe('applyHomeArt', () => {
   it('sets a poster without a backdrop when only the poster is stored', () => {
     const [, , top] = applyHomeArt(
       home(),
-      new Map([
-        ['a-1', { backdropPath: null, backdropLang: null, posterPath: '/pa.jpg' }],
-      ]),
+      new Map([['a-1', { backdropPath: null, posterPath: '/pa.jpg' }]]),
     );
     expect(top?.items[0]).toMatchObject({
       image: 'https://image.tmdb.org/t/p/w342/pa.jpg',
@@ -340,26 +335,6 @@ describe('applyHomeArt', () => {
       false,
     );
     expect(hero?.items[0]?.image).not.toContain('w342');
-  });
-
-  it('flags only hero items whose stored backdrop has a language', () => {
-    const shelves = home();
-    const hero = shelves[0]!;
-    if (hero.kind !== 'hero') throw new Error('expected the hero shelf');
-    hero.items = [hero.items[0]!, { ...hero.items[1]!, path: '/phim/c-3/' }];
-    const [out, cards, top] = applyHomeArt(shelves, art);
-    expect(out?.items.map((t) => t.backdropHasTitle)).toEqual([undefined, true]);
-    expect(
-      [...cards!.items, ...top!.items].some((t) => 'backdropHasTitle' in t),
-    ).toBe(false);
-  });
-
-  it('does not flag a hero item whose language is set but has no backdrop', () => {
-    const [hero] = applyHomeArt(
-      home(),
-      new Map([['a-1', { backdropPath: null, backdropLang: 'en', posterPath: '/p.jpg' }]]),
-    );
-    expect(hero?.items[0]).not.toHaveProperty('backdropHasTitle');
   });
 
   it('returns the same shelves when no art exists', () => {

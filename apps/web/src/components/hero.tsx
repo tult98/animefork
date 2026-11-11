@@ -1,10 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import {
-  type CSSProperties,
-  useEffect,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { titleLink } from '../lib/titles/link.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
@@ -14,7 +9,6 @@ import {
   nextIndex,
   prevIndex,
 } from '../lib/ui/carousel.ts';
-import { heroTitleSize } from './hero-title-size.ts';
 import { ChevronLeft, ChevronRight, Pause, Play } from './ui/icons.ts';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
@@ -35,14 +29,6 @@ function useReducedMotion() {
 
 const CONTROL_CLASS =
   'grid size-11 cursor-pointer place-items-center rounded-full border-2 border-border bg-hero-overlay p-0 text-ink hover:bg-pill-active';
-
-function heroTitleVars(name: string): CSSProperties {
-  const { desktop, phone } = heroTitleSize(name);
-  return {
-    '--hero-title-desktop': `${desktop}px`,
-    '--hero-title-phone': `${phone}px`,
-  } as CSSProperties;
-}
 
 export function Hero({ items }: { items: Title[] }) {
   const reducedMotion = useReducedMotion();
@@ -103,12 +89,8 @@ export function Hero({ items }: { items: Title[] }) {
               <div className="af-billboard-body absolute bottom-0 left-0 pb-8 max-md:right-0 max-md:max-w-none max-md:p-4">
                 <h2
                   data-testid="hero:title"
-                  className={
-                    title.backdropHasTitle
-                      ? 'af-billboard-title sr-only'
-                      : 'af-billboard-title text-(length:--hero-title-desktop) leading-[1.1] max-md:text-(length:--hero-title-phone)'
-                  }
-                  style={heroTitleVars(title.name)}
+                  title={title.name}
+                  className="af-billboard-title line-clamp-3 text-4xl leading-[1.1] max-md:text-[28px]"
                 >
                   {title.name}
                 </h2>

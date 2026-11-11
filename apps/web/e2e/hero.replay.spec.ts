@@ -132,7 +132,7 @@ test('the hero controls show a focus ring', async ({ page }) => {
 test.describe('long hero names', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('every name is shown in full, smaller as it gets longer', async ({
+  test('names that fit show in full, a very long one is clamped to 3 lines, all at one font size', async ({
     page,
   }) => {
     await renameHeroSlides(page, HERO_NAMES);
@@ -153,15 +153,26 @@ test.describe('long hero names', () => {
       const title = slide.getByTestId('hero:title');
       await expect(title).toHaveText(name);
       await expect(title).toBeVisible();
-      const measured = await title.evaluate((el) => ({
-        clipped: el.scrollHeight > el.clientHeight,
-        textOverflow: getComputedStyle(el).textOverflow,
-        lineClamp: getComputedStyle(el).webkitLineClamp,
-        size: parseFloat(getComputedStyle(el).fontSize),
-      }));
-      expect(measured.clipped, `${name.length} chars clipped`).toBe(false);
-      expect(measured.lineClamp).toBe('none');
-      expect(measured.textOverflow).toBe('clip');
+      const measured = await title.evaluate((el) => {
+        const style = getComputedStyle(el);
+        return {
+          clipped: el.scrollHeight > el.clientHeight,
+          textOverflow: style.textOverflow,
+          lineClamp: style.webkitLineClamp,
+          lines: Math.round(
+            el.getBoundingClientRect().height / parseFloat(style.lineHeight),
+          ),
+          size: parseFloat(style.fontSize),
+        };
+      });
+      await expect(title).toHaveAttribute('title', name);
+      if (name === HERO_NAMES[0]) {
+        expect(measured.lines).toBe(3);
+        expect(measured.clipped, 'long name is clamped').toBe(true);
+      } else {
+        expect(measured.clipped, `${name.length} chars clipped`).toBe(false);
+      }
+      expect(measured.lineClamp).toBe('3');
       sizes.push(measured.size);
 
       const box = (await title.boundingBox())!;
@@ -169,7 +180,6 @@ test.describe('long hero names', () => {
       expect(box.y).toBeGreaterThanOrEqual(hero.y);
       expect(box.y + box.height).toBeLessThanOrEqual(meta.y + 0.5);
     }
-    expect(sizes).toEqual([...sizes].sort((a, b) => a - b));
-    expect(sizes[0]).toBeLessThan(sizes[sizes.length - 1]!);
+    expect(new Set(sizes).size).toBe(1);
   });
 });

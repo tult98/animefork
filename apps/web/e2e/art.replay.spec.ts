@@ -7,7 +7,6 @@ import { expect, test } from './fixtures.ts';
 const SLUG = 'tonikaku-kawaii-a3860';
 const HERO_SLUG =
   'shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku-a6137';
-const HERO_SLUG_2 = 'dragon-ball-super-beerus-a6000';
 const TOP10_SLUG = 'black-clover-2nd-season-a6073';
 const LOOKUP = '**/api.test/v1/art/lookup';
 const poster = readFileSync(
@@ -35,12 +34,11 @@ const ready = (
   backdropPath: string,
   stills?: Record<string, string>,
   posterPath: string | null = null,
-  backdropLang: string | null = 'vi',
 ) =>
   ({
     status: 'ready',
     backdropPath,
-    backdropLang,
+    backdropLang: 'vi',
     posterPath,
     ...(stills ? { stills } : {}),
   }) as const;
@@ -139,39 +137,6 @@ test('the home hero swaps in the backdrop after a pending answer, then stops pol
   const settled = bodies.length;
   await page.waitForTimeout(4_000);
   expect(bodies).toHaveLength(settled);
-});
-
-test('a hero backdrop with a language hides the heading visually but keeps it, and a textless one shows it', async ({
-  page,
-}) => {
-  await stubArt(page, () => ({
-    [HERO_SLUG]: ready('/titled.jpg', undefined, null, 'en'),
-    [HERO_SLUG_2]: ready('/textless.jpg', undefined, null, null),
-  }));
-
-  await page.goto('/?transport=replay');
-  const first = page.getByTestId('hero:slide:0');
-  const second = page.getByTestId('hero:slide:1');
-  await expect(first.locator('img')).toHaveAttribute(
-    'src',
-    'https://image.tmdb.org/t/p/original/titled.jpg',
-  );
-  await expect(second.locator('img')).toHaveAttribute(
-    'src',
-    'https://image.tmdb.org/t/p/original/textless.jpg',
-  );
-
-  const titled = first.getByRole('heading', { level: 2 });
-  await expect(titled).toBeAttached();
-  await expect
-    .poll(async () => (await titled.boundingBox())?.width)
-    .toBeLessThanOrEqual(1);
-  expect((await titled.boundingBox())?.height).toBeLessThanOrEqual(1);
-  await expect(first.getByRole('link', { name: 'Phát' })).toBeVisible();
-
-  await page.getByTestId('hero:next').click();
-  await expect(second).toBeVisible();
-  await expect(second.getByRole('heading', { level: 2 })).toBeVisible();
 });
 
 test('a top 10 card shows the TMDB poster and its hover preview the backdrop', async ({
