@@ -49,7 +49,7 @@ test('Xem tất cả links to the listing page of its shelf, or /browse', async 
   const targets: Record<string, string> = {
     'new-episodes': '/new-episodes',
     'airing-this-season': '/airing-this-season',
-    upcoming: '/browse',
+    upcoming: '/upcoming',
   };
   for (const [id, href] of Object.entries(targets)) {
     await expect(page.getByTestId(`shelf:${id}:see-all`)).toHaveAttribute(

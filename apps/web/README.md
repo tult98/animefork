@@ -82,3 +82,7 @@ The `data-testid` names the e2e tests use: `hero`, `hero:slide:<index>`, `hero:d
 - Paging. 30 titles a page over the sorted list (`lib/ui/paging.ts`). The pager hides at one page, shows every page number up to 7 and collapses to first, last and the neighbours of the current page with ellipses above that, and below 768px shows `Trang X / N` instead of the numbers. A page past the end shows the last page.
 
 The `data-testid` names: `listing`, `listing:count`, `listing:sort`, `listing:sort:option:<value>`, `listing:grid`, `listing:loading`, `listing:empty`, `listing:partial`, `listing:pager`, `listing:prev`, `listing:next`, `listing:page:<n>`, `listing:summary`.
+
+## Upcoming listing
+
+`/upcoming` (`src/routes/upcoming.tsx`) is where the Xem tất cả link of the Sắp ra mắt shelf goes. It reads `/anime-sap-chieu/` (`UPCOMING_PATH`) through the same `TitleListing` as the airing listing, so the source's 2 pages (30 and 17 cards in the fixtures) load the same way and the sort and page search params behave the same. The cards carry the countdown tag of the home shelf (`upcoming` on `TitleListing`), and the default sort is the site's own order.

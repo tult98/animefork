@@ -44,6 +44,7 @@ export interface TitleListingProps {
   sourcePath: string | undefined | null;
   headerLabel?: string | null;
   newEpisode?: boolean;
+  upcoming?: boolean;
   showCount?: boolean;
   /** Keep only the newest `limit` titles of the source and fetch no more pages than that needs. */
   limit?: number;
@@ -83,6 +84,7 @@ export function TitleListing({
   sourcePath,
   headerLabel = null,
   newEpisode = false,
+  upcoming = false,
   showCount = true,
   limit,
   search: { sort, page },
@@ -220,7 +222,11 @@ export function TitleListing({
           <div role="list" className={GRID_CLASS} data-testid="listing:grid">
             {paged.items.map((title) => (
               <div key={title.path} role="listitem" className="min-w-0">
-                <PosterCard title={title} newEpisode={newEpisode} />
+                <PosterCard
+                  title={title}
+                  newEpisode={newEpisode}
+                  upcoming={upcoming}
+                />
               </div>
             ))}
           </div>
