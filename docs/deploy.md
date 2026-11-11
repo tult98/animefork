@@ -52,5 +52,5 @@ The data is cached art and ratings lookups, so it can be rebuilt, but that costs
 ## Caveats
 
 - The web app reads anime pages through the AnimeVsub Helper extension in each visitor's browser. Visitors need it installed, and it must allow your server's address.
-- Plain HTTP means no encryption. Fine for a private test, not for sharing widely.
-- When you get a domain: point an A record at the server, put the hostname in `deploy/Caddyfile` in place of `:80`, open port 443, set `PUBLIC_URL=https://<host>`, and rebuild. Caddy gets the certificate by itself.
+- The site must be served over HTTPS: the player uses `crypto.subtle`, which browsers only provide on HTTPS or localhost.
+- The domain is `animefork.com`: A records for `animefork.com` and `www` point at the server, ports 80 and 443 are open, and `PUBLIC_URL=https://animefork.com` in `deploy/.env`. Caddy gets the certificate by itself.

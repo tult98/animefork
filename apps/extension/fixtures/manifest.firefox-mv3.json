@@ -15,11 +15,18 @@
     "declarativeNetRequest",
     "storage"
   ],
-  "host_permissions": ["*://*/*"],
+  "host_permissions": [
+    "*://*/*"
+  ],
   "web_accessible_resources": [
     {
-      "resources": ["embed.js", "page-patch.js"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "embed.js",
+        "page-patch.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "content_security_policy": {
@@ -32,17 +39,24 @@
     }
   },
   "background": {
-    "scripts": ["background.js"]
+    "scripts": [
+      "background.js"
+    ]
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "<all_urls>"
+      ],
       "all_frames": true,
       "run_at": "document_start",
-      "js": ["content-scripts/inject.js"]
+      "js": [
+        "content-scripts/inject.js"
+      ]
     },
     {
       "matches": [
+        "http://animefork.com/*",
         "http://animevsub.eu.org/*",
         "http://animevsub.netlify.app/*",
         "http://cinevsub.eu.org/*",
@@ -63,6 +77,7 @@
         "http://tariteam.github.io/download-video/*",
         "http://vuitruyen.eu.org/*",
         "http://vuitruyen.netlify.app/*",
+        "https://animefork.com/*",
         "https://animevsub.eu.org/*",
         "https://animevsub.netlify.app/*",
         "https://cinevsub.eu.org/*",
@@ -86,7 +101,9 @@
       ],
       "all_frames": true,
       "run_at": "document_start",
-      "js": ["content-scripts/relay.js"]
+      "js": [
+        "content-scripts/relay.js"
+      ]
     }
   ]
 }
