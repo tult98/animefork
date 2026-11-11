@@ -6,6 +6,7 @@ import {
 } from '../../src/art/retry.ts';
 import type { StoredTitle } from '../../src/art/art.store.ts';
 import { NOTHING, setup, TONIKAWA } from './helpers.ts';
+import { DETAIL_100_VI } from './tmdb/fixtures.ts';
 import { mockTmdb } from './tmdb/tmdb-mock.ts';
 
 describe('ArtService.lookup', () => {
@@ -27,6 +28,8 @@ describe('ArtService.lookup', () => {
       backdropPath: '/en.jpg',
       backdropLang: 'en',
       posterPath: '/poster-vi.jpg',
+      overview: DETAIL_100_VI.overview,
+      overviewTranslated: false,
     });
   });
 
@@ -190,8 +193,11 @@ describe('ArtService.lookup', () => {
         backdropPath: '/old.jpg',
         backdropLang: null,
         posterPath: null,
+        overview: null,
+        overviewTranslated: false,
       });
       expect(filler.has(TONIKAWA.slug)).toBe(true);
+      expect(filler.hasOverview(TONIKAWA.slug)).toBe(false);
       await service.lookup({ titles: [TONIKAWA] });
       await filler.idle();
       expect(searches).toHaveLength(1);

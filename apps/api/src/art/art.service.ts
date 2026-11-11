@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, type Clock } from '../common/clock.ts';
 import type { ArtEntry, LookupRequest, LookupResponse } from './contract.ts';
-import { isSettled, isStale } from './retry.ts';
+import { isOverviewSettled, isSettled, isStale } from './retry.ts';
 import { ART_STORE, type ArtStore } from './art.store.ts';
 import { ArtFiller } from './art.filler.ts';
 
@@ -33,13 +33,24 @@ export class ArtService {
       const row = rows.get(slug);
       if (row && isSettled(row, now)) {
         if (row.status === 'matched') {
+          const overviewOk = row.overviewStatus === 'ok';
           art[slug] = {
             status: 'ready',
             backdropPath: row.backdropPath,
             backdropLang: row.backdropLang,
             posterPath: row.posterPath,
+            overview: overviewOk ? row.overview : null,
+            overviewTranslated: overviewOk && row.overviewTranslated,
           };
           if (isStale(row) && !filler.has(slug)) void filler.fill(title);
+          if (
+            row.tmdbId !== null &&
+            !isOverviewSettled(row, now) &&
+            !filler.has(slug) &&
+            !filler.hasOverview(slug)
+          ) {
+            void filler.fillOverview(slug, row.tmdbId);
+          }
           ready.push(slug);
         } else {
           art[slug] = { status: 'none' };

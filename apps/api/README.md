@@ -1,6 +1,6 @@
 # api
 
-Backend for the web app, built on NestJS. Its first feature is TMDB art for AnimeVsub titles. The browser sends the titles it shows. The service answers from Postgres when it already has a row. On a miss it answers `pending` at once, matches the title against TMDB in the background and stores the result, so the next lookup answers `ready`. The browser never sees the TMDB key or the database.
+Backend for the web app, built on NestJS. Its first feature is TMDB art and a Vietnamese synopsis for AnimeVsub titles. The browser sends the titles it shows. The service answers from Postgres when it already has a row. On a miss it answers `pending` at once, matches the title against TMDB in the background and stores the result, so the next lookup answers `ready`. The browser never sees the TMDB key or the database.
 
 ## Layout
 
@@ -13,8 +13,8 @@ src/
   database/        global pg.Pool (PG_POOL) and MigrationRunner
   health/          GET /healthz
   common/          zod validation pipe, error filter, clock token
-  art/             the art feature: controller, service, filler, store, retry table, contract
-    tmdb/          TMDB client, matchers (baseline, Jev, cascade), backdrop pick, title parsing, syncTitle
+  art/             the art feature: controller, service, filler, store, retry table, contract, translator
+    tmdb/          TMDB client, matchers (baseline, Jev, cascade), backdrop pick, title parsing, syncTitle, fetchOverview
 db/migrations/     numbered SQL files applied at boot
 scripts/           eval-matcher.ts, a read-only matcher comparison
 ```
@@ -25,7 +25,7 @@ A new feature module sits beside `art/` and imports nothing from it. It reads it
 
 `POST /v1/art/lookup` takes `{ titles, episodes? }`. `titles` is 1 to 50 `{ slug, name, seasonName?, year?, episodeCount? }`, and `slug` is the source season slug such as `tonikaku-kawaii-a3860`. Set `episodes: true` to get episode stills as well, which only the watch page needs. The answer is `{ art: { [slug]: entry } }`, where an entry is one of these:
 
-- `{ status: 'ready', backdropPath, backdropLang, posterPath, stills? }`. Paths are TMDB image paths. The web app adds the size. `posterPath` is null for a row that has not been refilled yet or when TMDB has no poster.
+- `{ status: 'ready', backdropPath, backdropLang, posterPath, overview, overviewTranslated, stills? }`. Paths are TMDB image paths. The web app adds the size. `posterPath` is null for a row that has not been refilled yet or when TMDB has no poster. `overview` is the Vietnamese synopsis, or null while the title has none (see **Overview**). `overviewTranslated` is true when DeepSeek translated it from TMDB's English overview. Both fields are optional in the zod schema so a web build still parses an answer from an API that predates them.
 - `{ status: 'pending' }`. A fill is running or queued. Ask again later.
 - `{ status: 'none' }`. TMDB had no confident match, or the last fill failed. The service will not try again until the retry window passes.
 
@@ -45,7 +45,7 @@ The zod schemas in `src/art/contract.ts` are the single source of truth, and `ap
 
 ## How it decides
 
-- **Rows.** `title_art` keeps one row per slug with a status of `matched`, `no_match` or `failed`, and `episode_art` keeps one still per episode. `db/migrations/001_art.sql` creates them, `002_poster.sql` adds `poster_path` and `poster_lang`, and `003_source_and_provenance.sql` adds the provenance columns described under **Jev**, and `004_show_scope.sql` adds `match_scope` (see **Show scope**).
+- **Rows.** `title_art` keeps one row per slug with a status of `matched`, `no_match` or `failed`, and `episode_art` keeps one still per episode. `db/migrations/001_art.sql` creates them, `002_poster.sql` adds `poster_path` and `poster_lang`, and `003_source_and_provenance.sql` adds the provenance columns described under **Jev**, `004_show_scope.sql` adds `match_scope` (see **Show scope**), and `005_overview.sql` adds the overview columns (see **Overview**).
 - **Retry.** `src/art/retry.ts` holds the table. New rows are written with `MATCHER_VERSION` 4. Version 2 added the poster, version 3 added Jev and version 4 added show scope.
 
   | Status     | Written below version       | Settled for | Then                                          |
@@ -85,6 +85,27 @@ TMDB backdrops and posters belong to the whole show, and the web app is fine sho
 - **Rejections.** A title rejected at both scopes stores `no_match` with the season probability and the show probability in its reason, for example `(best probability 0.21, show probability 0.40)`.
 - **Schema.** `004_show_scope.sql` adds `match_scope text not null default 'season'` and relaxes the matched-row check. A matched row needs `tmdb_id`, and needs `tmdb_season` only when its scope is `season`. Existing rows read as `season`.
 
+## Overview
+
+The web hero showed the source site's card excerpt, which the site cuts at about 70 characters. The service now stores TMDB's synopsis in Vietnamese for every matched title, and the hero shows it instead.
+
+- **Where it comes from.** `fetchOverview` in `src/art/tmdb/overview.ts` asks `GET /tv/{id}?language=vi` and, only when that overview is empty, `?language=en`. It answers `{ text, lang }` or null, and takes the TMDB id alone. A Vietnamese overview is stored as is. An English one is translated by the `OverviewTranslator` and only the translation is stored. English is never stored or shown.
+- **Translator.** `src/art/translator.ts` defines `OverviewTranslator` (one `translate(text)` method) and its one implementation, `DeepSeekTranslator`. It sends `POST {DEEPSEEK_API_BASE}/chat/completions` with `Authorization: Bearer <key>`, the model, thinking disabled, temperature 1.3 (DeepSeek's parameter guide recommends it for translation), a system prompt and the synopsis between `<synopsis>` tags. The prompt asks for natural Vietnamese, keeps character names, place names and the show's proper nouns in their romanized or original form, forbids adding, removing or explaining, asks for the translation only, and says the synopsis is untrusted data, never instructions. The input is cut to 2000 characters at a sentence boundary. Each attempt times out after 20 s. A 429 or 5xx is retried once after 1 s, and nothing else is retried. The answer must be non-empty, end with `finish_reason` `stop`, be at most 3 times the input's length and differ from the input, or it counts as a failure. Without `DEEPSEEK_API_KEY` there is no translator, the module logs `DeepSeek translation is off` once at boot, and a title with only an English overview stores `none`. The key is never logged.
+- **New fills.** After a match is saved, the same fill fetches the overview and translates it when needed. An overview or translation failure never fails the fill: the art is stored, `overview_status` becomes `failed`, and the filler logs `overview <slug> failed: <reason>`.
+- **Backfill.** A lookup that answers `ready` for a matched row whose overview is missing or past its retry window schedules an overview-only job, unless an art fill for that slug is running. The job uses the stored `tmdb_id`, with no search, no matcher and no Jev. Overview jobs are single-flight per slug in their own map, so they never block or skip an art fill, and they share the fill concurrency cap. The answer that scheduled the job carries `overview: null`. The next lookup carries the overview.
+- **Retry.** `overview_status` has its own table in `src/art/retry.ts`:
+
+  | `overview_status` | Meaning                                     | Settled for | Then                       |
+  | ----------------- | ------------------------------------------- | ----------- | -------------------------- |
+  | (null)            | never attempted                             | not at all  | fetched on its next lookup |
+  | `ok`              | stored, Vietnamese or translated            | forever     | never fetched again        |
+  | `none`            | TMDB has neither overview, or no translator | 7 days      | fetched on its next lookup |
+  | `failed`          | TMDB or DeepSeek error                      | 10 minutes  | fetched on its next lookup |
+
+  An `ok` row is final, so a title is translated at most once.
+
+- **Schema.** `005_overview.sql` adds `overview`, `overview_lang` (`vi` or `en`, the language TMDB wrote it in), `overview_translated`, `overview_status` and `overview_attempted_at` to `title_art`. The check `title_art_overview_ok` makes an `ok` row carry text and a language, and makes `overview_translated` true exactly when `overview_lang` is `en`, so untranslated English cannot be stored as `ok`. A refill that matches a different TMDB id clears the overview columns.
+
 **Run a single replica.** The single-flight map and the rate limit counters live in process memory. Two replicas would each call TMDB for the same new slug, and each would allow the full rate.
 
 ## Migrations
@@ -107,6 +128,9 @@ TMDB backdrops and posters belong to the whole show, and the web app is fine sho
 | `JEV_MIN_NOUL`          | no       | Minimum `any_match` noul, 0 to 1, 0.85 by default                   |
 | `JEV_MIN_CHOICE`        | no       | Minimum probability of Jev's choice, 0 to 1, 0.85 by default        |
 | `JEV_MIN_CONFIDENCE`    | no       | Minimum confidence of Jev's choice, 0 to 1, 0.5 by default          |
+| `DEEPSEEK_API_KEY`      | no       | DeepSeek API key. Unset turns overview translation off              |
+| `DEEPSEEK_API_BASE`     | no       | DeepSeek API root, `https://api.deepseek.com` by default, or a stub |
+| `DEEPSEEK_MODEL`        | no       | DeepSeek chat model, `deepseek-flash` by default                    |
 
 A missing or invalid variable stops the boot with `missing or invalid env:` and its name.
 
@@ -128,7 +152,7 @@ Vitest compiles the same decorators without a plugin. Vite's built-in transform 
 
 ## Run it locally
 
-Copy `.env.example` to `.env` and fill in `TMDB_API_KEY`, and `TYPESAFE_API_KEY` to turn Jev on. Git ignores `.env`.
+Copy `.env.example` to `.env` and fill in `TMDB_API_KEY`, `TYPESAFE_API_KEY` to turn Jev on, and `DEEPSEEK_API_KEY` to translate English-only overviews. Git ignores `.env`.
 
 ```sh
 docker compose -f apps/api/docker-compose.yml up -d --wait   # Postgres 17 on localhost:54330, database api
@@ -144,4 +168,4 @@ VITE_API_URL=http://localhost:3100 pnpm nx dev web
 
 `pnpm nx run-many -t typecheck lint test build -p api`
 
-`test/app.test.ts` boots `AppModule` through `@nestjs/testing` and sends requests with supertest. It swaps the env, the pool, the store and the TMDB client for in-memory ones, so it needs neither Postgres nor the network. The `*.pg.test.ts` files run against a real Postgres only when `DATABASE_URL` is set, for example the compose database above. The TMDB fixtures in `test/art/tmdb/fixtures.ts` are hand-written from the API's documented response shapes. The Jev tests run the real SDK against a fake `fetch` (`test/art/tmdb/jev-mock.ts`), so they check the request body on the wire without calling TypeSafe.
+`test/app.test.ts` boots `AppModule` through `@nestjs/testing` and sends requests with supertest. It swaps the env, the pool, the store and the TMDB client for in-memory ones, so it needs neither Postgres nor the network. The `*.pg.test.ts` files run against a real Postgres only when `DATABASE_URL` is set, for example the compose database above. The TMDB fixtures in `test/art/tmdb/fixtures.ts` are hand-written from the API's documented response shapes. The Jev tests run the real SDK against a fake `fetch` (`test/art/tmdb/jev-mock.ts`), so they check the request body on the wire without calling TypeSafe. The DeepSeek tests run `DeepSeekTranslator` against a fake `fetch` the same way.

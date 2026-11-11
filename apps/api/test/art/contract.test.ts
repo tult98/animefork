@@ -27,6 +27,22 @@ describe('contract', () => {
         },
         c: { status: 'pending' },
         d: { status: 'none' },
+        e: {
+          status: 'ready',
+          backdropPath: '/e.jpg',
+          backdropLang: 'en',
+          posterPath: null,
+          overview: 'Tóm tắt.',
+          overviewTranslated: true,
+        },
+        f: {
+          status: 'ready',
+          backdropPath: null,
+          backdropLang: null,
+          posterPath: null,
+          overview: null,
+          overviewTranslated: false,
+        },
       },
     };
     expect(
@@ -52,6 +68,27 @@ describe('contract', () => {
         },
       }).success,
     ).toBe(false);
+  });
+
+  it('accepts a ready entry without the overview fields and refuses an empty overview', () => {
+    const entry = {
+      status: 'ready',
+      backdropPath: null,
+      backdropLang: null,
+      posterPath: null,
+    };
+    expect(LookupResponseSchema.safeParse({ art: { a: entry } }).success).toBe(
+      true,
+    );
+    for (const bad of [
+      { ...entry, overview: '' },
+      { ...entry, overview: 1 },
+      { ...entry, overviewTranslated: 'yes' },
+    ]) {
+      expect(LookupResponseSchema.safeParse({ art: { a: bad } }).success).toBe(
+        false,
+      );
+    }
   });
 
   it('bounds titles and their fields', () => {

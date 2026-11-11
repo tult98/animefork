@@ -14,6 +14,7 @@ import { ART_STORE, PostgresArtStore } from './art.store.ts';
 import { createMatcher } from './tmdb/jev.ts';
 import type { SyncDeps } from './tmdb/sync.ts';
 import { createTmdbClient } from './tmdb/tmdb.ts';
+import { createTranslator, OVERVIEW_TRANSLATOR } from './translator.ts';
 
 @Module({
   controllers: [ArtController],
@@ -29,6 +30,11 @@ import { createTmdbClient } from './tmdb/tmdb.ts';
         }),
         matcher: createMatcher(config.jev),
       }),
+    },
+    {
+      provide: OVERVIEW_TRANSLATOR,
+      inject: [ART_CONFIG],
+      useFactory: (config: ArtConfig) => createTranslator(config.deepseek),
     },
     { provide: ART_STORE, useClass: PostgresArtStore },
     { provide: FILL_CONCURRENCY, useValue: DEFAULT_FILL_CONCURRENCY },

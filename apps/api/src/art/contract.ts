@@ -25,6 +25,9 @@ export const ArtEntrySchema = z.discriminatedUnion('status', [
     backdropPath: z.string().min(1).nullable(),
     backdropLang: z.string().min(1).nullable(),
     posterPath: z.string().min(1).nullable(),
+    // Optional so a web build stays compatible with an API that predates the overview.
+    overview: z.string().min(1).nullable().optional(),
+    overviewTranslated: z.boolean().optional(),
     stills: z
       .record(z.string().regex(/^[1-9]\d*$/), z.string().min(1))
       .optional(),

@@ -7,6 +7,7 @@ import { systemClock } from '../../src/common/clock.ts';
 import { BaselineMatcher, type Matcher } from '../../src/art/tmdb/matcher.ts';
 import { MemoryArtStore } from '../../src/art/art.store.ts';
 import { createTmdbClient } from '../../src/art/tmdb/tmdb.ts';
+import type { OverviewTranslator } from '../../src/art/translator.ts';
 import { mockTmdb } from './tmdb/tmdb-mock.ts';
 
 export const TONIKAWA = {
@@ -36,6 +37,7 @@ export function setup(
     concurrency?: number;
     now?: () => Date;
     matcher?: Matcher;
+    translator?: OverviewTranslator | null;
   } = {},
 ) {
   const now = options.now ?? systemClock;
@@ -50,6 +52,7 @@ export function setup(
     sync,
     options.concurrency ?? DEFAULT_FILL_CONCURRENCY,
     now,
+    options.translator ?? null,
   );
   const service = new ArtService(store, filler, now);
   return { store, filler, service, sync, searches: tmdb.searches };

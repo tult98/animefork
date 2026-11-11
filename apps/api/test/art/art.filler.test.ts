@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NOTHING, setup, TONIKAWA } from './helpers.ts';
+import { DETAIL_100_VI } from './tmdb/fixtures.ts';
 import { mockTmdb } from './tmdb/tmdb-mock.ts';
 
 describe('ArtFiller', () => {
@@ -39,6 +40,8 @@ describe('ArtFiller', () => {
       backdropPath: '/en.jpg',
       backdropLang: 'en',
       posterPath: '/poster-vi.jpg',
+      overview: DETAIL_100_VI.overview,
+      overviewTranslated: false,
       stills: {},
     });
   });

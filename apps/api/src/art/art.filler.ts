@@ -1,9 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CLOCK, type Clock } from '../common/clock.ts';
 import type { TitleInput } from './contract.ts';
-import { isSettled, isStale } from './retry.ts';
-import { ART_STORE, type ArtStore } from './art.store.ts';
+import { isOverviewSettled, isSettled, isStale } from './retry.ts';
+import { ART_STORE, type ArtStore, type OverviewResult } from './art.store.ts';
+import { fetchOverview } from './tmdb/overview.ts';
 import { syncTitle, type SyncDeps } from './tmdb/sync.ts';
+import { OVERVIEW_TRANSLATOR, type OverviewTranslator } from './translator.ts';
 
 export const ART_SYNC = Symbol('ArtSync');
 export const FILL_CONCURRENCY = Symbol('FillConcurrency');
@@ -20,51 +22,80 @@ export function describeError(error: unknown): string {
 export class ArtFiller {
   private readonly logger = new Logger(ArtFiller.name);
   private readonly inFlight = new Map<string, Promise<void>>();
+  private readonly overviewsInFlight = new Map<string, Promise<void>>();
   private readonly queue: (() => void)[] = [];
   private running = 0;
   private readonly store: ArtStore;
   private readonly sync: SyncDeps;
   private readonly concurrency: number;
   private readonly now: Clock;
+  private readonly translator: OverviewTranslator | null;
 
   constructor(
     @Inject(ART_STORE) store: ArtStore,
     @Inject(ART_SYNC) sync: SyncDeps,
     @Inject(FILL_CONCURRENCY) concurrency: number,
     @Inject(CLOCK) now: Clock,
+    @Inject(OVERVIEW_TRANSLATOR) translator: OverviewTranslator | null,
   ) {
     this.store = store;
     this.sync = sync;
     this.concurrency = concurrency;
     this.now = now;
+    this.translator = translator;
   }
 
   has(slug: string): boolean {
     return this.inFlight.has(slug);
   }
 
+  hasOverview(slug: string): boolean {
+    return this.overviewsInFlight.has(slug);
+  }
+
   fill(input: TitleInput): Promise<void> {
-    const existing = this.inFlight.get(input.slug);
+    return this.schedule(this.inFlight, input.slug, 'fill', () =>
+      this.run(input),
+    );
+  }
+
+  // Overview jobs have their own single-flight map, so one never makes an art fill wait or be skipped.
+  fillOverview(slug: string, tmdbId: number): Promise<void> {
+    return this.schedule(this.overviewsInFlight, slug, 'overview', () =>
+      this.runOverview(slug, tmdbId),
+    );
+  }
+
+  async idle(): Promise<void> {
+    while (this.inFlight.size > 0 || this.overviewsInFlight.size > 0) {
+      await Promise.all([
+        ...this.inFlight.values(),
+        ...this.overviewsInFlight.values(),
+      ]);
+    }
+  }
+
+  private schedule(
+    inFlight: Map<string, Promise<void>>,
+    slug: string,
+    kind: string,
+    job: () => Promise<void>,
+  ): Promise<void> {
+    const existing = inFlight.get(slug);
     if (existing) return existing;
     const done = this.slot()
-      .then(() => this.run(input))
+      .then(job)
       .catch((error: unknown) => {
         this.logger.error(
-          `fill ${input.slug} could not be saved: ${describeError(error)}`,
+          `${kind} ${slug} could not be saved: ${describeError(error)}`,
         );
       })
       .finally(() => {
         this.release();
-        this.inFlight.delete(input.slug);
+        inFlight.delete(slug);
       });
-    this.inFlight.set(input.slug, done);
+    inFlight.set(slug, done);
     return done;
-  }
-
-  async idle(): Promise<void> {
-    while (this.inFlight.size > 0) {
-      await Promise.all(this.inFlight.values());
-    }
   }
 
   private slot(): Promise<void> {
@@ -99,10 +130,59 @@ export class ArtFiller {
       await store.saveMiss(input, 'failed', reason);
       return;
     }
-    if (outcome.kind === 'matched') {
-      await store.saveMatched(outcome.matched);
-    } else {
+    if (outcome.kind !== 'matched') {
       await store.saveMiss(input, 'no_match', outcome.skipped.reason);
+      return;
+    }
+    const { tmdbId } = outcome.matched;
+    await store.saveMatched(outcome.matched);
+    const keepsOverview =
+      current?.tmdbId === tmdbId && current.overviewStatus === 'ok';
+    if (keepsOverview || this.overviewsInFlight.has(input.slug)) return;
+    await store.saveOverview(
+      input.slug,
+      tmdbId,
+      await this.resolveOverview(input.slug, tmdbId),
+    );
+  }
+
+  private async runOverview(slug: string, tmdbId: number): Promise<void> {
+    const current = (await this.store.find([slug])).get(slug);
+    if (
+      current?.status !== 'matched' ||
+      current.tmdbId !== tmdbId ||
+      isOverviewSettled(current, this.now())
+    ) {
+      return;
+    }
+    await this.store.saveOverview(
+      slug,
+      tmdbId,
+      await this.resolveOverview(slug, tmdbId),
+    );
+  }
+
+  private async resolveOverview(
+    slug: string,
+    tmdbId: number,
+  ): Promise<OverviewResult> {
+    try {
+      const found = await fetchOverview(this.sync.tmdb, tmdbId);
+      if (!found) return { status: 'none' };
+      if (found.lang === 'vi') {
+        return {
+          status: 'ok',
+          text: found.text,
+          lang: 'vi',
+          translated: false,
+        };
+      }
+      if (!this.translator) return { status: 'none' };
+      const text = await this.translator.translate(found.text);
+      return { status: 'ok', text, lang: 'en', translated: true };
+    } catch (error) {
+      this.logger.warn(`overview ${slug} failed: ${describeError(error)}`);
+      return { status: 'failed' };
     }
   }
 }

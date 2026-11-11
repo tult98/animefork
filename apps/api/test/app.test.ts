@@ -5,11 +5,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ART_SYNC, ArtFiller } from '../src/art/art.filler.ts';
 import { ART_STORE, type ArtStore } from '../src/art/art.store.ts';
 import { LOOKUP_PATH, MAX_TITLES_PER_LOOKUP } from '../src/art/contract.ts';
+import {
+  DeepSeekTranslator,
+  OVERVIEW_TRANSLATOR,
+} from '../src/art/translator.ts';
 import { AppModule } from '../src/app.module.ts';
 import { configureApp } from '../src/app.setup.ts';
 import { APP_CONFIG, ENV, type Env } from '../src/config/app.config.ts';
 import { MigrationRunner, PG_POOL } from '../src/database/migration-runner.ts';
 import { setup, TONIKAWA } from './art/helpers.ts';
+import { DETAIL_100_VI } from './art/tmdb/fixtures.ts';
 
 const ORIGIN = 'https://web.test';
 
@@ -82,6 +87,8 @@ describe('api app', () => {
           backdropPath: '/en.jpg',
           backdropLang: 'en',
           posterPath: '/poster-vi.jpg',
+          overview: DETAIL_100_VI.overview,
+          overviewTranslated: false,
           stills: { '1': '/e1.jpg', '3': '/e3.jpg' },
         },
       },
@@ -208,6 +215,16 @@ describe('api app', () => {
     const res = await post({ titles: [TONIKAWA] });
     expect(res.status).toBe(503);
     expect(res.body).toEqual({ error: 'unavailable' });
+  });
+
+  it('wires the DeepSeek translator only when its key is set', async () => {
+    const off = await build();
+    expect(off.app.get(OVERVIEW_TRANSLATOR)).toBeNull();
+    const on = await build({
+      DEEPSEEK_API_KEY: 'ds',
+      DEEPSEEK_API_BASE: 'http://127.0.0.1:9',
+    });
+    expect(on.app.get(OVERVIEW_TRANSLATOR)).toBeInstanceOf(DeepSeekTranslator);
   });
 
   it('refuses to boot without the TMDB key the art module needs', async () => {
