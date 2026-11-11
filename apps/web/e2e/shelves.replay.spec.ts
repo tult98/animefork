@@ -48,7 +48,6 @@ test('Xem tất cả links to the listing page of its shelf, or /browse', async 
   await page.goto('/?transport=replay');
   const targets: Record<string, string> = {
     'new-episodes': '/new-episodes',
-    'top-10-today': '/browse',
     'airing-this-season': '/airing-this-season',
     upcoming: '/browse',
   };
@@ -58,6 +57,8 @@ test('Xem tất cả links to the listing page of its shelf, or /browse', async 
       href,
     );
   }
+  await expect(page.getByTestId('shelf:top-10-today')).toBeVisible();
+  await expect(page.getByTestId('shelf:top-10-today:see-all')).toHaveCount(0);
 });
 
 test('ArrowRight moves focus to the next cover', async ({ page }) => {

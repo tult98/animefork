@@ -11,6 +11,7 @@ import {
   applyHomeArt,
   applyRatings,
   artPollDelay,
+  artSkeletonLeft,
   fetchArt,
   fetchHomeArt,
   type HomeArt,
@@ -45,6 +46,17 @@ function sentBody(fetchImpl: typeof fetch, call = 0): unknown {
   const init = vi.mocked(fetchImpl).mock.calls[call]![1];
   return JSON.parse(String(init?.body));
 }
+
+describe('artSkeletonLeft', () => {
+  it('keeps a skeleton only until the first poll has answered', () => {
+    expect([0, 1, 2, 3].map(artSkeletonLeft)).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+  });
+});
 
 describe('artPollDelay', () => {
   it('backs off 3s, 6s, 12s while pending and then stops', () => {
@@ -754,6 +766,16 @@ describe('waiting for art', () => {
       false,
     );
     expect(isWaitingForArt('b-2', wait({ art: a }))).toBe(false);
+  });
+
+  it('does not wait for a slug that was never sent for lookup', () => {
+    const a = art(['a-1'], ['a-1']);
+    expect(
+      isWaitingForArt('b-2', wait({ art: a, sent: new Set(['a-1']) })),
+    ).toBe(false);
+    expect(
+      isWaitingForArt('a-1', wait({ art: a, sent: new Set(['a-1']) })),
+    ).toBe(true);
   });
 
   it('settles after a failed lookup', async () => {

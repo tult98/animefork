@@ -16,6 +16,7 @@ import {
   applyHomeArt,
   applyRatings,
   artPollDelay,
+  artSkeletonLeft,
   fetchHomeArt,
   markArtPending,
 } from '../lib/titles/art.ts';
@@ -141,10 +142,7 @@ export function TitleListing({
   });
   const pollsLeft =
     art.isPlaceholderData ||
-    artPollDelay(
-      true,
-      queryClient.getQueryState(artKey)?.dataUpdateCount ?? 0,
-    ) !== false;
+    artSkeletonLeft(queryClient.getQueryState(artKey)?.dataUpdateCount ?? 0);
   const titles = useMemo(() => {
     const applied = art.data
       ? applyRatings(applyHomeArt(shelf, art.data.paths), art.data.ratings)
@@ -154,9 +152,10 @@ export function TitleListing({
       art: art.data,
       pollsLeft,
       failed: art.isError,
+      sent: new Set(lookup.map((t) => t.slug)),
     });
     return marked?.items ?? shelf[0]?.items ?? [];
-  }, [shelf, art.data, art.isError, apiOn, pollsLeft]);
+  }, [shelf, lookup, art.data, art.isError, apiOn, pollsLeft]);
 
   const entries = useMemo(() => arrange(titles, { sort }), [titles, sort]);
   const paged = paginate(entries, page);
