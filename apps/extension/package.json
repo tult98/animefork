@@ -1,6 +1,6 @@
 {
   "name": "extension-animevsub-helper",
-  "displayName": "AnimeVsub Helper",
+  "displayName": "Animefork Helper",
   "description": "Extension add API helper for AnimeVsub",
   "version": "1.0.50",
   "private": true,

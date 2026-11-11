@@ -18,7 +18,7 @@ export default defineBackground(() => {
 
   // The embed rules are optional: never let a failure here break the HTTP API.
   installEmbedRules().catch((error) => {
-    console.error('[AnimeVsub Helper] Failed to install embed rules:', error);
+    console.error('[Animefork Helper] Failed to install embed rules:', error);
   });
 
   onMessage('set:referrers', async ({ data }) => {

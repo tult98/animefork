@@ -191,7 +191,7 @@ class EmbedBridgeImpl implements EmbedBridge {
       this.clearTimers();
       this.rejectReady(
         new Error(
-          'AnimeVsub embed bridge did not respond. Make sure AnimeVsub Helper is installed and the embedded page allows framing.',
+          'AnimeVsub embed bridge did not respond. Make sure Animefork Helper is installed and the embedded page allows framing.',
         ),
       );
     }, this.readyTimeout);

@@ -31,7 +31,7 @@ A card or hero slide does not show the source image first and swap it later. `Ho
 
 Routes never fetch directly. They call `useTransport()` from `src/lib/transport/`, which returns one of two implementations.
 
-- `ExtensionTransport` calls `Http` from `client-ext-animevsub-helper`, so the AnimeVsub Helper extension does the fetching with the site's cookies. Relative URLs get the upstream origin (`VITE_UPSTREAM_ORIGIN`) and the `#animevsub-vsub` suffix. It throws `ExtensionMissingError` when the extension is absent.
+- `ExtensionTransport` calls `Http` from `client-ext-animevsub-helper`, so the Animefork Helper extension does the fetching with the site's cookies. Relative URLs get the upstream origin (`VITE_UPSTREAM_ORIGIN`) and the `#animevsub-vsub` suffix. It throws `ExtensionMissingError` when the extension is absent.
 - `ReplayTransport` serves files from `public/fixtures/<set>/`, mapped from the URL path (`/` is `index.html`, `/a/b/` is `a/b.html`).
 
 Selection: `?transport=replay` in the URL, else `VITE_TRANSPORT=replay`, else the extension. In replay mode `?fixtures=<set>` picks the fixture set (default `default`).

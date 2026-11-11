@@ -1,4 +1,4 @@
-# Extension AnimeVsub Helper
+# Extension Animefork Helper
 
 [![GitHub license](https://img.shields.io/github/license/anime-vsub/extension-animevsub-helper)](https://github.com/anime-vsub/extension-animevsub-helper/blob/main/LICENSE)
 ![Release](https://img.shields.io/github/package-json/v/anime-vsub/extension-animevsub-helper?color=b)
@@ -8,7 +8,7 @@
 > Extension is helper for animevsub [dekstop website](https://github.com/anime-vsub/desktop-web).
 > _The web version of the app won't work without this extension_
 
-Although this extension is called `AnimeVsub Helper` it can provide complete API cors for any website.
+Although this extension is called `Animefork Helper` it can provide complete API cors for any website.
 
 ## Install
 
