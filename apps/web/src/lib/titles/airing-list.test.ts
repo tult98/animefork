@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type { MalStats } from '../../../../api/src/art/contract.ts';
 import {
   arrange,
-  listingScore,
   ListSearchSchema,
   seasonLabel,
   type SortKey,
@@ -45,21 +44,6 @@ const title = (name: string, rating: number, extra: Extra = {}): Title => ({
 const names = (titles: Title[], sort: SortKey) =>
   arrange(titles, { sort }).map((t) => t.name);
 
-describe('listingScore', () => {
-  it('averages the AVS and MAL scores', () => {
-    expect(listingScore(title('a', 8, { score: 7 }))).toBe(7.5);
-  });
-  it('uses the AVS score when MAL has no score', () => {
-    expect(listingScore(title('a', 8, { score: null }))).toBe(8);
-  });
-  it('uses the AVS score when there is no MAL data', () => {
-    expect(listingScore(title('a', 8, { noMal: true }))).toBe(8);
-  });
-  it('does not round', () => {
-    expect(listingScore(title('a', 8.4, { score: 7.91 }))).toBeCloseTo(8.155);
-  });
-});
-
 describe('arrange', () => {
   const titles = [
     title('a', 8, { score: 7 }),
@@ -69,49 +53,49 @@ describe('arrange', () => {
     title('e', 9, { score: 7 }),
   ];
 
-  it('sorts by score descending with upstream order breaking ties', () => {
-    expect(names(titles, 'score-desc')).toEqual(['b', 'c', 'e', 'a', 'd']);
-  });
-
-  it('sorts by score ascending with upstream order breaking ties', () => {
-    expect(names(titles, 'score-asc')).toEqual(['d', 'a', 'e', 'c', 'b']);
-  });
-
-  it('keeps the upstream order for equal scores in both directions', () => {
-    const tied = [
-      title('p', 8, { noMal: true }),
-      title('q', 7, { score: 9 }),
-      title('r', 8, { score: null }),
-    ];
-    expect(names(tied, 'score-desc')).toEqual(['p', 'q', 'r']);
-    expect(names(tied, 'score-asc')).toEqual(['p', 'q', 'r']);
-  });
-
-  it('sorts on the unrounded score', () => {
-    const close = [
-      title('x', 8, { score: 8.1 }),
-      title('y', 8, { score: 8.2 }),
-    ];
-    expect(names(close, 'score-desc')).toEqual(['y', 'x']);
-  });
-
   it('keeps the upstream order for recent', () => {
     expect(names(titles, 'recent')).toEqual(['a', 'b', 'c', 'd', 'e']);
   });
 
-  describe('views and voters', () => {
+  describe('rating', () => {
+    const voted = [
+      { ...title('few', 9.5, { noMal: true }), avsVoters: 100 },
+      { ...title('many', 9, { noMal: true }), avsVoters: 20000 },
+      { ...title('mid', 8, { noMal: true }), avsVoters: 1000 },
+      { ...title('low', 7, { noMal: true }), avsVoters: 1000 },
+    ];
+    it('ranks by vote-weighted rating, highest first', () => {
+      expect(names(voted, 'rating-desc')).toEqual([
+        'many',
+        'few',
+        'mid',
+        'low',
+      ]);
+    });
+    it('reverses the order for ascending', () => {
+      expect(names(voted, 'rating-asc')).toEqual(
+        names(voted, 'rating-desc').reverse(),
+      );
+    });
+    it('keeps the upstream order for equal values in both directions', () => {
+      const tied = [
+        title('p', 8, { noMal: true }),
+        title('q', 8, { noMal: true }),
+      ];
+      expect(names(tied, 'rating-desc')).toEqual(['p', 'q']);
+      expect(names(tied, 'rating-asc')).toEqual(['p', 'q']);
+    });
+  });
+
+  describe('views', () => {
     const counted = [
-      { ...title('a', 5), views: 100, avsVoters: 5 },
+      { ...title('a', 5), views: 100 },
       title('b', 5),
-      { ...title('c', 5), views: 300, avsVoters: 9 },
+      { ...title('c', 5), views: 300 },
       { ...title('d', 5), views: 100 },
-      { ...title('e', 5), avsVoters: 5 },
     ];
     it('sorts by views descending with missing values last', () => {
-      expect(names(counted, 'views-desc')).toEqual(['c', 'a', 'd', 'b', 'e']);
-    });
-    it('sorts by voters descending with missing values last', () => {
-      expect(names(counted, 'voters-desc')).toEqual(['c', 'a', 'e', 'b', 'd']);
+      expect(names(counted, 'views-desc')).toEqual(['c', 'a', 'd', 'b']);
     });
   });
 });
@@ -132,11 +116,14 @@ describe('ListSearchSchema', () => {
   });
   it('falls back per field on a bad value', () => {
     const parse = (raw: unknown) => ListSearchSchema.parse(raw);
-    expect(parse({ sort: 'score-asc', page: 2 })).toEqual({
-      sort: 'score-asc',
+    expect(parse({ sort: 'rating-asc', page: 2 })).toEqual({
+      sort: 'rating-asc',
       page: 2,
     });
     expect(parse({ sort: 'mal-asc' })).toMatchObject({ sort: 'recent' });
+    for (const old of ['score-desc', 'score-asc', 'voters-desc']) {
+      expect(parse({ sort: old })).toMatchObject({ sort: 'recent' });
+    }
     expect(parse({ sort: 'az' })).toMatchObject({ sort: 'recent' });
     expect(parse({ sort: null })).toMatchObject({ sort: 'recent' });
   });

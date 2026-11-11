@@ -1,15 +1,14 @@
 import { z } from 'zod';
+import { ratingRanks } from './rating-rank.ts';
 import type { Title } from './title.ts';
 
-export type SortKey =
-  'recent' | 'score-desc' | 'score-asc' | 'views-desc' | 'voters-desc';
+export type SortKey = 'recent' | 'rating-desc' | 'rating-asc' | 'views-desc';
 
 export const SORT_LABELS: Record<SortKey, string> = {
   recent: 'Tập mới nhất',
-  'score-desc': 'Điểm: cao đến thấp',
-  'score-asc': 'Điểm: thấp đến cao',
+  'rating-desc': 'Đánh giá: cao đến thấp',
+  'rating-asc': 'Đánh giá: thấp đến cao',
   'views-desc': 'Xem nhiều nhất',
-  'voters-desc': 'Nhiều lượt bình chọn',
 };
 
 export const DEFAULT_SORT: SortKey = 'recent';
@@ -38,11 +37,6 @@ interface Row {
   index: number;
 }
 
-export function listingScore(title: Title): number {
-  const mal = title.mal?.score;
-  return mal == null ? title.rating : (title.rating + mal) / 2;
-}
-
 function byValue(
   value: (title: Title) => number | null | undefined,
   direction: 1 | -1,
@@ -57,12 +51,20 @@ function byValue(
   };
 }
 
-const SORTERS: Record<SortKey, (a: Row, b: Row) => number> = {
-  recent: (a, b) => a.index - b.index,
-  'score-desc': byValue(listingScore, -1),
-  'score-asc': byValue(listingScore, 1),
-  'views-desc': byValue((t) => t.views, -1),
-  'voters-desc': byValue((t) => t.avsVoters, -1),
+const byRating = (titles: readonly Title[], direction: 1 | -1) => {
+  const ranks = ratingRanks(titles);
+  return (a: Row, b: Row) =>
+    direction * (ranks[a.index]! - ranks[b.index]!) || a.index - b.index;
+};
+
+const SORTERS: Record<
+  SortKey,
+  (titles: readonly Title[]) => (a: Row, b: Row) => number
+> = {
+  recent: () => (a, b) => a.index - b.index,
+  'rating-desc': (titles) => byRating(titles, -1),
+  'rating-asc': (titles) => byRating(titles, 1),
+  'views-desc': () => byValue((t) => t.views, -1),
 };
 
 export function arrange(
@@ -70,7 +72,7 @@ export function arrange(
   { sort }: Pick<ListSearch, 'sort'>,
 ): Title[] {
   const rows: Row[] = titles.map((title, index) => ({ title, index }));
-  return rows.sort(SORTERS[sort]).map((row) => row.title);
+  return rows.sort(SORTERS[sort](titles)).map((row) => row.title);
 }
 
 const SEASON_NAMES: Record<string, string> = {
