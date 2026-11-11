@@ -8,6 +8,7 @@ import {
   fetchHome,
   fetchNewEpisodes,
   fetchSeason,
+  japaneseSeasonPath,
   NEW_EPISODES_PATH,
   parseHome,
   parseNewEpisodes,
@@ -152,6 +153,34 @@ describe('fetchHome and fetchSeason through ReplayTransport', () => {
     await expect(fetchSeason(replay(), '/season/none/1999/')).rejects.toThrow(
       /404/,
     );
+  });
+});
+
+describe('japaneseSeasonPath', () => {
+  it('turns the season path into the site list filtered to jp', () => {
+    expect(japaneseSeasonPath('/season/autumn/2026/')).toBe(
+      '/danh-sach/all/all/autumn/2026/all/all/jp/',
+    );
+    expect(japaneseSeasonPath('/season/winter/2027')).toBe(
+      '/danh-sach/all/all/winter/2027/all/all/jp/',
+    );
+  });
+
+  it('leaves a path in another shape as it is', () => {
+    expect(japaneseSeasonPath('/anime-season/now/')).toBe('/anime-season/now/');
+    expect(japaneseSeasonPath('/season/autumn/2026/trang-2.html')).toBe(
+      '/season/autumn/2026/trang-2.html',
+    );
+  });
+
+  it('reads the fixture list of the season without its Chinese titles', async () => {
+    const home = await fetchHome(replay());
+    const season = await fetchSeason(
+      replay(),
+      japaneseSeasonPath(home.seasonPath!),
+    );
+    expect(season).toHaveLength(22);
+    expect(season.map((t) => t.name)).not.toContain('Lý Hùng Miêu');
   });
 });
 

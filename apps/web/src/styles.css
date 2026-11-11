@@ -217,6 +217,7 @@ body {
     transform: scale(var(--grow-scale));
     opacity: 0;
     transition-duration: 140ms;
+    pointer-events: none;
   }
 
   .card-preview-body {
