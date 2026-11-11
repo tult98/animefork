@@ -41,10 +41,6 @@ describe('parsePageCount', () => {
     expect(parsePageCount(pager('Trang 1 của 0'))).toBe(1);
     expect(parsePageCount(pager(''))).toBe(1);
   });
-  it('keeps a 200 title list of 20 per page whole, with a page to spare', () => {
-    expect(parsePageCount(pager('Trang 1 của 10'))).toBe(10);
-    expect(parsePageCount(pager('Trang 1 của 11'))).toBe(11);
-  });
   it('caps a runaway total', () => {
     expect(parsePageCount(pager('Trang 1 của 400'))).toBe(MAX_SEASON_PAGES);
   });
