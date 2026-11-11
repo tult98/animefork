@@ -6,7 +6,9 @@ export function mockTmdb(
 ): typeof fetch {
   return async (input) => {
     const url = new URL(String(input));
-    const route = `${url.pathname}${url.searchParams.get('query') ? `?${url.searchParams.get('query')}` : ''}`;
+    const query =
+      url.searchParams.get('query') ?? url.searchParams.get('language');
+    const route = `${url.pathname}${query ? `?${query}` : ''}`;
     const table: Record<string, unknown> = {
       '/3/search/tv?Tonikaku Kawaii': fx.SEARCH_TONIKAWA,
       '/3/search/tv?Nothing Here': fx.SEARCH_NOTHING,
@@ -17,6 +19,7 @@ export function mockTmdb(
       '/3/tv/200/alternative_titles': fx.ALT_TITLES_200,
       '/3/tv/100/images': fx.IMAGES_100,
       '/3/tv/100/season/1': fx.SEASON_100_1,
+      '/3/tv/100?vi': fx.DETAIL_100_VI,
       ...overrides,
     };
     expect(url.searchParams.get('api_key')).toBe('key');

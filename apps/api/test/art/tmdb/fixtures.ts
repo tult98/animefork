@@ -183,3 +183,18 @@ export const CONAN_ROUTES: Record<string, unknown> = {
   '/3/tv/30983/images': IMAGES_100,
   '/3/tv/30983/season/1': SEASON_100_1,
 };
+
+// TMDB answers an empty overview string when a show has no translation in the requested language.
+export const DETAIL_100_VI = {
+  ...DETAIL_100,
+  overview:
+    'Nasa Yuzaki gặp Tsukasa trong một tai nạn và cầu hôn cô ngay tại chỗ.',
+};
+
+export const DETAIL_100_VI_EMPTY = { ...DETAIL_100, overview: '' };
+
+export const DETAIL_100_EN = {
+  ...DETAIL_100,
+  overview:
+    'Nasa Yuzaki meets Tsukasa in an accident and proposes to her on the spot.',
+};

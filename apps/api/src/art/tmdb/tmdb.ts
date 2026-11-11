@@ -87,7 +87,7 @@ export class TmdbError extends Error {
 export interface TmdbClient {
   searchTv(query: string): Promise<TmdbSearchResult[]>;
   tvImages(tvId: number): Promise<TmdbImages>;
-  tvDetail(tvId: number): Promise<TmdbDetail>;
+  tvDetail(tvId: number, language?: string): Promise<TmdbDetail>;
   tvAlternativeTitles(tvId: number): Promise<string[]>;
   seasonDetail(tvId: number, season: number): Promise<TmdbSeason>;
 }
@@ -124,7 +124,8 @@ export function createTmdbClient(options: {
         { include_image_language: 'vi,en,null' },
         ImagesSchema,
       ),
-    tvDetail: (tvId) => get(`/tv/${tvId}`, {}, DetailSchema),
+    tvDetail: (tvId, language) =>
+      get(`/tv/${tvId}`, language ? { language } : {}, DetailSchema),
     tvAlternativeTitles: async (tvId) =>
       (
         await get(`/tv/${tvId}/alternative_titles`, {}, AlternativeTitlesSchema)
