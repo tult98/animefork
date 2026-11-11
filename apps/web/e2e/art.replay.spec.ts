@@ -103,6 +103,9 @@ test('the home hero shows a TMDB backdrop for a stubbed slug and keeps the sourc
     'src',
     'https://image.tmdb.org/t/p/original/hero.jpg',
   );
+  await expect(
+    page.getByTestId('hero:slide:0').getByTestId('hero:description'),
+  ).toHaveText(/\.\.\.$/);
   await expect(page.getByTestId('hero:slide:1').locator('img')).toHaveAttribute(
     'src',
     /^https:\/\/cdn\.animevietsub\.best\//,
@@ -114,6 +117,39 @@ test('the home hero shows a TMDB backdrop for a stubbed slug and keeps the sourc
     expect(body.titles.length).toBeLessThanOrEqual(50);
     expect(body.titles.map((t) => t.slug)).toContain(HERO_SLUG);
   }
+});
+
+test('the home hero shows the stored overview, and the source excerpt where the answer has none', async ({
+  page,
+}) => {
+  const overview =
+    'Nasa Yuzaki gặp Tsukasa trong một tai nạn và cầu hôn cô ngay tại chỗ.';
+  await stubArt(page, (body) =>
+    Object.fromEntries(
+      body.titles.map((t) => [
+        t.slug,
+        {
+          ...ready(`/${t.slug}.jpg`),
+          overview: t.slug === HERO_SLUG ? overview : null,
+          overviewTranslated: t.slug === HERO_SLUG,
+        },
+      ]),
+    ),
+  );
+
+  await page.goto('/?transport=replay');
+  const first = page.getByTestId('hero:slide:0');
+  await expect(first.locator('img')).toHaveAttribute(
+    'src',
+    `https://image.tmdb.org/t/p/original/${HERO_SLUG}.jpg`,
+  );
+  await expect(first.getByTestId('hero:description')).toHaveText(overview);
+  await expect(first.getByTestId('hero:description')).toHaveClass(
+    /line-clamp-2/,
+  );
+  await expect(
+    page.getByTestId('hero:slide:1').getByTestId('hero:description'),
+  ).toHaveText(/\.\.\.$/);
 });
 
 test('the home hero swaps in the backdrop after a pending answer, then stops polling', async ({

@@ -98,7 +98,10 @@ export function Hero({ items }: { items: Title[] }) {
                   {heroMeta(title)}
                 </div>
                 {title.description ? (
-                  <p className="af-billboard-text line-clamp-2">
+                  <p
+                    data-testid="hero:description"
+                    className="af-billboard-text line-clamp-2"
+                  >
                     {title.description}
                   </p>
                 ) : null}

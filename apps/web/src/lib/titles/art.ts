@@ -29,6 +29,7 @@ export interface TitleArt {
 export interface HomeArtPaths {
   backdropPath: string | null;
   posterPath: string | null;
+  overview: string | null;
 }
 
 export interface HomeArt {
@@ -175,10 +176,12 @@ export async function fetchHomeArt(
   const { ready, pending } = await lookupArt(titles, options);
   const paths = new Map<string, HomeArtPaths>();
   for (const [slug, entry] of ready) {
-    if (entry.backdropPath || entry.posterPath) {
+    const overview = entry.overview ?? null;
+    if (entry.backdropPath || entry.posterPath || overview) {
       paths.set(slug, {
         backdropPath: entry.backdropPath,
         posterPath: entry.posterPath,
+        overview,
       });
     }
   }
@@ -202,7 +205,11 @@ export function applyHomeArt(
     if (shelf.kind === 'hero') {
       return {
         ...shelf,
-        items: shelf.items.map((t) => withBackdrop(t, BACKDROP_SIZE)),
+        items: shelf.items.map((t) => {
+          const overview = art.get(slugOf(t))?.overview;
+          const title = withBackdrop(t, BACKDROP_SIZE);
+          return overview ? { ...title, description: overview } : title;
+        }),
       };
     }
     if (shelf.kind === 'default') {

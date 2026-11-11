@@ -212,12 +212,55 @@ describe('fetchHomeArt', () => {
     });
     const art = await fetchHomeArt(titles, { env, fetch: fetchImpl });
     expect([...art.paths]).toEqual([
-      ['a-1', { backdropPath: '/a.jpg', posterPath: '/pa.jpg' }],
-      ['c-3', { backdropPath: null, posterPath: '/pc.jpg' }],
+      [
+        'a-1',
+        { backdropPath: '/a.jpg', posterPath: '/pa.jpg', overview: null },
+      ],
+      ['c-3', { backdropPath: null, posterPath: '/pc.jpg', overview: null }],
     ]);
     expect(art.pending).toBe(false);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(sentBody(fetchImpl)).toEqual({ titles });
+  });
+
+  it('carries the overview, and keeps an entry that has only an overview', async () => {
+    const art = await fetchHomeArt(titles, {
+      env,
+      fetch: answer({
+        'a-1': {
+          status: 'ready',
+          backdropPath: '/a.jpg',
+          backdropLang: 'en',
+          posterPath: null,
+          overview: 'Tóm tắt A.',
+          overviewTranslated: false,
+        },
+        'b-2': {
+          status: 'ready',
+          backdropPath: null,
+          backdropLang: null,
+          posterPath: null,
+          overview: 'Tóm tắt B.',
+          overviewTranslated: true,
+        },
+        'c-3': {
+          status: 'ready',
+          backdropPath: '/c.jpg',
+          backdropLang: 'en',
+          posterPath: null,
+          overview: null,
+          overviewTranslated: false,
+        },
+      }),
+    });
+    expect([...art.paths]).toEqual([
+      [
+        'a-1',
+        { backdropPath: '/a.jpg', posterPath: null, overview: 'Tóm tắt A.' },
+      ],
+      ['b-2', { backdropPath: null, posterPath: null, overview: 'Tóm tắt B.' }],
+      ['c-3', { backdropPath: '/c.jpg', posterPath: null, overview: null }],
+    ]);
   });
 
   it('reports pending when any entry is still being filled', async () => {
@@ -274,8 +317,8 @@ describe('fetchHomeArt', () => {
 
 describe('applyHomeArt', () => {
   const art = new Map<string, HomeArtPaths>([
-    ['a-1', { backdropPath: '/a.jpg', posterPath: '/pa.jpg' }],
-    ['c-3', { backdropPath: '/c.jpg', posterPath: null }],
+    ['a-1', { backdropPath: '/a.jpg', posterPath: '/pa.jpg', overview: null }],
+    ['c-3', { backdropPath: '/c.jpg', posterPath: null, overview: null }],
   ]);
 
   it('puts the original size on the hero and w780 on the cards, and leaves the rest', () => {
@@ -316,7 +359,9 @@ describe('applyHomeArt', () => {
   it('sets a poster without a backdrop when only the poster is stored', () => {
     const [, , top] = applyHomeArt(
       home(),
-      new Map([['a-1', { backdropPath: null, posterPath: '/pa.jpg' }]]),
+      new Map([
+        ['a-1', { backdropPath: null, posterPath: '/pa.jpg', overview: null }],
+      ]),
     );
     expect(top?.items[0]).toMatchObject({
       image: 'https://image.tmdb.org/t/p/w342/pa.jpg',
@@ -335,6 +380,48 @@ describe('applyHomeArt', () => {
       false,
     );
     expect(hero?.items[0]?.image).not.toContain('w342');
+  });
+
+  describe('overview', () => {
+    const withExcerpts = (): HomeShelves =>
+      home().map((shelf) => ({
+        ...shelf,
+        items: shelf.items.map((t) => ({
+          ...t,
+          description: `Trích đoạn ${t.name}...`,
+        })),
+      })) as HomeShelves;
+    const overviews = new Map<string, HomeArtPaths>([
+      ['a-1', { backdropPath: null, posterPath: null, overview: 'Tóm tắt A.' }],
+      ['b-2', { backdropPath: '/b.jpg', posterPath: null, overview: null }],
+    ]);
+
+    it('replaces the description of a hero item with its overview', () => {
+      const [hero] = applyHomeArt(withExcerpts(), overviews);
+      expect(hero?.items.map((t) => t.description)).toEqual([
+        'Tóm tắt A.',
+        'Trích đoạn B...',
+      ]);
+      expect(hero?.items[0]?.image).toBe('https://cdn.test/a-1.jpg');
+      expect(hero?.items[1]?.image).toBe(
+        'https://image.tmdb.org/t/p/original/b.jpg',
+      );
+    });
+
+    it('keeps the source excerpt on cards and ranking items', () => {
+      const [, cards, top] = applyHomeArt(withExcerpts(), overviews);
+      expect(cards?.items.map((t) => t.description)).toEqual([
+        'Trích đoạn A...',
+        'Trích đoạn C...',
+      ]);
+      expect(top?.items[0]?.description).toBe('Trích đoạn A...');
+    });
+
+    it('sets an overview on a hero item that had no excerpt', () => {
+      const [hero] = applyHomeArt(home(), overviews);
+      expect(hero?.items[0]?.description).toBe('Tóm tắt A.');
+      expect(hero?.items[1]).not.toHaveProperty('description');
+    });
   });
 
   it('returns the same shelves when no art exists', () => {
