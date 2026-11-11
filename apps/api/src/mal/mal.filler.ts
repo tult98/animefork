@@ -1,10 +1,10 @@
 import { Logger } from '@nestjs/common';
 import type { TitleInput } from '../art/contract.ts';
 import { describeError } from '../art/art.filler.ts';
-import { searchQueries } from '../art/tmdb/titles.ts';
 import type { Clock } from '../common/clock.ts';
 import { MIN_QUERY_LENGTH, type MalClient } from './mal.client.ts';
-import { matchMal } from './mal.matcher.ts';
+import { matchMal, type MalMatch } from './mal.matcher.ts';
+import { malQueries } from './mal.queries.ts';
 import {
   MAL_MATCHER_VERSION,
   isMalSettled,
@@ -13,7 +13,11 @@ import {
 import type { MalStore, StoredMal } from './mal.store.ts';
 
 // Each query is one call to MAL, so a title that matches nothing costs at most this many.
-export const MAX_QUERIES = 3;
+export const MAX_QUERIES = 4;
+export const MAX_ALIAS_QUERIES = 2;
+
+// Looks up other names for a title; only asked when the source's own name found nothing.
+export type AliasSource = () => Promise<string[]>;
 
 // Single-flight lives in this process's memory, and the client already serializes calls to MAL.
 export class MalFiller {
@@ -33,10 +37,10 @@ export class MalFiller {
     return this.inFlight.has(slug);
   }
 
-  fill(input: TitleInput): Promise<void> {
+  fill(input: TitleInput, aliases?: AliasSource): Promise<void> {
     const existing = this.inFlight.get(input.slug);
     if (existing) return existing;
-    const done = this.run(input)
+    const done = this.run(input, aliases)
       .catch((error: unknown) => {
         this.logger.error(
           `mal ${input.slug} could not be saved: ${describeError(error)}`,
@@ -53,14 +57,14 @@ export class MalFiller {
     }
   }
 
-  private async run(input: TitleInput): Promise<void> {
+  private async run(input: TitleInput, aliases?: AliasSource): Promise<void> {
     const current = (await this.store.find([input.slug])).get(input.slug);
     if (isMalSettled(current, this.now())) return;
     try {
       if (current?.status === 'ok' && current.malId !== null) {
         await this.refresh(current);
       } else {
-        await this.match(input);
+        await this.match(input, aliases);
       }
     } catch (error) {
       const reason = describeError(error);
@@ -92,13 +96,29 @@ export class MalFiller {
     });
   }
 
-  private async match(input: TitleInput): Promise<void> {
-    const queries = searchQueries(input.name, input.slug)
+  private async match(input: TitleInput, aliases?: AliasSource): Promise<void> {
+    const queries = malQueries(input)
       .filter((q) => q.length >= MIN_QUERY_LENGTH)
       .slice(0, MAX_QUERIES);
+    let found: MalMatch | null = null;
     for (const query of queries) {
-      const found = matchMal(input, await this.client.search(query));
-      if (!found) continue;
+      found = matchMal(input, await this.client.search(query));
+      if (found) break;
+    }
+    // A name TMDB confirmed for this show reaches MAL titles the source's own name never would.
+    if (!found && aliases) {
+      const names = await aliases().catch((error: unknown) => {
+        this.logger.warn(
+          `mal ${input.slug} aliases failed: ${describeError(error)}`,
+        );
+        return [];
+      });
+      for (const query of names.slice(0, MAX_ALIAS_QUERIES)) {
+        found = matchMal(input, await this.client.search(query), names);
+        if (found) break;
+      }
+    }
+    if (found) {
       const { candidate, score } = found;
       const now = this.now();
       await this.store.save({

@@ -1,6 +1,8 @@
 import {
   distinctRomaji,
+  parseCourNumber,
   parseSeasonNumber,
+  slugSeasonNumber,
   stripSeasonMarker,
 } from '../art/tmdb/titles.ts';
 import { titleSimilarity } from '../art/tmdb/matcher.ts';
@@ -9,7 +11,9 @@ import type { MalCandidate } from './mal.client.ts';
 
 export const MIN_MAL_SCORE = 0.8;
 // The runner-up must trail by this much, or the match is a coin flip between seasons.
-export const MIN_MAL_MARGIN = 0.08;
+export const MIN_MAL_MARGIN = 0.05;
+// "Part 2" of a season shares its name with the whole season, so it must not win a tie against it.
+const LATER_PART_PENALTY = 0.1;
 
 const WEIGHTS = {
   name: 0.45,
@@ -42,8 +46,13 @@ function candidateTitles(c: MalCandidate): string[] {
   );
 }
 
-function nameScore(input: TitleInput, c: MalCandidate): number {
+function nameScore(
+  input: TitleInput,
+  c: MalCandidate,
+  aliases: string[],
+): number {
   const sources = [
+    ...aliases,
     stripSeasonMarker(input.name),
     distinctRomaji(input.slug, input.name),
   ].filter((s): s is string => Boolean(s));
@@ -56,9 +65,24 @@ function nameScore(input: TitleInput, c: MalCandidate): number {
   return best;
 }
 
+// A translated name may carry no marker while the source slug still says "2nd-season".
+function wantedSeason(input: TitleInput): number {
+  const named = parseSeasonNumber(input.seasonName, input.name);
+  return named > 1 ? named : slugSeasonNumber(input.slug);
+}
+
+function cour(texts: string[]): number {
+  return Math.max(1, ...texts.map(parseCourNumber));
+}
+
+function courPenalty(input: TitleInput, c: MalCandidate): number {
+  const wanted = cour([input.name, input.seasonName ?? '']);
+  return cour(candidateTitles(c)) > wanted ? LATER_PART_PENALTY : 0;
+}
+
 // MAL names a later season "X 2nd Season" or "X Season 2"; a first season carries no marker at all.
 function seasonScore(input: TitleInput, c: MalCandidate): number {
-  const wanted = parseSeasonNumber(input.seasonName, input.name);
+  const wanted = wantedSeason(input);
   const seasons = candidateTitles(c).map((t) =>
     parseSeasonNumber(undefined, t),
   );
@@ -77,10 +101,15 @@ function episodeScore(input: TitleInput, c: MalCandidate): number {
   return input.episodeCount === c.episodes ? 1 : 0;
 }
 
-export function scoreCandidate(input: TitleInput, c: MalCandidate): number {
+export function scoreCandidate(
+  input: TitleInput,
+  c: MalCandidate,
+  aliases: string[] = [],
+): number {
   const type = MEDIA_TYPE_SCORE[c.mediaType ?? ''] ?? 0;
   return (
-    WEIGHTS.name * nameScore(input, c) +
+    -courPenalty(input, c) +
+    WEIGHTS.name * nameScore(input, c, aliases) +
     WEIGHTS.season * seasonScore(input, c) +
     WEIGHTS.year * yearScore(input, c) +
     WEIGHTS.episodes * episodeScore(input, c) +
@@ -91,12 +120,14 @@ export function scoreCandidate(input: TitleInput, c: MalCandidate): number {
 export function matchMal(
   input: TitleInput,
   candidates: MalCandidate[],
+  // Other names for the same show, such as the English title TMDB knows it by.
+  aliases: string[] = [],
 ): MalMatch | null {
   const ranked = candidates
     .filter((c) => !NOT_A_SHOW.has(c.mediaType ?? ''))
     .map((candidate) => ({
       candidate,
-      score: scoreCandidate(input, candidate),
+      score: scoreCandidate(input, candidate, aliases),
     }))
     .sort((a, b) => b.score - a.score);
   const [best, second] = ranked;

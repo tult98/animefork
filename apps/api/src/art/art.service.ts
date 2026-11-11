@@ -18,7 +18,9 @@ import type {
 } from './contract.ts';
 import { isOverviewSettled, isSettled, isStale } from './retry.ts';
 import { ART_STORE, type ArtStore } from './art.store.ts';
-import { ArtFiller } from './art.filler.ts';
+import { ART_SYNC, ArtFiller } from './art.filler.ts';
+import { tmdbAliases } from './tmdb/aliases.ts';
+import type { SyncDeps } from './tmdb/sync.ts';
 
 @Injectable()
 export class ArtService {
@@ -28,6 +30,7 @@ export class ArtService {
   private readonly ratings: RatingsStore;
   private readonly mal: MalStore;
   private readonly malFiller: MalFiller | null;
+  private readonly tmdb: SyncDeps['tmdb'] | null;
 
   constructor(
     @Inject(ART_STORE) store: ArtStore,
@@ -36,6 +39,7 @@ export class ArtService {
     @Inject(RATINGS_STORE) ratings: RatingsStore = new MemoryRatingsStore(),
     @Inject(MAL_STORE) mal: MalStore = new MemoryMalStore(),
     @Inject(MAL_FILLER) malFiller: MalFiller | null = null,
+    @Inject(ART_SYNC) sync: SyncDeps | null = null,
   ) {
     this.store = store;
     this.filler = filler;
@@ -43,6 +47,7 @@ export class ArtService {
     this.ratings = ratings;
     this.mal = mal;
     this.malFiller = malFiller;
+    this.tmdb = sync?.tmdb ?? null;
   }
 
   async lookup(request: LookupRequest): Promise<LookupResponse> {
@@ -125,7 +130,9 @@ export class ArtService {
         };
       }
       if (this.malFiller && !isMalSettled(mal, now)) {
-        if (!this.malFiller.has(slug)) void this.malFiller.fill(title);
+        if (!this.malFiller.has(slug)) {
+          void this.malFiller.fill(title, this.aliasSource(rows.get(slug)));
+        }
         // A stored number is already shown, so only a title with none yet is worth asking about again.
         if (mal?.status !== 'ok') ratingsPending = true;
       }
@@ -137,5 +144,12 @@ export class ArtService {
       avsStale,
       ...(ratingsPending && { ratingsPending }),
     };
+  }
+
+  // The TMDB match, when there is one, knows the show by an English name MAL also lists.
+  private aliasSource(row: { tmdbId: number | null } | undefined) {
+    const { tmdb } = this;
+    const id = row?.tmdbId ?? null;
+    return tmdb && id !== null ? () => tmdbAliases(tmdb, id) : undefined;
   }
 }
