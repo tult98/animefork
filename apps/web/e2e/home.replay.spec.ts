@@ -324,3 +324,55 @@ test.describe('upcoming card details', () => {
     await expect(modal).toHaveCount(0);
   });
 });
+
+const JP_LIST = '**/fixtures/default/danh-sach/all/all/all/all/all/all/jp.html';
+
+test('the new episodes shelf shows the first cards of the jp list, not the home block', async ({
+  page,
+}) => {
+  const requested: string[] = [];
+  page.on('request', (req) => requested.push(new URL(req.url()).pathname));
+  await page.goto('/?transport=replay');
+  await expect(page.getByTestId('shelf:airing-this-season')).toBeVisible();
+
+  const news = (await shelves(page)).find((s) => s.id === 'new-episodes');
+  expect(news?.paths).toHaveLength(10);
+  expect(news?.paths[0]).toBe('/phim/ushiro-no-shoumen-kamui-san-a6084/');
+  expect(requested).toContain(
+    '/fixtures/default/danh-sach/all/all/all/all/all/all/jp.html',
+  );
+  expect(requested.some((path) => path.includes('anime-moi'))).toBe(false);
+});
+
+test.describe('jp list unreachable', () => {
+  test.use({ allowedConsoleErrors: [/500|ERR_FAILED/] });
+
+  test('drops the new episodes shelf and keeps the rest of the home page', async ({
+    page,
+  }) => {
+    await page.route(JP_LIST, (route) =>
+      route.fulfill({ status: 500, body: '' }),
+    );
+    await page.goto('/?transport=replay');
+    await expect(page.getByTestId('shelf:airing-this-season')).toBeVisible();
+
+    expect((await shelves(page)).map((s) => s.id)).toEqual([
+      'hero',
+      'top-10-today',
+      'airing-this-season',
+      'upcoming',
+    ]);
+    await expect(page.getByTestId('shelf:new-episodes')).toHaveCount(0);
+    await expect(page.getByTestId('home:loading')).toHaveCount(0);
+    await expect(page.getByTestId('error-screen')).toHaveCount(0);
+  });
+
+  test('drops the shelf when the request is aborted', async ({ page }) => {
+    await page.route(JP_LIST, (route) => route.abort());
+    await page.goto('/?transport=replay');
+    await expect(page.getByTestId('shelf:top-10-today')).toBeVisible();
+
+    await expect(page.getByTestId('shelf:new-episodes')).toHaveCount(0);
+    await expect(page.getByTestId('home:loading')).toHaveCount(0);
+  });
+});

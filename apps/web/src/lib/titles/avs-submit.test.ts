@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { avsSubmissions, submitAvs } from './avs-submit.ts';
 import { parseCard } from './card-parser.ts';
-import { parseHome, parseSeason } from './home.ts';
+import { parseHome, parseNewEpisodes, parseSeason } from './home.ts';
 import { titleWatchLink } from './link.ts';
 import { buildHome } from './shelves.ts';
 
@@ -13,6 +13,9 @@ const fixture = (name: string) =>
     resolve(import.meta.dirname, '../../../public/fixtures/default', name),
     'utf8',
   );
+const newEpisodes = parseNewEpisodes(
+  fixture('danh-sach/all/all/all/all/all/all/jp.html'),
+);
 
 describe('voter count on a card', () => {
   const card = (attrs: string) =>
@@ -39,7 +42,7 @@ describe('voter count on a card', () => {
   it('is read on the saved site pages: every season card, not the hero cards', () => {
     const home = parseHome(fixture('index.html'));
     expect(home.hero.every((t) => t.avsVoters === undefined)).toBe(true);
-    expect(home.newEpisodes.some((t) => t.avsVoters !== undefined)).toBe(true);
+    expect(newEpisodes.some((t) => t.avsVoters !== undefined)).toBe(true);
     const season = parseSeason(fixture('season/autumn/2026.html'));
     expect(season.length).toBeGreaterThan(0);
     expect(season.every((t) => (t.avsVoters ?? 0) > 0)).toBe(true);
@@ -48,14 +51,14 @@ describe('voter count on a card', () => {
 
 describe('avsSubmissions', () => {
   const home = parseHome(fixture('index.html'));
-  const shelves = buildHome({ ...home, season: undefined });
+  const shelves = buildHome({ ...home, newEpisodes, season: undefined });
   const slugOf = (t: Parameters<typeof titleWatchLink>[0]) =>
     titleWatchLink(t).params.slug;
 
   it('sends only stale titles whose card has a voter count', () => {
-    const withCount = home.newEpisodes.find((t) => t.avsVoters !== undefined)!;
+    const withCount = newEpisodes.find((t) => t.avsVoters !== undefined)!;
     const heroOnly = home.hero.find(
-      (h) => !home.newEpisodes.some((t) => slugOf(t) === slugOf(h)),
+      (h) => !newEpisodes.some((t) => slugOf(t) === slugOf(h)),
     )!;
     const items = avsSubmissions(shelves, [
       slugOf(withCount),

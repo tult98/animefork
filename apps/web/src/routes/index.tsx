@@ -18,7 +18,11 @@ import {
   markArtPending,
 } from '../lib/titles/art.ts';
 import { useAvsSubmit } from '../lib/titles/use-avs-submit.ts';
-import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
+import {
+  fetchHome,
+  fetchNewEpisodes,
+  fetchSeason,
+} from '../lib/titles/home.ts';
 import { lookupTitles } from '../lib/titles/lookup.ts';
 import { buildHome } from '../lib/titles/shelves.ts';
 import { useTransport } from '../lib/transport/index.ts';
@@ -33,6 +37,11 @@ function Home() {
     queryKey: ['home'],
     queryFn: ({ signal }) => fetchHome(transport, signal),
   });
+  // Started with the home page, not after it. A failed list only drops the shelf.
+  const newEpisodes = useQuery({
+    queryKey: ['new-episodes'],
+    queryFn: ({ signal }) => fetchNewEpisodes(transport, signal),
+  });
   const seasonPath = home.data?.seasonPath ?? null;
   const season = useQuery({
     queryKey: ['season', seasonPath],
@@ -46,8 +55,13 @@ function Home() {
     if (!home.data) return [];
     // Hold the upcoming shelf back so the season shelf does not land above it later.
     const upcoming = seasonLoading ? [] : home.data.upcoming;
-    return buildHome({ ...home.data, upcoming, season: season.data });
-  }, [home.data, season.data, seasonLoading]);
+    return buildHome({
+      ...home.data,
+      upcoming,
+      newEpisodes: newEpisodes.data ?? [],
+      season: season.data,
+    });
+  }, [home.data, newEpisodes.data, season.data, seasonLoading]);
   const titles = useMemo(() => lookupTitles(built), [built]);
   const queryClient = useQueryClient();
   const artKey = ['home-art', titles];
@@ -94,7 +108,7 @@ function Home() {
       <ErrorScreen error={home.error} onRetry={() => void home.refetch()} />
     );
   }
-  if (home.isPending) {
+  if (home.isPending || newEpisodes.isPending) {
     return (
       <div className="pt-4" data-testid="home:loading">
         <HeroSkeleton />

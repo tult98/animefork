@@ -4,7 +4,15 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 import { ReplayTransport } from '../transport/replay-transport.ts';
-import { fetchHome, fetchSeason, parseHome, parseSeason } from './home.ts';
+import {
+  fetchHome,
+  fetchNewEpisodes,
+  fetchSeason,
+  NEW_EPISODES_PATH,
+  parseHome,
+  parseNewEpisodes,
+  parseSeason,
+} from './home.ts';
 import { TitleSchema } from './title.ts';
 
 const publicDir = resolve(import.meta.dirname, '../../../public');
@@ -29,9 +37,8 @@ const seasonLink = homeHtml.match(
 describe('parseHome on the captured excerpt', () => {
   const home = parseHome(homeHtml);
 
-  it('finds ten cards in each segment', () => {
+  it('finds ten cards in the hero and top segments', () => {
     expect(home.hero).toHaveLength(10);
-    expect(home.newEpisodes).toHaveLength(10);
     expect(home.top).toHaveLength(10);
   });
 
@@ -51,18 +58,35 @@ describe('parseHome on the captured excerpt', () => {
     expect(home.hero[0]?.name).toBe(
       'Shinja Zero no Megami-sama to Hajimeru Isekai Kouryaku',
     );
-    expect(home.newEpisodes[0]?.name).toBe('Ushiro no Shoumen Kamui-san');
     expect(home.top[0]?.name).toBe('Black Clover 2nd Season');
   });
 
   it('produces titles that pass TitleSchema', () => {
-    for (const title of [...home.hero, ...home.newEpisodes, ...home.top]) {
+    for (const title of [...home.hero, ...home.top]) {
       expect(TitleSchema.safeParse(title).success, title.name).toBe(true);
     }
   });
 
+  it('has no season path when the page has no season tab', () => {
+    const html = homeHtml.replace('data-tag="anime-season"', 'data-tag="x"');
+    expect(parseHome(html).seasonPath).toBeNull();
+  });
+});
+
+const jpList = read(
+  '/fixtures/default/danh-sach/all/all/all/all/all/all/jp.html',
+);
+
+describe('parseNewEpisodes', () => {
+  const titles = parseNewEpisodes(jpList);
+
+  it('reads every card of the first page of the jp list', () => {
+    expect(titles).toHaveLength(10);
+    expect(titles[0]?.name).toBe('Ushiro no Shoumen Kamui-san');
+  });
+
   it('reads the episode label and views where the card has them', () => {
-    expect(home.newEpisodes[0]).toMatchObject({
+    expect(titles[0]).toMatchObject({
       episodeLabel: 'Tập 19',
       views: 315099,
       rating: 8.8,
@@ -72,9 +96,18 @@ describe('parseHome on the captured excerpt', () => {
     });
   });
 
-  it('has no season path when the page has no season tab', () => {
-    const html = homeHtml.replace('data-tag="anime-season"', 'data-tag="x"');
-    expect(parseHome(html).seasonPath).toBeNull();
+  it('drops a card without an episode label and keeps the rest', () => {
+    const bare =
+      '<li class="TPostMv"><a href="/phim/bare-a1/"><img src="/p.jpg"><h2 class="Title">Bare</h2></a></li>';
+    const parsed = parseNewEpisodes(
+      jpList.replace('<li class="TPostMv">', `${bare}<li class="TPostMv">`),
+    );
+    expect(parsed).toHaveLength(10);
+    expect(parsed.map((t) => t.name)).not.toContain('Bare');
+  });
+
+  it('is empty rather than throwing on a page with no cards', () => {
+    expect(parseNewEpisodes('<html><body></body></html>')).toEqual([]);
   });
 });
 
@@ -117,6 +150,19 @@ describe('fetchHome and fetchSeason through ReplayTransport', () => {
 
   it('rejects a missing season page with a status error', async () => {
     await expect(fetchSeason(replay(), '/season/none/1999/')).rejects.toThrow(
+      /404/,
+    );
+  });
+});
+
+describe('fetchNewEpisodes through ReplayTransport', () => {
+  it('reads the jp list from its own path', async () => {
+    expect(NEW_EPISODES_PATH).toBe('/danh-sach/all/all/all/all/all/all/jp/');
+    expect(await fetchNewEpisodes(replay())).toHaveLength(10);
+  });
+
+  it('rejects when the list is unreachable', async () => {
+    await expect(fetchNewEpisodes(replay('no-such-set'))).rejects.toThrow(
       /404/,
     );
   });

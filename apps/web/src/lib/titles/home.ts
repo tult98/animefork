@@ -5,11 +5,13 @@ import { TitleListSchema, TitleSchema, type Title } from './title.ts';
 
 export interface ParsedHome {
   hero: Title[];
-  newEpisodes: Title[];
   top: Title[];
   upcoming: Title[];
   seasonPath: string | null;
 }
+
+// The anime only list ordered by latest update. The home shelf and /new-episodes both read it.
+export const NEW_EPISODES_PATH = '/danh-sach/all/all/all/all/all/all/jp/';
 
 const SEASON_LINK = '#single-home a.STPb[data-tag="anime-season"]';
 
@@ -30,11 +32,19 @@ export function parseHome(html: string, now: number = Date.now()): ParsedHome {
   const href = doc.querySelector(SEASON_LINK)?.getAttribute('href');
   return {
     hero: nonEmpty(parseCards(doc, '.MovieListSldCn .TPostMv')),
-    newEpisodes: nonEmpty(parseCards(doc, '#single-home .TPostMv')),
     top: nonEmpty(parseCards(doc, '#hot-home .TPostMv')),
     upcoming: parseUpcoming(doc, now),
     seasonPath: href ? new URL(href, 'https://home.invalid').pathname : null,
   };
+}
+
+// A card without an episode label or a poster is dropped rather than failing the shelf.
+export function parseNewEpisodes(html: string): Title[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return [...doc.querySelectorAll('.TPostMv')].flatMap((el) => {
+    const parsed = TitleSchema.safeParse(parseCard(el));
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 export function parseSeason(html: string): Title[] {
@@ -59,4 +69,13 @@ export async function fetchSeason(
   const res = await transport.get({ url: seasonPath, signal });
   expectOk(res, seasonPath);
   return parseSeason(res.data);
+}
+
+export async function fetchNewEpisodes(
+  transport: Transport,
+  signal?: AbortSignal,
+): Promise<Title[]> {
+  const res = await transport.get({ url: NEW_EPISODES_PATH, signal });
+  expectOk(res, NEW_EPISODES_PATH);
+  return parseNewEpisodes(res.data);
 }

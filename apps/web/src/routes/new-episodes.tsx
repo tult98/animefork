@@ -9,8 +9,8 @@ import {
   DEFAULT_SORT,
   ListSearchSchema,
 } from '../lib/titles/airing-list.ts';
+import { NEW_EPISODES_PATH } from '../lib/titles/home.ts';
 
-const NEW_EPISODES_PATH = '/anime-moi/';
 const NEW_EPISODES_LIMIT = 200;
 
 export const Route = createFileRoute('/new-episodes')({
