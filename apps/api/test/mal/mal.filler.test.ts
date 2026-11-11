@@ -41,6 +41,8 @@ function setup(over: Partial<MalClient> = {}) {
         members: 300,
         airing: 'finished_airing',
         episodes: 12,
+        startDate: '2017-10-03',
+        startSeason: { year: 2017, season: 'fall' },
       };
     },
     ...over,
@@ -70,6 +72,9 @@ describe('MalFiller.fill', () => {
       members: 157000,
       airing: 'finished_airing',
       episodes: 170,
+      startDate: null,
+      startSeason: { year: 2017, season: 'fall' },
+      datesKnown: true,
       matchedTitle: 'Black Clover',
       reason: null,
     });
@@ -149,6 +154,30 @@ describe('MalFiller.fill', () => {
     });
   });
 
+  it('refreshes a stored row that has no start dates yet and records them', async () => {
+    const { filler, store, statsCalls } = setup();
+    await filler.fill(INPUT);
+    store.rows.set(INPUT.slug, {
+      ...store.rows.get(INPUT.slug)!,
+      startDate: null,
+      startSeason: null,
+      datesKnown: false,
+    });
+    await filler.fill(INPUT);
+    expect(statsCalls).toEqual([]);
+    store.rows.set(INPUT.slug, {
+      ...store.rows.get(INPUT.slug)!,
+      attemptedAt: new Date(0),
+    });
+    await filler.fill(INPUT);
+    expect(statsCalls).toEqual([1]);
+    expect(store.rows.get(INPUT.slug)).toMatchObject({
+      startDate: '2017-10-03',
+      startSeason: { year: 2017, season: 'fall' },
+      datesKnown: true,
+    });
+  });
+
   it('keeps the old numbers when a refresh fails, and does not retry at once', async () => {
     let fail = false;
     const { filler, store, statsCalls, advance } = setup({
@@ -163,6 +192,8 @@ describe('MalFiller.fill', () => {
           members: 1,
           airing: 'finished_airing',
           episodes: 12,
+          startDate: null,
+          startSeason: null,
         };
       },
     });

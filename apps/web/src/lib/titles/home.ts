@@ -1,12 +1,13 @@
 import type { Transport } from '../transport/index.ts';
 import { expectOk } from '../transport/index.ts';
-import { parseCards } from './card-parser.ts';
-import { TitleListSchema, type Title } from './title.ts';
+import { parseCard, parseCards } from './card-parser.ts';
+import { TitleListSchema, TitleSchema, type Title } from './title.ts';
 
 export interface ParsedHome {
   hero: Title[];
   newEpisodes: Title[];
   top: Title[];
+  upcoming: Title[];
   seasonPath: string | null;
 }
 
@@ -16,13 +17,22 @@ function nonEmpty(titles: Title[]): Title[] {
   return TitleListSchema.parse(titles);
 }
 
-export function parseHome(html: string): ParsedHome {
+// A bad upcoming card is dropped rather than failing the whole home page.
+function parseUpcoming(doc: Document, now: number): Title[] {
+  return [...doc.querySelectorAll('#new-home .TPostMv')].flatMap((el) => {
+    const parsed = TitleSchema.safeParse(parseCard(el, now));
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
+export function parseHome(html: string, now: number = Date.now()): ParsedHome {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const href = doc.querySelector(SEASON_LINK)?.getAttribute('href');
   return {
     hero: nonEmpty(parseCards(doc, '.MovieListSldCn .TPostMv')),
     newEpisodes: nonEmpty(parseCards(doc, '#single-home .TPostMv')),
     top: nonEmpty(parseCards(doc, '#hot-home .TPostMv')),
+    upcoming: parseUpcoming(doc, now),
     seasonPath: href ? new URL(href, 'https://home.invalid').pathname : null,
   };
 }

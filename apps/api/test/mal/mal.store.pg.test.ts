@@ -21,6 +21,9 @@ const ok = (s: string, over: Partial<StoredMal> = {}): StoredMal => ({
   members: 157000,
   airing: 'currently_airing',
   episodes: 12,
+  startDate: '2027-01',
+  startSeason: { year: 2027, season: 'winter' },
+  datesKnown: true,
   matchedTitle: 'Black Clover',
   matchScore: 0.987,
   matcherVersion: 1,
@@ -72,6 +75,50 @@ describe.skipIf(!url)('PostgresMalStore against DATABASE_URL', () => {
     });
   });
 
+  it('round-trips a start date and season, and keeps absent ones null', async () => {
+    const a = slug('dates');
+    await store.save(ok(a, { startDate: '2027-01-09' }));
+    expect((await store.find([a])).get(a)).toMatchObject({
+      startDate: '2027-01-09',
+      startSeason: { year: 2027, season: 'winter' },
+      datesKnown: true,
+    });
+    const b = slug('nodates');
+    await store.save(ok(b, { startDate: null, startSeason: null }));
+    expect((await store.find([b])).get(b)).toMatchObject({
+      startDate: null,
+      startSeason: null,
+      datesKnown: true,
+    });
+  });
+
+  it('marks a row that existed before the migration as not yet checked for dates', async () => {
+    const s = slug('legacy');
+    await pool.query(
+      `insert into title_mal (source_slug, status, mal_id, fetched_at)
+       values ($1, 'ok', 1, now())`,
+      [s],
+    );
+    expect((await store.find([s])).get(s)).toMatchObject({
+      startDate: null,
+      startSeason: null,
+      datesKnown: false,
+    });
+  });
+
+  it('refuses a start date or season of the wrong shape', async () => {
+    await expect(
+      store.save(ok(slug('baddate'), { startDate: '2027-1' })),
+    ).rejects.toThrow();
+    await expect(
+      store.save(
+        ok(slug('badseason'), {
+          startSeason: { year: 2027, season: 'monsoon' as 'winter' },
+        }),
+      ),
+    ).rejects.toThrow();
+  });
+
   it('stores a miss without an id, and touch moves only the attempt time', async () => {
     const s = slug('miss');
     await store.save({
@@ -85,6 +132,9 @@ describe.skipIf(!url)('PostgresMalStore against DATABASE_URL', () => {
       members: null,
       airing: null,
       episodes: null,
+      startDate: null,
+      startSeason: null,
+      datesKnown: false,
       matchedTitle: null,
       matchScore: null,
       reason: 'no candidate cleared the match',

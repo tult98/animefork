@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import type { MalStats } from '../../../../api/src/art/contract.ts';
 import {
   MIN_SHELF_TITLES,
   SEASON_SHELF_LIMIT,
+  UPCOMING_MIN_TITLES,
+  UPCOMING_SHELF_LIMIT,
   buildHome,
   type HomeInput,
 } from './shelves.ts';
@@ -24,6 +27,7 @@ const base: HomeInput = {
   hero: range(0, 5),
   newEpisodes: range(100, 110),
   top: range(200, 210),
+  upcoming: [],
   season: range(300, 330),
 };
 
@@ -154,5 +158,191 @@ describe('buildHome', () => {
 
   it('shows the hero even when it has few titles', () => {
     expect(ids({ ...base, hero: range(0, 1) })[0]).toBe('hero');
+  });
+});
+
+describe('buildHome upcoming shelf', () => {
+  const NOW = 1_000_000;
+  const soon = (n: number, releasesAt: number | undefined): Title => ({
+    ...t(n),
+    releasesAt,
+  });
+  const upcomingShelf = (upcoming: Title[], input = base) =>
+    buildHome({ ...input, upcoming }, NOW).find((s) => s.id === 'upcoming');
+
+  it('comes last and is titled Sắp ra mắt', () => {
+    const shelves = buildHome(
+      {
+        ...base,
+        upcoming: [soon(1, NOW + 1), soon(2, NOW + 2), soon(3, NOW + 3)],
+      },
+      NOW,
+    );
+    expect(shelves.map((s) => s.id).at(-1)).toBe('upcoming');
+    expect(shelves.at(-1)).toMatchObject({
+      kind: 'default',
+      title: 'Sắp ra mắt',
+    });
+  });
+
+  it('sorts by release time, soonest first', () => {
+    const shelf = upcomingShelf([
+      soon(1, NOW + 30),
+      soon(2, NOW + 10),
+      soon(3, NOW + 20),
+    ]);
+    expect(paths(shelf!.items)).toEqual([t(2).path, t(3).path, t(1).path]);
+  });
+
+  it('drops titles that are past, due now or have neither date nor year', () => {
+    const shelf = upcomingShelf([
+      soon(1, NOW - 1),
+      soon(2, NOW),
+      soon(3, undefined),
+      soon(4, NOW + 1),
+      soon(5, NOW + 2),
+      soon(6, NOW + 3),
+    ]);
+    expect(paths(shelf!.items)).toEqual([t(4).path, t(5).path, t(6).path]);
+  });
+
+  it('needs its own floor of three, not the eight of the other shelves', () => {
+    expect(UPCOMING_MIN_TITLES).toBeLessThan(MIN_SHELF_TITLES);
+    expect(upcomingShelf([soon(1, NOW + 1), soon(2, NOW + 2)])).toBeUndefined();
+    expect(
+      upcomingShelf([soon(1, NOW + 1), soon(2, NOW + 2), soon(3, NOW + 3)]),
+    ).toBeDefined();
+  });
+
+  it('counts the floor after dropping the past ones', () => {
+    expect(
+      upcomingShelf([soon(1, NOW - 5), soon(2, NOW + 2), soon(3, NOW + 3)]),
+    ).toBeUndefined();
+  });
+
+  it('is absent for an empty block', () => {
+    expect(upcomingShelf([])).toBeUndefined();
+  });
+
+  it('caps the shelf', () => {
+    const many = Array.from({ length: 20 }, (_, i) => soon(i, NOW + 20 - i));
+    expect(upcomingShelf(many)!.items).toHaveLength(UPCOMING_SHELF_LIMIT);
+  });
+
+  it('does not dedupe against other shelves', () => {
+    const shared = { ...base.newEpisodes[0]!, releasesAt: NOW + 5 };
+    const shelf = upcomingShelf([shared, soon(1, NOW + 6), soon(2, NOW + 7)]);
+    expect(paths(shelf!.items)).toContain(shared.path);
+    expect(
+      paths(
+        buildHome({ ...base, upcoming: [shared] }, NOW).find(
+          (s) => s.id === 'new-episodes',
+        )!.items,
+      ),
+    ).toContain(shared.path);
+  });
+
+  describe('year-only titles', () => {
+    const year = new Date(NOW).getFullYear();
+    const yr = (n: number, y: number | undefined): Title => ({
+      ...t(n),
+      year: y,
+    });
+
+    it('come after exact dates, sorted by year and stable within a year', () => {
+      const shelf = upcomingShelf([
+        yr(1, year + 2),
+        yr(2, year + 1),
+        soon(3, NOW + 50),
+        yr(4, year + 1),
+        soon(5, NOW + 10),
+      ]);
+      expect(paths(shelf!.items)).toEqual(
+        [5, 3, 2, 4, 1].map((n) => t(n).path),
+      );
+    });
+
+    it('keep the current year but drop earlier years', () => {
+      const shelf = upcomingShelf([
+        yr(1, year - 1),
+        yr(2, year),
+        yr(3, year + 1),
+        yr(4, year + 1),
+      ]);
+      expect(paths(shelf!.items)).toEqual([2, 3, 4].map((n) => t(n).path));
+    });
+
+    it('ignore the year of a title that has a past release time', () => {
+      const past = { ...yr(1, year + 5), releasesAt: NOW - 1 };
+      const shelf = upcomingShelf([
+        past,
+        yr(2, year),
+        yr(3, year),
+        yr(4, year),
+      ]);
+      expect(paths(shelf!.items)).not.toContain(past.path);
+    });
+
+    it('count toward the floor and the cap', () => {
+      expect(upcomingShelf([yr(1, year), yr(2, year)])).toBeUndefined();
+      const many = Array.from({ length: 20 }, (_, i) => yr(i, year + 1));
+      expect(upcomingShelf(many)!.items).toHaveLength(UPCOMING_SHELF_LIMIT);
+    });
+  });
+});
+
+describe('buildHome upcoming shelf with MyAnimeList dates', () => {
+  const NOW = Date.UTC(2026, 10, 11);
+  const yr = (n: number, year: number): Title => ({ ...t(n), year });
+  const withMal = (title: Title, over: Partial<MalStats>): Title => ({
+    ...title,
+    mal: {
+      id: 1,
+      score: null,
+      voters: null,
+      rank: null,
+      popularity: null,
+      members: null,
+      airing: null,
+      episodes: null,
+      startDate: null,
+      startSeason: null,
+      ...over,
+    },
+  });
+
+  it('puts an exact moment, a month, a season and a year in order of earliest instant', () => {
+    const shelf = buildHome(
+      {
+        ...base,
+        upcoming: [
+          yr(1, 2028),
+          withMal(yr(2, 2027), { startSeason: { year: 2027, season: 'fall' } }),
+          withMal(yr(3, 2027), { startDate: '2027-01' }),
+          { ...t(4), releasesAt: NOW + 5 * 86_400_000 },
+          yr(5, 2027),
+        ],
+      },
+      NOW,
+    ).find((s) => s.id === 'upcoming')!;
+    expect(paths(shelf.items)).toEqual([4, 3, 5, 2, 1].map((n) => t(n).path));
+  });
+
+  it('keeps page order between titles that share a sort key', () => {
+    const shelf = buildHome(
+      {
+        ...base,
+        upcoming: [
+          yr(1, 2027),
+          withMal(yr(2, 2027), { startDate: '2027-01' }),
+          withMal(yr(3, 2027), {
+            startSeason: { year: 2027, season: 'winter' },
+          }),
+          yr(4, 2027),
+        ],
+      },
+      NOW,
+    ).find((s) => s.id === 'upcoming')!;
+    expect(paths(shelf.items)).toEqual([1, 2, 3, 4].map((n) => t(n).path));
   });
 });

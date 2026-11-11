@@ -13,7 +13,11 @@ import {
   type TitleRatings,
 } from '../../../../api/src/art/contract.ts';
 import { titleWatchLink } from './link.ts';
-import type { HomeShelves } from './shelves.ts';
+import {
+  arrangeUpcoming,
+  UPCOMING_MIN_TITLES,
+  type HomeShelves,
+} from './shelves.ts';
 import type { Title } from './title.ts';
 import type { Episode, WatchPage } from './watch.ts';
 
@@ -279,13 +283,19 @@ function withRatings(title: Title, ratings: Map<string, TitleRatings>): Title {
   };
 }
 
+// MyAnimeList can date a title that the page only gave a year, so the upcoming shelf is arranged again.
 export function applyRatings(
   shelves: HomeShelves,
   ratings: Map<string, TitleRatings>,
+  now: number = Date.now(),
 ): HomeShelves {
   if (ratings.size === 0) return shelves;
-  return shelves.map((shelf) => ({
-    ...shelf,
-    items: shelf.items.map((t) => withRatings(t, ratings)),
-  })) as HomeShelves;
+  return shelves.flatMap((shelf) => {
+    const items = shelf.items.map((t) => withRatings(t, ratings));
+    if (shelf.id !== 'upcoming') return [{ ...shelf, items }];
+    const upcoming = arrangeUpcoming(items, now);
+    return upcoming.length >= UPCOMING_MIN_TITLES
+      ? [{ ...shelf, items: upcoming }]
+      : [];
+  }) as HomeShelves;
 }

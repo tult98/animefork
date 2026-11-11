@@ -15,6 +15,8 @@ export function candidate(over: Partial<MalCandidate> = {}): MalCandidate {
     popularity: 1762,
     members: 157000,
     airing: 'finished_airing',
+    startDate: null,
+    startSeason: { year: 2017, season: 'fall' },
     ...over,
   };
 }

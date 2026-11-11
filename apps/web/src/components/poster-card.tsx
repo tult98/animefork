@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { episodeProgress } from '../lib/titles/episode-progress.ts';
 import { titleWatchLink } from '../lib/titles/link.ts';
+import { releaseInfo } from '../lib/titles/release.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
   HOVER_WIDTH,
@@ -49,6 +50,7 @@ interface PosterCardProps {
   title: Title;
   rank?: number;
   newEpisode?: boolean;
+  upcoming?: boolean;
 }
 
 function CardImage({
@@ -77,8 +79,10 @@ export function PosterCard({
   title,
   rank,
   newEpisode = false,
+  upcoming = false,
 }: PosterCardProps) {
   const isRank = rank !== undefined;
+  const [shownAt] = useState(Date.now);
   const details = useDetails();
   const coverRef = useRef<HTMLButtonElement>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -177,7 +181,10 @@ export function PosterCard({
     details.open(title);
   };
   const watch = titleWatchLink(title);
-  const label = `${isRank ? `Hạng ${rank}: ` : ''}${title.name}, ${title.episodeLabel}`;
+  const countdown = upcoming
+    ? (releaseInfo(title, shownAt)?.label ?? null)
+    : null;
+  const label = `${isRank ? `Hạng ${rank}: ` : ''}${title.name}, ${title.episodeLabel}${countdown ? `, ${countdown}` : ''}`;
   const airing = title.mal?.airing === 'currently_airing';
   const hd = title.quality && /hd/i.test(title.quality) ? title.quality : null;
 
@@ -230,6 +237,16 @@ export function PosterCard({
                 <span className="af-tag">Tập mới</span>
                 <span className="af-tag af-tag--watch">
                   {title.episodeLabel}
+                </span>
+              </div>
+            ) : countdown ? (
+              <div className="af-tags bottom-2 z-2 flex-col items-stretch text-center [&>.af-tag:first-child]:rounded-[var(--radius-sm)_var(--radius-sm)_0_0]! [&>.af-tag:last-child]:rounded-[0_0_var(--radius-sm)_var(--radius-sm)]!">
+                <span className="af-tag">Sắp chiếu</span>
+                <span
+                  className="af-tag af-tag--watch"
+                  data-testid="card:countdown"
+                >
+                  {countdown}
                 </span>
               </div>
             ) : airing ? (

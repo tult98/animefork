@@ -97,3 +97,81 @@ describe('parseCards', () => {
     expect(parseCards(root, '.TPostMv')).toHaveLength(2);
   });
 });
+
+describe('parseCard upcoming', () => {
+  const NOW = Date.UTC(2026, 10, 11);
+  const upcoming = (
+    schedule: string,
+    info = '<span class="Time">PV/12</span>',
+  ) =>
+    card(
+      `<li class="TPostMv"><article><a href="/phim/x-a1/"><div class="Image"><figure><img src="/p.jpg"></figure>${schedule}<div class="anime-avg-user-rating">8.1</div></div><h2 class="Title">X</h2></a><div class="TPMvCn"><p class="Info">${info}</p></div></article></li>`,
+    );
+
+  it('adds the timer seconds to now', () => {
+    const el = upcoming(
+      '<span class="mli-timeschedule" data-timer_second="4610575">7w</span><span class="b">2022-11-09</span>',
+    );
+    expect(parseCard(el, NOW).releasesAt).toBe(NOW + 4_610_575_000);
+  });
+
+  it('falls back to the date span without a timer', () => {
+    const el = upcoming(
+      '<span class="mli-timeschedule">SẮP CHIẾU</span><span class="b">2027-03-05</span>',
+    );
+    expect(parseCard(el, NOW).releasesAt).toBe(Date.UTC(2027, 2, 5));
+  });
+
+  it('reads the live year-only card as a year with no releasesAt', () => {
+    const el = upcoming(
+      '<span class="mli-timeschedule">SẮP CHIẾU</span><span class="b">2027</span>',
+      '<span class="Time AAIco-access_time">PV/??</span><span class="Date AAIco-date_range">2027</span>',
+    );
+    const parsed = parseCard(el, NOW);
+    expect(parsed.releasesAt).toBeUndefined();
+    expect(parsed.year).toBe(2027);
+    expect(parsed.episodeLabel).toBe('PV/??');
+  });
+
+  it('falls back to the bare .b year when the date icon is missing', () => {
+    const el = upcoming(
+      '<span class="mli-timeschedule">SẮP CHIẾU</span><span class="b">2028</span>',
+    );
+    expect(parseCard(el, NOW).year).toBe(2028);
+    const dated = upcoming(
+      '<span class="mli-timeschedule">SẮP CHIẾU</span><span class="b">2028-02-01</span>',
+    );
+    expect(parseCard(dated, NOW).year).toBeUndefined();
+  });
+
+  it('leaves releasesAt unset for a bare year or no schedule', () => {
+    expect(
+      parseCard(
+        upcoming(
+          '<span class="mli-timeschedule">SẮP CHIẾU</span><span class="b">2023</span>',
+        ),
+        NOW,
+      ).releasesAt,
+    ).toBeUndefined();
+    expect(parseCard(card(fullCard), NOW).releasesAt).toBeUndefined();
+  });
+
+  it('uses .Info .Time as the label and a fallback when it is blank', () => {
+    const schedule =
+      '<span class="mli-timeschedule" data-timer_second="10">x</span>';
+    expect(parseCard(upcoming(schedule), NOW).episodeLabel).toBe('PV/12');
+    const blank = parseCard(upcoming(schedule, ''), NOW);
+    expect(blank.episodeLabel).toBe('Sắp chiếu');
+    expect(TitleSchema.safeParse(blank).success).toBe(true);
+  });
+
+  it('passes now through parseCards', () => {
+    const root = document.createElement('ul');
+    root.append(
+      upcoming(
+        '<span class="mli-timeschedule" data-timer_second="60">x</span>',
+      ),
+    );
+    expect(parseCards(root, '.TPostMv', NOW)[0]?.releasesAt).toBe(NOW + 60_000);
+  });
+});

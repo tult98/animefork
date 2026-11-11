@@ -9,6 +9,7 @@ const SEE_ALL_SHELVES = new Set([
   'new-episodes',
   'top-10-today',
   'airing-this-season',
+  'upcoming',
 ]);
 
 const ARROW_CLASS =
@@ -123,6 +124,7 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
                 title={title}
                 rank={'rank' in title ? title.rank : undefined}
                 newEpisode={shelf.id === 'new-episodes'}
+                upcoming={shelf.id === 'upcoming'}
               />
             </div>
           ))}

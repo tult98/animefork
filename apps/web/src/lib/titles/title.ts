@@ -15,6 +15,7 @@ export const TitleSchema = z.object({
   views: z.number().int().nonnegative().optional(),
   quality: z.string().min(1).optional(),
   avsVoters: z.number().int().nonnegative().optional(),
+  releasesAt: z.number().int().optional(),
   mal: MalStatsSchema.optional(),
 });
 

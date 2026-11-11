@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures.ts';
+import { expect, test, UPCOMING_NOW } from './fixtures.ts';
 
 const SEASON_PATH = '/season/autumn/2026/';
 
@@ -6,7 +6,7 @@ async function shelves(page: import('@playwright/test').Page) {
   return (await page.evaluate(() => window.__app?.shelves())) ?? [];
 }
 
-test('home renders the hero and the three shelves in order', async ({
+test('home renders the hero and the four shelves in order', async ({
   page,
 }) => {
   await page.goto('/?transport=replay');
@@ -18,6 +18,7 @@ test('home renders the hero and the three shelves in order', async ({
     'new-episodes',
     'top-10-today',
     'airing-this-season',
+    'upcoming',
   ]);
   for (const shelf of rendered) {
     const rows =
@@ -40,6 +41,7 @@ test('shelf contents follow the dedupe rules', async ({ page }) => {
   expect(byId['new-episodes']).toHaveLength(10);
   expect(byId['top-10-today']).toHaveLength(10);
   expect(byId['airing-this-season']).toHaveLength(12);
+  expect(byId['upcoming']).toHaveLength(10);
 
   const news = new Set(byId['new-episodes']);
   expect(byId['airing-this-season']!.filter((p) => news.has(p))).toEqual([]);
@@ -199,6 +201,7 @@ test.describe('season request fails', () => {
       'hero',
       'new-episodes',
       'top-10-today',
+      'upcoming',
     ]);
     await expect(page.getByTestId('error-screen')).toHaveCount(0);
   });
@@ -257,4 +260,67 @@ test('a long description in the details modal is clamped and expands on click', 
   expect(await height()).toBeGreaterThan(clamped);
   await toggle.click();
   expect(await height()).toBe(clamped);
+});
+
+test('the upcoming shelf shows countdown tags in order of the earliest instant and a see-all link', async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(UPCOMING_NOW);
+  await page.goto('/?transport=replay');
+  const shelf = page.getByTestId('shelf:upcoming');
+  await expect(shelf).toBeVisible();
+  await expect(shelf).toHaveAttribute('aria-label', 'Sắp ra mắt');
+  await expect(shelf.getByTestId('shelf:upcoming:see-all')).toHaveAttribute(
+    'href',
+    '/browse',
+  );
+
+  const tags = shelf.getByTestId('card:countdown');
+  await expect(tags).toHaveCount(10);
+  expect(await tags.allTextContents()).toEqual([
+    'Hôm nay',
+    'Còn 5 ngày',
+    'Còn 2 tuần',
+    '2027',
+    '2027',
+    'Còn 3 tháng',
+    '2028',
+    '2029',
+    '2030',
+    '2099',
+  ]);
+  await expect(
+    shelf
+      .getByTestId('card:/phim/akatsuki-no-ryuu-a7009/')
+      .locator('[data-cover]'),
+  ).toHaveAttribute('aria-label', 'Akatsuki no Ryuu, PV/??, 2027');
+  await expect(
+    page.getByTestId('shelf:new-episodes').getByTestId('card:countdown'),
+  ).toHaveCount(0);
+});
+
+// The fixture has no watch page for the made-up upcoming titles, so the details fetch 404s.
+test.describe('upcoming card details', () => {
+  test.use({ allowedConsoleErrors: [/404/] });
+
+  test('an upcoming card still opens the details modal', async ({ page }) => {
+    await page.clock.setFixedTime(UPCOMING_NOW);
+    await page.goto('/?transport=replay');
+    const card = page
+      .getByTestId('shelf:upcoming')
+      .getByTestId('card:/phim/tsuki-no-sakamichi-a7001/');
+    await expect(card.locator('[data-cover]')).toHaveAttribute(
+      'aria-label',
+      'Tsuki no Sakamichi, PV/12, Hôm nay',
+    );
+    await card.locator('[data-cover]').click();
+
+    const modal = page.getByTestId('details');
+    await expect(modal).toBeVisible();
+    await expect(modal.getByRole('heading', { level: 2 })).toHaveText(
+      'Tsuki no Sakamichi',
+    );
+    await page.keyboard.press('Escape');
+    await expect(modal).toHaveCount(0);
+  });
 });

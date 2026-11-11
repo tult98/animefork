@@ -1,8 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Page, Route } from '@playwright/test';
-import type { ArtEntry, LookupRequest } from '../../api/src/art/contract.ts';
-import { expect, test } from './fixtures.ts';
+import type {
+  ArtEntry,
+  LookupRequest,
+  TitleRatings,
+} from '../../api/src/art/contract.ts';
+import { expect, test, UPCOMING_NOW } from './fixtures.ts';
 
 const SLUG = 'tonikaku-kawaii-a3860';
 const HERO_SLUG =
@@ -16,6 +20,7 @@ const poster = readFileSync(
 async function stubArt(
   page: Page,
   answer: (body: LookupRequest, call: number) => Record<string, ArtEntry>,
+  ratings: Record<string, TitleRatings> = {},
 ): Promise<LookupRequest[]> {
   await page.route('**/image.tmdb.org/**', (route) =>
     route.fulfill({ contentType: 'image/svg+xml', body: poster }),
@@ -25,7 +30,9 @@ async function stubArt(
     expect(route.request().method()).toBe('POST');
     const body = route.request().postDataJSON() as LookupRequest;
     bodies.push(body);
-    return route.fulfill({ json: { art: answer(body, bodies.length) } });
+    return route.fulfill({
+      json: { art: answer(body, bodies.length), ratings },
+    });
   });
   return bodies;
 }
@@ -256,4 +263,49 @@ test.describe('a failing art API', () => {
       page.getByTestId('hero:slide:0').locator('img'),
     ).toHaveAttribute('src', /^https:\/\/cdn\.animevietsub\.best\//);
   });
+});
+
+test('MAL start dates make the upcoming tags precise and reorder the shelf', async ({
+  page,
+}) => {
+  const mal = {
+    id: 1,
+    score: null,
+    voters: null,
+    rank: null,
+    popularity: null,
+    members: null,
+    airing: 'not_yet_aired',
+    episodes: null,
+    startDate: null,
+    startSeason: null,
+  } as const;
+  await stubArt(page, () => ({}), {
+    'akatsuki-no-ryuu-a7009': {
+      mal: { ...mal, startSeason: { year: 2027, season: 'winter' } },
+    },
+    'minato-machi-diary-a7010': { mal: { ...mal, startDate: '2027-01' } },
+  });
+  await page.clock.setFixedTime(UPCOMING_NOW);
+
+  await page.goto('/?transport=replay');
+  const shelf = page.getByTestId('shelf:upcoming');
+  const tags = shelf.getByTestId('card:countdown');
+  await expect(tags).toHaveText([
+    'Hôm nay',
+    'Còn 5 ngày',
+    'Còn 2 tuần',
+    'Mùa đông 2027',
+    '2027',
+    '1/2027',
+    'Còn 3 tháng',
+    '2029',
+    '2030',
+    '2099',
+  ]);
+  await expect(
+    shelf
+      .getByTestId('card:/phim/minato-machi-diary-a7010/')
+      .locator('[data-cover]'),
+  ).toHaveAttribute('aria-label', 'Minato Machi Diary, PV/??, 1/2027');
 });

@@ -108,6 +108,57 @@ describe('MalClient.search', () => {
     ]);
   });
 
+  it('reads a start date as precise as MAL gives it, and a start season', async () => {
+    const { client, calls } = make(() =>
+      Response.json({
+        data: [
+          { node: node({ start_date: '2027' }) },
+          { node: node({ id: 2, start_date: '2027-01' }) },
+          { node: node({ id: 3, start_date: '2027-01-09' }) },
+          {
+            node: node({
+              id: 4,
+              start_date: undefined,
+              start_season: undefined,
+            }),
+          },
+          {
+            node: node({
+              id: 5,
+              start_date: '2027-13',
+              start_season: { year: 2027, season: 'monsoon' },
+            }),
+          },
+          {
+            node: node({
+              id: 6,
+              start_date: 'soon',
+              start_season: { year: 2027, season: 'winter' },
+            }),
+          },
+        ],
+      }),
+    );
+    const found = await client.search('x');
+    expect(found.map((c) => c.startDate)).toEqual([
+      '2027',
+      '2027-01',
+      '2027-01-09',
+      null,
+      null,
+      null,
+    ]);
+    expect(found.map((c) => c.startSeason)).toEqual([
+      { year: 2017, season: 'fall' },
+      { year: 2017, season: 'fall' },
+      { year: 2017, season: 'fall' },
+      null,
+      null,
+      { year: 2027, season: 'winter' },
+    ]);
+    expect(calls[0]?.url.searchParams.get('fields')).toContain('start_date');
+  });
+
   it('throws a MalError carrying the status', async () => {
     const { client } = make(() => new Response('no', { status: 500 }));
     await expect(client.search('abc')).rejects.toMatchObject({
@@ -136,8 +187,12 @@ describe('MalClient.stats', () => {
       members: 157000,
       airing: 'finished_airing',
       episodes: 170,
+      startDate: null,
+      startSeason: { year: 2017, season: 'fall' },
     });
     expect(calls[0]?.url.pathname).toBe('/v2/anime/34572');
+    expect(calls[0]?.url.searchParams.get('fields')).toContain('start_date');
+    expect(calls[0]?.url.searchParams.get('fields')).toContain('start_season');
     expect(calls[0]?.url.searchParams.get('fields')).not.toContain(
       'alternative_titles',
     );

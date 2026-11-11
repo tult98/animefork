@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
 import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
 import { PG_POOL } from '../database/migration-runner.ts';
-import type { MalAiring } from '../art/contract.ts';
+import type { MalAiring, MalSeason, MalStartSeason } from '../art/contract.ts';
 import type { MalStatus } from './mal.retry.ts';
 
 export const MAL_STORE = Symbol('MalStore');
@@ -18,6 +18,10 @@ export interface StoredMal {
   members: number | null;
   airing: MalAiring | null;
   episodes: number | null;
+  startDate: string | null;
+  startSeason: MalStartSeason | null;
+  // False for a row saved before start dates were stored, so it is fetched once more.
+  datesKnown: boolean;
   // What the matcher chose and how sure it was, so a wrong match can be spotted by eye.
   matchedTitle: string | null;
   matchScore: number | null;
@@ -73,6 +77,10 @@ interface MalRow {
   mal_members: number | null;
   mal_airing: MalAiring | null;
   mal_episodes: number | null;
+  mal_start_date: string | null;
+  mal_start_year: number | null;
+  mal_start_season: MalSeason | null;
+  mal_dates_known: boolean;
   matched_title: string | null;
   match_score: string | null;
   matcher_version: number;
@@ -98,6 +106,7 @@ export class PostgresMalStore implements MalStore {
     const { rows } = await this.pool.query<MalRow>(
       `select source_slug, status, mal_id, mal_score, mal_voters, mal_rank,
               mal_popularity, mal_members, mal_airing, mal_episodes,
+              mal_start_date, mal_start_year, mal_start_season, mal_dates_known,
               matched_title, match_score, matcher_version, reason, attempted_at, fetched_at
          from title_mal where source_slug = any($1::text[])`,
       [slugs],
@@ -114,6 +123,12 @@ export class PostgresMalStore implements MalStore {
         members: row.mal_members,
         airing: row.mal_airing,
         episodes: row.mal_episodes,
+        startDate: row.mal_start_date,
+        startSeason:
+          row.mal_start_year !== null && row.mal_start_season !== null
+            ? { year: row.mal_start_year, season: row.mal_start_season }
+            : null,
+        datesKnown: row.mal_dates_known,
         matchedTitle: row.matched_title,
         matchScore: toNumber(row.match_score),
         matcherVersion: row.matcher_version,
@@ -130,10 +145,11 @@ export class PostgresMalStore implements MalStore {
       `insert into title_mal
          (source_slug, status, mal_id, mal_score, mal_voters, mal_rank,
           mal_popularity, mal_members, mal_airing, mal_episodes,
+          mal_start_date, mal_start_year, mal_start_season, mal_dates_known,
           matched_title, match_score, matcher_version, reason, attempted_at,
           fetched_at)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-               $15, $16)
+               $15, $16, $17, $18, $19, $20)
        on conflict (source_slug) do update set
          status = excluded.status,
          mal_id = excluded.mal_id,
@@ -144,6 +160,10 @@ export class PostgresMalStore implements MalStore {
          mal_members = excluded.mal_members,
          mal_airing = excluded.mal_airing,
          mal_episodes = excluded.mal_episodes,
+         mal_start_date = excluded.mal_start_date,
+         mal_start_year = excluded.mal_start_year,
+         mal_start_season = excluded.mal_start_season,
+         mal_dates_known = excluded.mal_dates_known,
          matched_title = excluded.matched_title,
          match_score = excluded.match_score,
          matcher_version = excluded.matcher_version,
@@ -161,6 +181,10 @@ export class PostgresMalStore implements MalStore {
         row.members,
         row.airing,
         row.episodes,
+        row.startDate,
+        row.startSeason?.year ?? null,
+        row.startSeason?.season ?? null,
+        row.datesKnown,
         row.matchedTitle,
         row.matchScore,
         row.matcherVersion,

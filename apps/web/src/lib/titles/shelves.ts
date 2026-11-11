@@ -1,8 +1,11 @@
+import { releaseInfo } from './release.ts';
 import type { Title } from './title.ts';
 
 export const MIN_SHELF_TITLES = 8;
 export const SEASON_SHELF_LIMIT = 12;
 export const TOP_10_SIZE = 10;
+export const UPCOMING_MIN_TITLES = 3;
+export const UPCOMING_SHELF_LIMIT = 12;
 
 export interface HeroShelf {
   kind: 'hero';
@@ -12,7 +15,7 @@ export interface HeroShelf {
 
 export interface DefaultShelf {
   kind: 'default';
-  id: 'new-episodes' | 'airing-this-season';
+  id: 'new-episodes' | 'airing-this-season' | 'upcoming';
   title: string;
   items: Title[];
 }
@@ -31,15 +34,26 @@ export interface HomeInput {
   hero: Title[];
   newEpisodes: Title[];
   top: Title[];
+  upcoming: Title[];
   season: Title[] | undefined;
 }
 
-export function buildHome({
-  hero,
-  newEpisodes,
-  top,
-  season,
-}: HomeInput): HomeShelves {
+// A title is kept until the period its release falls in is over, and the nearest come first.
+export function arrangeUpcoming(titles: Title[], now: number): Title[] {
+  return titles
+    .flatMap((title) => {
+      const info = releaseInfo(title, now);
+      return info && info.endsAt > now ? [{ title, key: info.sortKey }] : [];
+    })
+    .sort((a, b) => a.key - b.key)
+    .slice(0, UPCOMING_SHELF_LIMIT)
+    .map(({ title }) => title);
+}
+
+export function buildHome(
+  { hero, newEpisodes, top, upcoming, season }: HomeInput,
+  now: number = Date.now(),
+): HomeShelves {
   const shelves: HomeShelves = [];
 
   if (hero.length > 0) shelves.push({ kind: 'hero', id: 'hero', items: hero });
@@ -80,6 +94,16 @@ export function buildHome({
         items: airing,
       });
     }
+  }
+
+  const soon = arrangeUpcoming(upcoming, now);
+  if (soon.length >= UPCOMING_MIN_TITLES) {
+    shelves.push({
+      kind: 'default',
+      id: 'upcoming',
+      title: 'Sắp ra mắt',
+      items: soon,
+    });
   }
 
   return shelves;

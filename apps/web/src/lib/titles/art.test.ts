@@ -2,6 +2,10 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import type {
+  MalStats,
+  TitleRatings,
+} from '../../../../api/src/art/contract.ts';
 import {
   applyArt,
   applyHomeArt,
@@ -485,6 +489,8 @@ describe('MAL ratings in a lookup', () => {
     members: 157000,
     airing: 'currently_airing' as const,
     episodes: 12,
+    startDate: '2027-01',
+    startSeason: { year: 2027, season: 'winter' as const },
   };
   const answer = (body: object) =>
     vi.fn(async () => Response.json(body)) as unknown as typeof fetch;
@@ -499,6 +505,24 @@ describe('MAL ratings in a lookup', () => {
     });
     expect(art.ratings.get('a-1')?.mal).toEqual({ ...mal, rank: null });
     expect(art.pending).toBe(false);
+  });
+
+  it('reads an answer from before start dates were stored as unknown dates', async () => {
+    const old: Record<string, unknown> = { ...mal };
+    delete old.startDate;
+    delete old.startSeason;
+    const art = await fetchHomeArt(titles, {
+      env,
+      fetch: answer({
+        art: { 'a-1': { status: 'none' } },
+        ratings: { 'a-1': { mal: old } },
+      }),
+    });
+    expect(art.ratings.get('a-1')?.mal).toEqual({
+      ...old,
+      startDate: null,
+      startSeason: null,
+    });
   });
 
   it('polls again while the API is still filling MAL, as for pending art', async () => {
@@ -574,5 +598,98 @@ describe('applyRatings', () => {
 
   it('returns the same shelves when there is nothing to apply', () => {
     expect(applyRatings(shelves, new Map())).toBe(shelves);
+  });
+});
+
+describe('applyRatings on the upcoming shelf', () => {
+  const NOW = Date.UTC(2026, 10, 11);
+  const upcoming = (n: number, year: number): Title => ({
+    path: `/phim/u${n}-a${n}/`,
+    name: `U${n}`,
+    image: 'i.jpg',
+    rating: 0,
+    episodeLabel: 'PV/??',
+    genres: [],
+    year,
+  });
+  const malOf = (over: Partial<MalStats>): TitleRatings => ({
+    mal: {
+      id: 1,
+      score: null,
+      voters: null,
+      rank: null,
+      popularity: null,
+      members: null,
+      airing: 'not_yet_aired',
+      episodes: null,
+      startDate: null,
+      startSeason: null,
+      ...over,
+    },
+  });
+  const shelf = (items: Title[]) =>
+    [
+      { kind: 'default', id: 'upcoming', title: 'Sắp ra mắt', items },
+    ] as HomeShelves;
+  const built = shelf([
+    upcoming(1, 2027),
+    upcoming(2, 2027),
+    upcoming(3, 2027),
+    upcoming(4, 2027),
+  ]);
+  const order = (out: HomeShelves) => out[0]?.items.map((t) => t.name);
+
+  it('sorts by the earliest instant MAL allows, and keeps page order on a tie', () => {
+    const out = applyRatings(
+      built,
+      new Map([
+        ['u3-a3', malOf({ startDate: '2027-01' })],
+        ['u4-a4', malOf({ startSeason: { year: 2027, season: 'fall' } })],
+        ['u1-a1', malOf({ startDate: '2026-12-25' })],
+      ]),
+      NOW,
+    );
+    expect(order(out)).toEqual(['U1', 'U2', 'U3', 'U4']);
+  });
+
+  it('moves a later-dated title behind year-only ones', () => {
+    const out = applyRatings(
+      built,
+      new Map([['u1-a1', malOf({ startDate: '2027-09' })]]),
+      NOW,
+    );
+    expect(order(out)).toEqual(['U2', 'U3', 'U4', 'U1']);
+  });
+
+  it('drops a title MAL says already came out, and the shelf when under three remain', () => {
+    const gone = malOf({ startDate: '2026-03-01' });
+    const one = applyRatings(built, new Map([['u1-a1', gone]]), NOW);
+    expect(order(one)).toEqual(['U2', 'U3', 'U4']);
+    const two = applyRatings(
+      built,
+      new Map([
+        ['u1-a1', gone],
+        ['u2-a2', gone],
+      ]),
+      NOW,
+    );
+    expect(two).toEqual([]);
+  });
+
+  it('leaves other shelves in their order', () => {
+    const other = [
+      {
+        kind: 'default',
+        id: 'new-episodes',
+        title: 'x',
+        items: [upcoming(2, 2027), upcoming(1, 2027)],
+      },
+    ] as unknown as HomeShelves;
+    const out = applyRatings(
+      other,
+      new Map([['u1-a1', malOf({ startDate: '2026-12-25' })]]),
+      NOW,
+    );
+    expect(order(out)).toEqual(['U2', 'U1']);
   });
 });
