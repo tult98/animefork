@@ -56,7 +56,6 @@ body {
   --rkslot: 208px;
   --rkposter: 139px;
   --rkfs: 210px;
-  --bb-h: 560px;
   --card-art-ratio: calc(16 / 9);
 }
 
@@ -67,7 +66,6 @@ body {
     --rkslot: 176px;
     --rkposter: 118px;
     --rkfs: 178px;
-    --bb-h: 520px;
   }
 }
 
@@ -78,7 +76,6 @@ body {
     --rkslot: 150px;
     --rkposter: 100px;
     --rkfs: 150px;
-    --bb-h: 600px;
     --space-row: 28px;
   }
 }
@@ -97,6 +94,22 @@ body {
 
   .shelf-scroller::-webkit-scrollbar {
     display: none;
+  }
+
+  .hero-box {
+    height: 600px;
+    min-height: 0;
+  }
+
+  @media (min-width: 768px) {
+    .hero-box {
+      /* A definite width stops min/max-height from transferring through the ratio into min/max-width. */
+      width: calc(100% - 2 * var(--pad));
+      height: auto;
+      aspect-ratio: 2.18 / 1;
+      min-height: 420px;
+      max-height: 85vh;
+    }
   }
 
   .shelf-item {

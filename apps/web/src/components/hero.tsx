@@ -54,7 +54,7 @@ export function Hero({ items }: { items: Title[] }) {
       data-testid="hero"
       aria-roledescription="carousel"
       aria-label="Phim nổi bật"
-      className="af-billboard mx-(--pad) block h-(--bb-h) min-h-0 after:hidden"
+      className="af-billboard hero-box mx-(--pad) block after:hidden"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={(event) => {
@@ -174,7 +174,7 @@ export function HeroSkeleton() {
     <div
       aria-busy="true"
       aria-label="Đang tải"
-      className="relative mx-(--pad) h-(--bb-h) overflow-hidden rounded-billboard bg-surface-alt after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-linear-to-r after:from-transparent after:via-white/6 after:to-transparent after:content-[''] motion-reduce:after:animate-none"
+      className="hero-box relative mx-(--pad) overflow-hidden rounded-billboard bg-surface-alt after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-linear-to-r after:from-transparent after:via-white/6 after:to-transparent after:content-[''] motion-reduce:after:animate-none"
     />
   );
 }
