@@ -13,7 +13,10 @@ import {
   artPollDelay,
   fetchArt,
   fetchHomeArt,
+  type HomeArt,
   type HomeArtPaths,
+  isWaitingForArt,
+  markArtPending,
   NO_ART,
   type TitleArt,
 } from './art.ts';
@@ -278,6 +281,8 @@ describe('fetchHomeArt', () => {
       ratings: new Map(),
       avsStale: [],
       pending: true,
+      answered: new Set(['a-1', 'b-2', 'c-3']),
+      pendingSlugs: new Set(['a-1']),
     });
   });
 
@@ -304,6 +309,8 @@ describe('fetchHomeArt', () => {
       ratings: new Map(),
       avsStale: [],
       pending: false,
+      answered: new Set(),
+      pendingSlugs: new Set(),
     };
     expect(await fetchHomeArt(titles, { env: {}, fetch: fetchImpl })).toEqual(
       empty,
@@ -330,6 +337,8 @@ describe('fetchHomeArt', () => {
         ratings: new Map(),
         avsStale: [],
         pending: false,
+        answered: new Set(['a-1', 'b-2', 'c-3']),
+        pendingSlugs: new Set(),
       });
     }
   });
@@ -691,5 +700,88 @@ describe('applyRatings on the upcoming shelf', () => {
       NOW,
     );
     expect(order(out)).toEqual(['U2', 'U1']);
+  });
+});
+
+describe('waiting for art', () => {
+  const art = (
+    answered: string[],
+    pendingSlugs: string[] = [],
+    paths: [string, HomeArtPaths][] = [],
+  ): HomeArt => ({
+    paths: new Map(paths),
+    ratings: new Map(),
+    avsStale: [],
+    pending: pendingSlugs.length > 0,
+    answered: new Set(answered),
+    pendingSlugs: new Set(pendingSlugs),
+  });
+  const wait = (over: Partial<Parameters<typeof isWaitingForArt>[1]> = {}) => ({
+    apiOn: true,
+    art: undefined,
+    pollsLeft: true,
+    ...over,
+  });
+
+  it('never waits with the API off', () => {
+    expect(isWaitingForArt('a-1', wait({ apiOn: false }))).toBe(false);
+  });
+
+  it('waits before the first answer', () => {
+    expect(isWaitingForArt('a-1', wait())).toBe(true);
+  });
+
+  it('settles on a ready entry, with or without paths', () => {
+    const a = art(
+      ['a-1', 'b-2'],
+      [],
+      [['a-1', { backdropPath: '/a', posterPath: null, overview: null }]],
+    );
+    expect(isWaitingForArt('a-1', wait({ art: a }))).toBe(false);
+    expect(isWaitingForArt('b-2', wait({ art: a }))).toBe(false);
+  });
+
+  it('settles on none and on a slug the answer leaves out', () => {
+    const a = art(['a-1', 'b-2']);
+    expect(isWaitingForArt('a-1', wait({ art: a }))).toBe(false);
+    expect(isWaitingForArt('b-2', wait({ art: a }))).toBe(false);
+  });
+
+  it('waits while pending with polls left, then settles when the budget is spent', () => {
+    const a = art(['a-1', 'b-2'], ['a-1']);
+    expect(isWaitingForArt('a-1', wait({ art: a }))).toBe(true);
+    expect(isWaitingForArt('a-1', wait({ art: a, pollsLeft: false }))).toBe(
+      false,
+    );
+    expect(isWaitingForArt('b-2', wait({ art: a }))).toBe(false);
+  });
+
+  it('settles after a failed lookup', async () => {
+    const failed = await fetchHomeArt([{ slug: 'a-1', name: 'A' }], {
+      env,
+      fetch: (async () => new Response('no', { status: 500 })) as typeof fetch,
+    });
+    expect(isWaitingForArt('a-1', wait({ art: failed }))).toBe(false);
+    expect(isWaitingForArt('a-1', wait({ failed: true }))).toBe(false);
+  });
+
+  it('counts a slug added after the first answer as waiting', () => {
+    const a = art(['a-1']);
+    expect(isWaitingForArt('a-1', wait({ art: a }))).toBe(false);
+    expect(isWaitingForArt('late-9', wait({ art: a }))).toBe(true);
+  });
+
+  it('marks only the waiting titles on every shelf kind and leaves the rest as they were', () => {
+    const shelves = home();
+    const a = art(['a-1', 'b-2'], ['b-2']);
+    const marked = markArtPending(shelves, wait({ art: a }));
+    const items = marked.flatMap((s) => s.items);
+    expect(items.some((t) => t.artPending)).toBe(true);
+    for (const t of items) {
+      expect(t.artPending === true).toBe(
+        t.path.includes('b-2') || t.path.includes('c-3'),
+      );
+    }
+    expect(markArtPending(shelves, wait({ apiOn: false }))).toBe(shelves);
   });
 });

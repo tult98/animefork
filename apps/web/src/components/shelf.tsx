@@ -4,6 +4,7 @@ import type { DefaultShelf, Top10Shelf } from '../lib/titles/shelves.ts';
 import { scrollDistance, scrollEdges } from '../lib/ui/scroll-edges.ts';
 import { PosterCard } from './poster-card.tsx';
 import { ChevronLeft, ChevronRight } from './ui/icons.ts';
+import { SHIMMER } from './ui/shimmer.ts';
 
 const SEE_ALL_SHELVES = new Set([
   'new-episodes',
@@ -136,8 +137,7 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
   );
 }
 
-export const SHIMMER =
-  "relative overflow-hidden bg-surface-alt after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-linear-to-r after:from-transparent after:via-white/6 after:to-transparent after:content-[''] motion-reduce:after:animate-none";
+export { SHIMMER };
 
 export function ShelfSkeleton({ id }: { id: string }) {
   return (

@@ -42,6 +42,9 @@ export interface HomeArt {
   ratings: Map<string, TitleRatings>;
   avsStale: string[];
   pending: boolean;
+  // The slugs this answer speaks for, a failed lookup included, and the ones it left pending.
+  answered: Set<string>;
+  pendingSlugs: Set<string>;
 }
 
 export const NO_ART: TitleArt = { stills: new Map(), pending: false };
@@ -65,6 +68,8 @@ interface LookupResult {
   ratings: Map<string, TitleRatings>;
   avsStale: string[];
   pending: boolean;
+  answered: Set<string>;
+  pendingSlugs: Set<string>;
 }
 
 const EMPTY_LOOKUP: LookupResult = {
@@ -72,6 +77,8 @@ const EMPTY_LOOKUP: LookupResult = {
   ratings: new Map(),
   avsStale: [],
   pending: false,
+  answered: new Set(),
+  pendingSlugs: new Set(),
 };
 
 async function lookupChunk(
@@ -94,15 +101,21 @@ async function lookupChunk(
   const ready = new Map<string, ReadyEntry>();
   // A MyAnimeList lookup still being filled asks the page to come back, just like pending art.
   let pending = ratingsPending === true;
+  const pendingSlugs = new Set<string>();
   for (const [slug, entry] of Object.entries(art)) {
     if (entry.status === 'ready') ready.set(slug, entry);
-    else if (entry.status === 'pending') pending = true;
+    else if (entry.status === 'pending') {
+      pending = true;
+      pendingSlugs.add(slug);
+    }
   }
   return {
     ready,
     ratings: new Map(Object.entries(ratings ?? {})),
     avsStale: avsStale ?? [],
     pending,
+    answered: new Set(),
+    pendingSlugs,
   };
 }
 
@@ -142,9 +155,12 @@ async function lookupArt(
       ratings: new Map(results.flatMap((r) => [...r.ratings])),
       avsStale: results.flatMap((r) => r.avsStale),
       pending: results.some((r) => r.pending),
+      answered: new Set(titles.map((t) => t.slug)),
+      pendingSlugs: new Set(results.flatMap((r) => [...r.pendingSlugs])),
     };
   } catch {
-    return EMPTY_LOOKUP;
+    // A failed lookup is an answer too: the cards stop waiting and keep the source image.
+    return { ...EMPTY_LOOKUP, answered: new Set(titles.map((t) => t.slug)) };
   }
 }
 
@@ -199,10 +215,8 @@ export async function fetchHomeArt(
   titles: TitleInput[],
   options: { env: ArtEnv; signal?: AbortSignal; fetch?: typeof fetch },
 ): Promise<HomeArt> {
-  const { ready, ratings, avsStale, pending } = await lookupArt(
-    titles,
-    options,
-  );
+  const { ready, ratings, avsStale, pending, answered, pendingSlugs } =
+    await lookupArt(titles, options);
   const paths = new Map<string, HomeArtPaths>();
   for (const [slug, entry] of ready) {
     const overview = entry.overview ?? null;
@@ -214,7 +228,7 @@ export async function fetchHomeArt(
       });
     }
   }
-  return { paths, ratings, avsStale, pending };
+  return { paths, ratings, avsStale, pending, answered, pendingSlugs };
 }
 
 function slugOf(title: Pick<Title, 'path'>): string {
@@ -266,6 +280,36 @@ export function applyHomeArt(
       }),
     };
   });
+}
+
+export interface ArtWait {
+  apiOn: boolean;
+  art: HomeArt | undefined;
+  // False once the poll budget is spent, so a title still pending then shows its source image.
+  pollsLeft: boolean;
+  failed?: boolean;
+}
+
+// A slug the answer in hand does not cover counts as waiting, so a list that grows never flashes the source image.
+export function isWaitingForArt(slug: string, wait: ArtWait): boolean {
+  if (!wait.apiOn || wait.failed) return false;
+  if (!wait.art?.answered.has(slug)) return true;
+  return wait.art.pendingSlugs.has(slug) && wait.pollsLeft;
+}
+
+export function markArtPending(
+  shelves: HomeShelves,
+  wait: ArtWait,
+): HomeShelves {
+  if (!wait.apiOn || wait.failed) return shelves;
+  const mark = <T extends Title>(title: T): T =>
+    isWaitingForArt(slugOf(title), wait)
+      ? { ...title, artPending: true }
+      : title;
+  return shelves.map((shelf) => ({
+    ...shelf,
+    items: shelf.items.map(mark),
+  })) as HomeShelves;
 }
 
 function withRatings(title: Title, ratings: Map<string, TitleRatings>): Title {

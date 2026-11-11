@@ -162,16 +162,18 @@ test('the home hero shows the stored overview, and the source excerpt where the 
 test('the home hero swaps in the backdrop after a pending answer, then stops polling', async ({
   page,
 }) => {
-  const bodies = await stubArt(page, (_, call) => ({
-    [HERO_SLUG]: call === 1 ? { status: 'pending' } : ready('/late.jpg'),
+  let late = false;
+  const bodies = await stubArt(page, () => ({
+    [HERO_SLUG]: late ? ready('/late.jpg') : { status: 'pending' },
   }));
 
   await page.goto('/?transport=replay');
   const hero = page.getByTestId('hero:slide:0').locator('img');
-  await expect(hero).toHaveAttribute(
-    'src',
-    /^https:\/\/cdn\.animevietsub\.best\//,
-  );
+  await expect(
+    page.getByTestId('hero:slide:0').getByTestId('hero:art-skeleton'),
+  ).toBeVisible();
+  await expect(hero).toHaveCount(0);
+  late = true;
   await expect(hero).toHaveAttribute(
     'src',
     'https://image.tmdb.org/t/p/original/late.jpg',
