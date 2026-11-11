@@ -61,6 +61,14 @@ export function artPollDelay(
   return ART_POLL_DELAYS_MS[fetches - 1] ?? false;
 }
 
+// How long a card may sit on a skeleton: the first answer plus one poll. After that it shows the source image,
+// and later polls still swap in the TMDB art when it lands.
+export const ART_SKELETON_FETCHES = 1;
+
+export function artSkeletonLeft(fetches: number): boolean {
+  return fetches <= ART_SKELETON_FETCHES;
+}
+
 type ReadyEntry = Extract<ArtEntry, { status: 'ready' }>;
 
 interface LookupResult {

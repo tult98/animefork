@@ -14,6 +14,7 @@ import {
   applyHomeArt,
   applyRatings,
   artPollDelay,
+  artSkeletonLeft,
   fetchHomeArt,
   markArtPending,
 } from '../lib/titles/art.ts';
@@ -63,10 +64,7 @@ function Home() {
   const apiOn = Boolean(import.meta.env.VITE_API_URL);
   const pollsLeft =
     art.isPlaceholderData ||
-    artPollDelay(
-      true,
-      queryClient.getQueryState(artKey)?.dataUpdateCount ?? 0,
-    ) !== false;
+    artSkeletonLeft(queryClient.getQueryState(artKey)?.dataUpdateCount ?? 0);
   const shelves = useMemo(() => {
     const applied = art.data
       ? applyRatings(applyHomeArt(built, art.data.paths), art.data.ratings)

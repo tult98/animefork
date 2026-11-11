@@ -28,6 +28,7 @@ import {
   applyHomeArt,
   applyRatings,
   artPollDelay,
+  artSkeletonLeft,
   fetchHomeArt,
   markArtPending,
 } from '../lib/titles/art.ts';
@@ -133,10 +134,7 @@ function AiringThisSeason() {
   });
   const pollsLeft =
     art.isPlaceholderData ||
-    artPollDelay(
-      true,
-      queryClient.getQueryState(artKey)?.dataUpdateCount ?? 0,
-    ) !== false;
+    artSkeletonLeft(queryClient.getQueryState(artKey)?.dataUpdateCount ?? 0);
   const titles = useMemo(() => {
     const applied = art.data
       ? applyRatings(applyHomeArt(shelf, art.data.paths), art.data.ratings)
