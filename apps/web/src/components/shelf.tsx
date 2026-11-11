@@ -123,6 +123,7 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
                 title={title}
                 rank={'rank' in title ? title.rank : undefined}
                 newEpisode={shelf.id === 'new-episodes'}
+                upcoming={shelf.id === 'upcoming'}
               />
             </div>
           ))}

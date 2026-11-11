@@ -35,10 +35,13 @@ function Home() {
       : skipToken,
   });
 
-  const built = useMemo(
-    () => (home.data ? buildHome({ ...home.data, season: season.data }) : []),
-    [home.data, season.data],
-  );
+  const seasonLoading = seasonPath !== null && season.isPending;
+  const built = useMemo(() => {
+    if (!home.data) return [];
+    // Hold the upcoming shelf back so the season shelf does not land above it later.
+    const upcoming = seasonLoading ? [] : home.data.upcoming;
+    return buildHome({ ...home.data, upcoming, season: season.data });
+  }, [home.data, season.data, seasonLoading]);
   const titles = useMemo(() => lookupTitles(built), [built]);
   const art = useQuery({
     queryKey: ['home-art', titles],
@@ -88,9 +91,7 @@ function Home() {
           <Shelf key={shelf.id} shelf={shelf} />
         ),
       )}
-      {seasonPath !== null && season.isPending ? (
-        <ShelfSkeleton id="airing-this-season" />
-      ) : null}
+      {seasonLoading ? <ShelfSkeleton id="airing-this-season" /> : null}
     </div>
   );
 }
