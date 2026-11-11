@@ -23,13 +23,31 @@ Either run `git pull && docker compose up -d --build` in `deploy/` on the server
 
 If you change `PUBLIC_URL`, the web image must be rebuilt (`up -d --build` does that).
 
+The workflow cleans up after itself: `docker image prune -f` removes the previous app images, and `docker builder prune` removes build cache older than a week. Database volumes are never touched. If you update by hand, run the same two commands afterwards so the disk does not fill up.
+
 ## Backups
 
+`deploy/backup.sh` dumps the database with `pg_dump` into `~/backups/api-<date>.sql.gz` and deletes dumps older than 14 days. Change the location or retention with `BACKUP_DIR` and `RETENTION_DAYS`.
+
 ```bash
-docker compose exec -T db pg_dump -U api api | gzip > api-$(date +%F).sql.gz
+~/animefork/deploy/backup.sh
 ```
 
-Run it from cron and copy the file off the server. The data is cached art and ratings lookups, so it can be rebuilt, but that costs TMDB and model calls.
+Run it nightly from cron (`crontab -e`):
+
+```
+0 3 * * * $HOME/animefork/deploy/backup.sh >> $HOME/backups/backup.log 2>&1
+```
+
+Create `~/backups` once first, because cron opens the log before the script runs. The dumps sit on the same disk as the database volume, so also copy them to another machine, for example with `rsync` or `scp` from your laptop. That is what protects you if the VPS is lost.
+
+To restore a dump into a running stack:
+
+```bash
+gunzip -c ~/backups/api-2026-11-12-0300.sql.gz | docker compose exec -T db psql -U api api
+```
+
+The data is cached art and ratings lookups, so it can be rebuilt, but that costs TMDB and model calls.
 
 ## Caveats
 
