@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, type Clock } from '../common/clock.ts';
+import type { MalFiller } from '../mal/mal.filler.ts';
+import { MAL_FILLER } from '../mal/mal.module.ts';
+import { isMalSettled } from '../mal/mal.retry.ts';
+import { MAL_STORE, MemoryMalStore, type MalStore } from '../mal/mal.store.ts';
 import { isAvsStale } from '../ratings/ratings.ts';
 import {
   MemoryRatingsStore,
@@ -22,17 +26,23 @@ export class ArtService {
   private readonly filler: ArtFiller;
   private readonly clock: Clock;
   private readonly ratings: RatingsStore;
+  private readonly mal: MalStore;
+  private readonly malFiller: MalFiller | null;
 
   constructor(
     @Inject(ART_STORE) store: ArtStore,
     @Inject(ArtFiller) filler: ArtFiller,
     @Inject(CLOCK) clock: Clock,
     @Inject(RATINGS_STORE) ratings: RatingsStore = new MemoryRatingsStore(),
+    @Inject(MAL_STORE) mal: MalStore = new MemoryMalStore(),
+    @Inject(MAL_FILLER) malFiller: MalFiller | null = null,
   ) {
     this.store = store;
     this.filler = filler;
     this.clock = clock;
     this.ratings = ratings;
+    this.mal = mal;
+    this.malFiller = malFiller;
   }
 
   async lookup(request: LookupRequest): Promise<LookupResponse> {
@@ -89,9 +99,11 @@ export class ArtService {
       );
     }
     const stored = await this.ratings.find([...titles.keys()]);
+    const malRows = await this.mal.find([...titles.keys()]);
     const ratings: Record<string, TitleRatings> = {};
     const avsStale: string[] = [];
-    for (const slug of titles.keys()) {
+    let ratingsPending = false;
+    for (const [slug, title] of titles) {
       const row = stored.get(slug);
       if (isAvsStale(row, now)) avsStale.push(slug);
       const entry: TitleRatings = {};
@@ -99,8 +111,29 @@ export class ArtService {
         entry.avs = { score: row.avsScore, voters: row.avsVoters };
       }
       if (row?.quality) entry.quality = row.quality;
-      if (entry.avs || entry.quality) ratings[slug] = entry;
+      const mal = malRows.get(slug);
+      if (mal?.status === 'ok' && mal.malId !== null) {
+        entry.mal = {
+          id: mal.malId,
+          score: mal.score,
+          voters: mal.voters,
+          rank: mal.rank,
+          popularity: mal.popularity,
+          members: mal.members,
+        };
+      }
+      if (this.malFiller && !isMalSettled(mal, now)) {
+        if (!this.malFiller.has(slug)) void this.malFiller.fill(title);
+        // A stored number is already shown, so only a title with none yet is worth asking about again.
+        if (mal?.status !== 'ok') ratingsPending = true;
+      }
+      if (entry.avs || entry.quality || entry.mal) ratings[slug] = entry;
     }
-    return { art, ratings, avsStale };
+    return {
+      art,
+      ratings,
+      avsStale,
+      ...(ratingsPending && { ratingsPending }),
+    };
   }
 }

@@ -4,8 +4,21 @@ export const MAX_TITLES_PER_LOOKUP = 50;
 
 export const SLUG_PATTERN = /^[a-z0-9-]{1,400}$/;
 
+// MyAnimeList leaves out what it does not know: an unscored title has no mean, an unranked one no rank.
+export const MalStatsSchema = z.object({
+  id: z.number().int(),
+  score: z.number().nullable(),
+  voters: z.number().int().nullable(),
+  rank: z.number().int().nullable(),
+  popularity: z.number().int().nullable(),
+  members: z.number().int().nullable(),
+});
+
+export type MalStats = z.infer<typeof MalStatsSchema>;
+
 export const TitleRatingsSchema = z.object({
   avs: z.object({ score: z.number(), voters: z.number().int() }).optional(),
+  mal: MalStatsSchema.optional(),
   quality: z.string().min(1).optional(),
 });
 
@@ -53,6 +66,8 @@ export const LookupResponseSchema = z.object({
   ratings: z.record(z.string(), TitleRatingsSchema).optional(),
   // Slugs whose AVS rating is missing or older than AVS_REFRESH_AFTER_MS; only a browser can refresh them.
   avsStale: z.array(z.string()).optional(),
+  // True while a MyAnimeList lookup is still being filled, so the page asks again shortly.
+  ratingsPending: z.boolean().optional(),
 });
 
 export type LookupResponse = z.infer<typeof LookupResponseSchema>;
