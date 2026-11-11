@@ -13,6 +13,8 @@ export interface ParsedHome {
 // The anime only list ordered by latest update. The home shelf and /new-episodes both read it.
 export const NEW_EPISODES_PATH = '/danh-sach/all/all/all/all/all/all/jp/';
 
+export const UPCOMING_PATH = '/anime-sap-chieu/';
+
 const SEASON_PATH = /^\/season\/(winter|spring|summer|autumn)\/(\d{4})\/?$/;
 
 // The season page lists Chinese donghua next to the anime. The site's own list filter keeps one country, so the shelf and its listing read that list for the same season and year. A path in another shape is read as it is.

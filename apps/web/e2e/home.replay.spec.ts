@@ -276,7 +276,7 @@ test('the upcoming shelf shows countdown tags in order of the earliest instant a
   await expect(shelf).toHaveAttribute('aria-label', 'Sắp ra mắt');
   await expect(shelf.getByTestId('shelf:upcoming:see-all')).toHaveAttribute(
     'href',
-    '/browse',
+    '/upcoming',
   );
 
   const tags = shelf.getByTestId('card:countdown');
