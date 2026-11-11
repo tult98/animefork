@@ -39,3 +39,33 @@ export function isSettled(row: RetryRow, now: Date): boolean {
   }
   return now.getTime() - row.attemptedAt.getTime() < RETRY_AFTER_MS[row.status];
 }
+
+// | overview status | settled for | then                       |
+// | --------------- | ----------- | -------------------------- |
+// | (null)          | not at all  | fetched on its next lookup |
+// | ok              | forever     | never fetched again        |
+// | none            | 7 days      | fetched on its next lookup |
+// | failed          | 10 minutes  | fetched on its next lookup |
+export type OverviewStatus = 'ok' | 'none' | 'failed';
+
+export const OVERVIEW_RETRY_AFTER_MS: Record<OverviewStatus, number> = {
+  ok: Number.POSITIVE_INFINITY,
+  none: 7 * DAY,
+  failed: 10 * MINUTE,
+};
+
+interface OverviewRetryRow {
+  overviewStatus: OverviewStatus | null;
+  overviewAttemptedAt: Date | null;
+}
+
+export function isOverviewSettled(row: OverviewRetryRow, now: Date): boolean {
+  if (row.overviewStatus === 'ok') return true;
+  if (row.overviewStatus === null || row.overviewAttemptedAt === null) {
+    return false;
+  }
+  return (
+    now.getTime() - row.overviewAttemptedAt.getTime() <
+    OVERVIEW_RETRY_AFTER_MS[row.overviewStatus]
+  );
+}

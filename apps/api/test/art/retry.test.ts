@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isOverviewSettled,
   isSettled,
   isStale,
   MATCHED_REFRESH_BELOW,
   MATCHER_VERSION,
   MISS_RETRY_BELOW,
+  OVERVIEW_RETRY_AFTER_MS,
   RETRY_AFTER_MS,
+  type OverviewStatus,
   type TitleStatus,
 } from '../../src/art/retry.ts';
 
@@ -64,4 +67,37 @@ describe('retry table', () => {
   ])('calls a %s row at version %i stale: %s', (status, version, stale) => {
     expect(isStale({ status, matcherVersion: version })).toBe(stale);
   });
+});
+
+describe('overview retry table', () => {
+  const overview = (overviewStatus: OverviewStatus | null) => ({
+    overviewStatus,
+    overviewAttemptedAt: overviewStatus === null ? null : at,
+  });
+
+  it('fetches a row that has never had an overview attempt', () => {
+    expect(isOverviewSettled(overview(null), at)).toBe(false);
+  });
+
+  it('never fetches an ok overview again', () => {
+    expect(OVERVIEW_RETRY_AFTER_MS.ok).toBe(Number.POSITIVE_INFINITY);
+    expect(
+      isOverviewSettled(overview('ok'), after(10 * 365 * 86_400_000)),
+    ).toBe(true);
+    expect(
+      isOverviewSettled({ overviewStatus: 'ok', overviewAttemptedAt: null }, at),
+    ).toBe(true);
+  });
+
+  it.each<[OverviewStatus, number]>([
+    ['none', 7 * 86_400_000],
+    ['failed', 10 * 60_000],
+  ])(
+    'settles a %s overview inside its window and frees it at the edge',
+    (status, window) => {
+      expect(OVERVIEW_RETRY_AFTER_MS[status]).toBe(window);
+      expect(isOverviewSettled(overview(status), after(window - 1))).toBe(true);
+      expect(isOverviewSettled(overview(status), after(window))).toBe(false);
+    },
+  );
 });

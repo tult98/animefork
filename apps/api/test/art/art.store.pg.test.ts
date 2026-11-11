@@ -259,6 +259,138 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
     });
   });
 
+  it('reads a matched row without an overview attempt as all nulls', async () => {
+    const s = slug('overview-unset');
+    await store.saveMatched({ title: title(s, '/b.jpg'), episodes: [] });
+    expect((await store.find([s])).get(s)).toMatchObject({
+      overview: null,
+      overviewLang: null,
+      overviewTranslated: false,
+      overviewStatus: null,
+      overviewAttemptedAt: null,
+    });
+  });
+
+  it('round-trips a Vietnamese and a translated overview and keeps ok final', async () => {
+    const vi = slug('overview-vi');
+    const en = slug('overview-en');
+    await store.saveMatched({ title: title(vi, '/b.jpg'), episodes: [] });
+    await store.saveMatched({ title: title(en, '/b.jpg'), episodes: [] });
+    await store.saveOverview(vi, 100, {
+      status: 'ok',
+      text: 'Tóm tắt tiếng Việt.',
+      lang: 'vi',
+      translated: false,
+    });
+    await store.saveOverview(en, 100, {
+      status: 'ok',
+      text: 'Bản dịch.',
+      lang: 'en',
+      translated: true,
+    });
+    await store.saveOverview(vi, 100, { status: 'failed' });
+    const rows = await store.find([vi, en]);
+    expect(rows.get(vi)).toMatchObject({
+      overview: 'Tóm tắt tiếng Việt.',
+      overviewLang: 'vi',
+      overviewTranslated: false,
+      overviewStatus: 'ok',
+    });
+    expect(rows.get(vi)?.overviewAttemptedAt).toBeInstanceOf(Date);
+    expect(rows.get(en)).toMatchObject({
+      overview: 'Bản dịch.',
+      overviewLang: 'en',
+      overviewTranslated: true,
+      overviewStatus: 'ok',
+    });
+  });
+
+  it('replaces a none or failed overview, and ignores misses and other TMDB ids', async () => {
+    const s = slug('overview-retry');
+    const miss = slug('overview-miss');
+    await store.saveMatched({ title: title(s, '/b.jpg'), episodes: [] });
+    await store.saveMiss(source(miss), 'no_match', 'none');
+    await store.saveOverview(s, 100, { status: 'failed' });
+    expect((await store.find([s])).get(s)?.overviewStatus).toBe('failed');
+    await store.saveOverview(s, 100, { status: 'none' });
+    expect((await store.find([s])).get(s)).toMatchObject({
+      overviewStatus: 'none',
+      overview: null,
+    });
+    await store.saveOverview(s, 999, {
+      status: 'ok',
+      text: 'Sai phim.',
+      lang: 'vi',
+      translated: false,
+    });
+    await store.saveOverview(miss, 100, {
+      status: 'ok',
+      text: 'Không khớp.',
+      lang: 'vi',
+      translated: false,
+    });
+    const rows = await store.find([s, miss]);
+    expect(rows.get(s)?.overviewStatus).toBe('none');
+    expect(rows.get(miss)?.overviewStatus).toBeNull();
+  });
+
+  it('drops the overview when a stale refill matches a different TMDB id', async () => {
+    const same = slug('overview-same-id');
+    const other = slug('overview-other-id');
+    for (const s of [same, other]) {
+      await pool.query(
+        `insert into title_art (source_slug, status, tmdb_id, tmdb_season, matcher_version,
+            overview, overview_lang, overview_status, overview_attempted_at)
+         values ($1, 'matched', 100, 1, $2, 'Cũ.', 'vi', 'ok', now())`,
+        [s, MATCHED_REFRESH_BELOW - 1],
+      );
+    }
+    await store.saveMatched({ title: title(same, '/new.jpg'), episodes: [] });
+    await store.saveMatched({
+      title: { ...title(other, '/new.jpg'), tmdb_id: 200 },
+      episodes: [],
+    });
+    const rows = await store.find([same, other]);
+    expect(rows.get(same)).toMatchObject({
+      tmdbId: 100,
+      overview: 'Cũ.',
+      overviewStatus: 'ok',
+    });
+    expect(rows.get(other)).toMatchObject({
+      tmdbId: 200,
+      overview: null,
+      overviewLang: null,
+      overviewTranslated: false,
+      overviewStatus: null,
+      overviewAttemptedAt: null,
+    });
+  });
+
+  it('refuses an ok overview that is missing, untranslated English or an unknown status', async () => {
+    const insert = (s: string, columns: string, values: string) =>
+      pool.query(
+        `insert into title_art (source_slug, status, tmdb_id, tmdb_season, matcher_version, ${columns})
+         values ($1, 'matched', 100, 1, 4, ${values})`,
+        [s],
+      );
+    await expect(
+      insert(slug('ok-empty'), 'overview_status', `'ok'`),
+    ).rejects.toThrow(/title_art_overview_ok/);
+    await expect(
+      insert(
+        slug('ok-raw-en'),
+        'overview, overview_lang, overview_status',
+        `'Raw English.', 'en', 'ok'`,
+      ),
+    ).rejects.toThrow(/title_art_overview_ok/);
+    await expect(
+      insert(slug('bad-status'), 'overview_status', `'maybe'`),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      insert(slug('bad-lang'), 'overview_lang', `'ja'`),
+    ).rejects.toThrow(/check constraint/);
+  });
+
   it('refuses a matched row without a TMDB id', async () => {
     await expect(
       pool.query(

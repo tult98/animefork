@@ -128,6 +128,11 @@ describe('ArtService.lookup', () => {
     sourceYear: null,
     sourceEpisodeCount: null,
     matchedBy: null,
+    overview: null,
+    overviewLang: null,
+    overviewTranslated: false,
+    overviewStatus: null,
+    overviewAttemptedAt: null,
     ...over,
   });
 

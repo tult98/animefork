@@ -8,6 +8,7 @@ import {
   MATCHED_REFRESH_BELOW,
   MATCHER_VERSION,
   type MissStatus,
+  type OverviewStatus,
   type TitleStatus,
 } from './retry.ts';
 import type { MatcherName, MatchScope } from './tmdb/matcher.ts';
@@ -30,7 +31,27 @@ export interface StoredTitle {
   sourceYear: number | null;
   sourceEpisodeCount: number | null;
   matchedBy: MatcherName | null;
+  overview: string | null;
+  overviewLang: OverviewLang | null;
+  overviewTranslated: boolean;
+  overviewStatus: OverviewStatus | null;
+  overviewAttemptedAt: Date | null;
 }
+
+export type OverviewLang = 'vi' | 'en';
+
+// `text` is always Vietnamese. `lang` is the language TMDB wrote it in, so `en` means DeepSeek translated it.
+export type OverviewResult =
+  | { status: 'ok'; text: string; lang: OverviewLang; translated: boolean }
+  | { status: 'none' | 'failed' };
+
+const NO_OVERVIEW = {
+  overview: null,
+  overviewLang: null,
+  overviewTranslated: false,
+  overviewStatus: null,
+  overviewAttemptedAt: null,
+} as const;
 
 export type TitleSource = Pick<
   TitleInput,
@@ -49,6 +70,11 @@ export interface ArtStore {
     source: TitleSource,
     status: MissStatus,
     reason: string,
+  ): Promise<void>;
+  saveOverview(
+    slug: string,
+    tmdbId: number,
+    result: OverviewResult,
   ): Promise<void>;
 }
 
@@ -95,6 +121,9 @@ export class MemoryArtStore implements ArtStore {
       sourceYear: title.source_year,
       sourceEpisodeCount: title.source_episode_count,
       matchedBy: title.matched_by,
+      ...(existing?.tmdbId === title.tmdb_id
+        ? overviewOf(existing)
+        : NO_OVERVIEW),
     });
     this.stills.set(
       title.source_slug,
@@ -126,8 +155,57 @@ export class MemoryArtStore implements ArtStore {
       sourceYear: source.year ?? null,
       sourceEpisodeCount: source.episodeCount ?? null,
       matchedBy: null,
+      ...NO_OVERVIEW,
     });
   }
+
+  async saveOverview(
+    slug: string,
+    tmdbId: number,
+    result: OverviewResult,
+  ): Promise<void> {
+    const row = this.titles.get(slug);
+    if (row?.status !== 'matched' || row.tmdbId !== tmdbId) return;
+    if (row.overviewStatus === 'ok') return;
+    this.titles.set(slug, {
+      ...row,
+      ...overviewColumns(result),
+      overviewAttemptedAt: this.now(),
+    });
+  }
+}
+
+function overviewOf(row: StoredTitle) {
+  const {
+    overview,
+    overviewLang,
+    overviewTranslated,
+    overviewStatus,
+    overviewAttemptedAt,
+  } = row;
+  return {
+    overview,
+    overviewLang,
+    overviewTranslated,
+    overviewStatus,
+    overviewAttemptedAt,
+  };
+}
+
+function overviewColumns(result: OverviewResult) {
+  return result.status === 'ok'
+    ? {
+        overview: result.text,
+        overviewLang: result.lang,
+        overviewTranslated: result.translated,
+        overviewStatus: result.status,
+      }
+    : {
+        overview: null,
+        overviewLang: null,
+        overviewTranslated: false,
+        overviewStatus: result.status,
+      };
 }
 
 interface TitleRow {
@@ -147,6 +225,11 @@ interface TitleRow {
   source_year: number | null;
   source_episode_count: number | null;
   matched_by: MatcherName | null;
+  overview: string | null;
+  overview_lang: OverviewLang | null;
+  overview_translated: boolean;
+  overview_status: OverviewStatus | null;
+  overview_attempted_at: Date | null;
 }
 
 @Injectable()
@@ -164,7 +247,8 @@ export class PostgresArtStore implements ArtStore {
       `select source_slug, status, tmdb_id, tmdb_season, match_scope,
               backdrop_path, backdrop_lang, poster_path, poster_lang, reason, matcher_version,
               attempted_at, source_name, source_year, source_episode_count,
-              matched_by
+              matched_by, overview, overview_lang, overview_translated,
+              overview_status, overview_attempted_at
          from title_art where source_slug = any($1::text[])`,
       [slugs],
     );
@@ -186,6 +270,11 @@ export class PostgresArtStore implements ArtStore {
         sourceYear: row.source_year,
         sourceEpisodeCount: row.source_episode_count,
         matchedBy: row.matched_by,
+        overview: row.overview,
+        overviewLang: row.overview_lang,
+        overviewTranslated: row.overview_translated,
+        overviewStatus: row.overview_status,
+        overviewAttemptedAt: row.overview_attempted_at,
       });
     }
     return found;
@@ -230,7 +319,17 @@ export class PostgresArtStore implements ArtStore {
            source_name = excluded.source_name,
            source_year = excluded.source_year,
            source_episode_count = excluded.source_episode_count,
-           matched_by = excluded.matched_by
+           matched_by = excluded.matched_by,
+           overview = case when title_art.tmdb_id = excluded.tmdb_id
+             then title_art.overview end,
+           overview_lang = case when title_art.tmdb_id = excluded.tmdb_id
+             then title_art.overview_lang end,
+           overview_translated = coalesce(title_art.tmdb_id = excluded.tmdb_id
+             and title_art.overview_translated, false),
+           overview_status = case when title_art.tmdb_id = excluded.tmdb_id
+             then title_art.overview_status end,
+           overview_attempted_at = case when title_art.tmdb_id = excluded.tmdb_id
+             then title_art.overview_attempted_at end
          where title_art.status <> 'matched'
             or title_art.matcher_version < $13
          returning source_slug`,
@@ -301,6 +400,34 @@ export class PostgresArtStore implements ArtStore {
         source.name,
         source.year ?? null,
         source.episodeCount ?? null,
+      ],
+    );
+  }
+
+  async saveOverview(
+    slug: string,
+    tmdbId: number,
+    result: OverviewResult,
+  ): Promise<void> {
+    const columns = overviewColumns(result);
+    await this.pool.query(
+      `update title_art set
+         overview = $3,
+         overview_lang = $4,
+         overview_translated = $5,
+         overview_status = $6,
+         overview_attempted_at = now()
+       where source_slug = $1
+         and status = 'matched'
+         and tmdb_id = $2
+         and overview_status is distinct from 'ok'`,
+      [
+        slug,
+        tmdbId,
+        columns.overview,
+        columns.overviewLang,
+        columns.overviewTranslated,
+        columns.overviewStatus,
       ],
     );
   }
