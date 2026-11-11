@@ -23,6 +23,7 @@ import { NextEpisode, type NextEpisodeInfo } from './next-episode.tsx';
 import { Scrubber } from './scrubber.tsx';
 import { SpeedPanel } from './speed-panel.tsx';
 import { useFullscreen } from './use-fullscreen.ts';
+import { useIdle } from './use-idle.ts';
 import { VolumeControl } from './volume-control.tsx';
 import './player.css';
 
@@ -67,6 +68,7 @@ export function Player({
   const fullscreen = useFullscreen(root);
 
   const playing = state.phase === 'playing';
+  const idle = useIdle(root, playing);
   const playLabel = playing ? PLAYER_COPY.pause : PLAYER_COPY.play;
   const progress = state.duration > 0 ? (state.time / state.duration) * 100 : 0;
 
@@ -75,6 +77,7 @@ export function Player({
       ref={root}
       data-testid="player"
       data-state={state.phase}
+      data-idle={idle}
       className="relative h-dvh min-h-[520px] w-full overflow-hidden bg-black text-ink"
     >
       <video
@@ -89,7 +92,7 @@ export function Player({
         type="button"
         aria-label={playLabel}
         data-testid="player:stage"
-        className="absolute inset-0 size-full cursor-default border-0 bg-transparent p-0"
+        className="absolute inset-0 size-full cursor-default border-0 bg-transparent p-0 in-data-[idle=true]:cursor-none"
         onClick={controls.toggle}
       />
 
@@ -126,13 +129,13 @@ export function Player({
       <IconButton
         label={PLAYER_COPY.back}
         data-testid="player:back"
-        className="absolute top-8 left-gutter z-1 bg-hero-overlay max-[720px]:left-4"
+        className="pl-chrome absolute top-8 left-gutter z-1 bg-hero-overlay max-[720px]:left-4"
         onClick={onBack}
       >
         <ArrowLeft aria-hidden="true" />
       </IconButton>
 
-      <div className="pl-bar pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-[linear-gradient(to_top,var(--hero-overlay),transparent),linear-gradient(to_top,var(--hero-overlay),transparent_70%)] px-gutter pt-24 pb-7 max-[720px]:px-4">
+      <div className="pl-bar pl-chrome pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-[linear-gradient(to_top,var(--hero-overlay),transparent),linear-gradient(to_top,var(--hero-overlay),transparent_70%)] px-gutter pt-24 pb-7 max-[720px]:px-4">
         <div className="pl-timeline pointer-events-auto flex items-center gap-4">
           <Scrubber
             time={state.time}

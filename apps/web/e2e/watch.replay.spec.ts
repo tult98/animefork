@@ -402,3 +402,24 @@ test('a title with one season has no back button to a seasons list', async ({
   await expect(page.getByTestId('player:episodes-panel')).toBeVisible();
   await expect(page.getByTestId('player:seasons-back')).toHaveCount(0);
 });
+
+test('controls hide when the pointer is still while playing and return on movement', async ({
+  page,
+}) => {
+  await paused(page);
+  await page.mouse.move(400, 300);
+  await page.getByTestId('player:play').click();
+  await page.mouse.move(400, 300);
+  const back = page.getByTestId('player:back');
+  await expect(back).toHaveCSS('opacity', '0', { timeout: 6000 });
+  await expect(page.getByTestId('player')).toHaveAttribute('data-idle', 'true');
+  await page.mouse.move(420, 320);
+  await expect(back).toHaveCSS('opacity', '1');
+});
+
+test('controls stay while paused', async ({ page }) => {
+  await paused(page);
+  await page.mouse.move(400, 300);
+  await page.waitForTimeout(3600);
+  await expect(page.getByTestId('player:back')).toHaveCSS('opacity', '1');
+});
