@@ -66,6 +66,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -208,6 +209,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -436,6 +438,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -496,6 +499,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -556,6 +560,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -616,6 +621,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -676,6 +682,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -736,6 +743,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -796,6 +804,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -1546,6 +1555,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -1610,6 +1620,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -1674,6 +1685,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -1738,6 +1750,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -1802,6 +1815,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -1866,6 +1880,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -1930,6 +1945,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",
@@ -2019,6 +2035,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "regexFilter": "^https?://([a-zA-Z0-9-]+\\.)?googleusercontent\\.[a-zA-Z]{2,}(/|$)",
       "resourceTypes": [
@@ -2089,6 +2106,7 @@ exports[`createRule > rule set for a referrer is frozen 1`] = `
         "cinevsub.eu.org",
         "cinevsub.pages.dev",
         "cinevsub.nuxt.dev",
+        "animefork.com",
       ],
       "resourceTypes": [
         "xmlhttprequest",

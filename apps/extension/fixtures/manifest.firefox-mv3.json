@@ -43,6 +43,7 @@
     },
     {
       "matches": [
+        "http://animefork.com/*",
         "http://animevsub.eu.org/*",
         "http://animevsub.netlify.app/*",
         "http://cinevsub.eu.org/*",
@@ -63,6 +64,7 @@
         "http://tariteam.github.io/download-video/*",
         "http://vuitruyen.eu.org/*",
         "http://vuitruyen.netlify.app/*",
+        "https://animefork.com/*",
         "https://animevsub.eu.org/*",
         "https://animevsub.netlify.app/*",
         "https://cinevsub.eu.org/*",

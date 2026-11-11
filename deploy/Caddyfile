@@ -1,6 +1,10 @@
-# No domain yet, so plain HTTP on the server's IP. With a domain, replace :80 with
-# the hostname and Caddy gets a certificate on its own.
-:80 {
+# Caddy gets and renews the HTTPS certificate for this hostname on its own, and
+# redirects plain HTTP to it. www redirects to the bare domain.
+www.animefork.com {
+	redir https://animefork.com{uri} permanent
+}
+
+animefork.com {
 	encode zstd gzip
 
 	@api path /v1/* /healthz
