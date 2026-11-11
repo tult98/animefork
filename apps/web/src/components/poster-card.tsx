@@ -241,7 +241,10 @@ export function PosterCard({
               </div>
             ) : countdown ? (
               <div className="af-tags bottom-2 z-2">
-                <span className="af-tag" data-testid="card:countdown">
+                <span
+                  className="af-tag af-tag--watch"
+                  data-testid="card:countdown"
+                >
                   {countdown}
                 </span>
               </div>
