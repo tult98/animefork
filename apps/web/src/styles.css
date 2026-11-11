@@ -129,49 +129,55 @@ body {
       (100cqw - 2 * var(--pad) - (var(--per) - 1) * var(--gap)) / var(--per) /
         var(--card-art-ratio)
     );
-    --arrow-w: 44px;
-    --arrow-h: min(88px, var(--art-h));
     position: absolute;
-    top: calc(var(--shelf-bleed) + (var(--art-h) - var(--arrow-h)) / 2);
-    width: var(--arrow-w);
-    height: var(--arrow-h);
-    border-radius: 10px;
+    top: var(--shelf-bleed);
+    width: var(--pad);
+    height: var(--art-h);
     display: grid;
     place-items: center;
+    border: 0;
+    background-color: color-mix(in srgb, var(--surface-alt) 55%, transparent);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    color: var(--ink);
     opacity: 0;
     pointer-events: none;
     transition:
-      opacity 150ms ease-out,
-      transform 100ms ease-out,
-      background-color 150ms ease-out;
-  }
-
-  .shelf-arrow:active {
-    transform: scale(0.96);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .shelf-arrow {
-      transition: none;
-    }
+      opacity 200ms ease,
+      transform 200ms ease,
+      background-color 150ms ease;
   }
 
   .shelf-arrow--prev {
-    left: calc(var(--pad) - var(--arrow-w) / 2);
+    left: 0;
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    transform: translateX(-12px);
   }
 
   .shelf-arrow--next {
-    right: calc(var(--pad) - var(--arrow-w) / 2);
+    right: 0;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    transform: translateX(12px);
+  }
+
+  .shelf-arrow:hover {
+    background-color: color-mix(in srgb, var(--surface-alt) 80%, transparent);
+  }
+
+  .shelf-arrow:active {
+    background-color: color-mix(in srgb, var(--surface-alt) 90%, transparent);
   }
 
   .shelf-rail:has(:focus-visible) .shelf-arrow {
     opacity: 1;
+    transform: none;
     pointer-events: auto;
   }
 
   @media (hover: hover) {
     .shelf-rail:hover .shelf-arrow {
       opacity: 1;
+      transform: none;
       pointer-events: auto;
     }
   }
@@ -179,6 +185,7 @@ body {
   @media (hover: none) {
     .shelf-arrow {
       opacity: 1;
+      transform: none;
       pointer-events: auto;
     }
   }
