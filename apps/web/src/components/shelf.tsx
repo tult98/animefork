@@ -8,15 +8,13 @@ import { SHIMMER } from './ui/shimmer.ts';
 
 const SEE_ALL_SHELVES = new Set([
   'new-episodes',
-  'top-10-today',
   'airing-this-season',
   'upcoming',
 ]);
 
 const SEE_ALL_TO = { 'airing-this-season': '/airing-this-season' } as const;
 
-const ARROW_CLASS =
-  'bg-border-strong/70 text-ink hover:bg-border-strong/90 cursor-pointer border-0';
+const ARROW_CLASS = 'cursor-pointer';
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -97,7 +95,11 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
             onClick={() => scrollBy(-1)}
             className={`shelf-arrow shelf-arrow--prev ${ARROW_CLASS}`}
           >
-            <ChevronLeft aria-hidden="true" className="size-5" />
+            <ChevronLeft
+              aria-hidden="true"
+              className="size-7"
+              strokeWidth={2.5}
+            />
           </button>
           <button
             type="button"
@@ -107,7 +109,11 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
             onClick={() => scrollBy(1)}
             className={`shelf-arrow shelf-arrow--next ${ARROW_CLASS}`}
           >
-            <ChevronRight aria-hidden="true" className="size-5" />
+            <ChevronRight
+              aria-hidden="true"
+              className="size-7"
+              strokeWidth={2.5}
+            />
           </button>
         </div>
         <div
