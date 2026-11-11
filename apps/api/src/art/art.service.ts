@@ -122,6 +122,8 @@ export class ArtService {
           members: mal.members,
           airing: mal.airing,
           episodes: mal.episodes,
+          startDate: mal.startDate,
+          startSeason: mal.startSeason,
         };
       }
       if (this.malFiller && !isMalSettled(mal, now)) {

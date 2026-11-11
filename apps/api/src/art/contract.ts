@@ -12,6 +12,21 @@ export const MalAiringSchema = z.enum([
 
 export type MalAiring = z.infer<typeof MalAiringSchema>;
 
+export const MalSeasonSchema = z.enum(['winter', 'spring', 'summer', 'fall']);
+
+export type MalSeason = z.infer<typeof MalSeasonSchema>;
+
+// MAL gives a start date as precise as it knows: a year, a month or a day.
+export const MAL_START_DATE_PATTERN =
+  /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01]))?)?$/;
+
+export const MalStartSeasonSchema = z.object({
+  year: z.number().int(),
+  season: MalSeasonSchema,
+});
+
+export type MalStartSeason = z.infer<typeof MalStartSeasonSchema>;
+
 // MyAnimeList leaves out what it does not know: an unscored title has no mean, an unranked one no rank.
 export const MalStatsSchema = z.object({
   id: z.number().int(),
@@ -23,6 +38,8 @@ export const MalStatsSchema = z.object({
   airing: MalAiringSchema.nullable(),
   // MAL reports no total for a show whose episode count is not known yet.
   episodes: z.number().int().positive().nullable(),
+  startDate: z.string().regex(MAL_START_DATE_PATTERN).nullable(),
+  startSeason: MalStartSeasonSchema.nullable(),
 });
 
 export type MalStats = z.infer<typeof MalStatsSchema>;

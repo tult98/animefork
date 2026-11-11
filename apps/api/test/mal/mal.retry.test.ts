@@ -40,6 +40,18 @@ describe('isMalSettled airing', () => {
     ).toBe(true);
   });
 
+  it('fetches a row saved before start dates were stored once more', () => {
+    const old = (datesKnown: boolean) =>
+      row({
+        airing: 'finished_airing',
+        datesKnown,
+        fetchedAt: ago(60_000 * 20),
+        attemptedAt: ago(60_000 * 20),
+      });
+    expect(isMalSettled(old(false), now)).toBe(false);
+    expect(isMalSettled(old(true), now)).toBe(true);
+  });
+
   it('fetches a row saved without a status once more', () => {
     expect(isMalSettled(at(60_000 * 20, null), now)).toBe(false);
   });

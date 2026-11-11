@@ -22,6 +22,7 @@ interface RetryRow {
   attemptedAt: Date;
   fetchedAt: Date | null;
   airing?: MalAiring | null;
+  datesKnown?: boolean;
 }
 
 // | status | settled for                                  | then                                       |
@@ -34,6 +35,7 @@ export function isMalSettled(row: RetryRow | undefined, now: Date): boolean {
   if (!row) return false;
   const since = (at: Date) => now.getTime() - at.getTime();
   if (row.status === 'ok') {
+    // Rows saved before airing status or start dates were stored lack them, and are fetched once more.
     // A row saved before airing status was stored has none, and is fetched once more to get it.
     const ttl =
       row.airing === undefined || row.airing === 'finished_airing'
@@ -42,6 +44,7 @@ export function isMalSettled(row: RetryRow | undefined, now: Date): boolean {
     return (
       (row.fetchedAt !== null &&
         row.airing !== null &&
+        row.datesKnown !== false &&
         since(row.fetchedAt) < ttl) ||
       since(row.attemptedAt) < MAL_RETRY_AFTER_MS.failed
     );

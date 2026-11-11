@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { MalAiringSchema, type MalStats } from '../art/contract.ts';
+import {
+  MAL_START_DATE_PATTERN,
+  MalAiringSchema,
+  MalSeasonSchema,
+  type MalStats,
+} from '../art/contract.ts';
 import { DEFAULT_MAL_API } from './mal.config.ts';
 
 export type { MalStats };
@@ -9,9 +14,9 @@ export const MIN_QUERY_LENGTH = 3;
 // MAL answers 400 "invalid q" for a longer query.
 export const MAX_QUERY_LENGTH = 64;
 const FIELDS =
-  'alternative_titles,start_season,num_episodes,media_type,mean,num_scoring_users,rank,popularity,num_list_users,status';
+  'alternative_titles,start_season,num_episodes,media_type,mean,num_scoring_users,rank,popularity,num_list_users,status,start_date';
 const STATS_FIELDS =
-  'mean,num_scoring_users,rank,popularity,num_list_users,status,num_episodes';
+  'mean,num_scoring_users,rank,popularity,num_list_users,status,num_episodes,start_date,start_season';
 
 export interface MalCandidate extends Omit<MalStats, 'episodes'> {
   title: string;
@@ -46,7 +51,10 @@ const NodeSchema = z.object({
       en: z.string().optional(),
     })
     .optional(),
-  start_season: z.object({ year: z.number().int() }).optional(),
+  start_season: z
+    .object({ year: z.number().int(), season: z.string().optional() })
+    .optional(),
+  start_date: z.string().optional(),
   num_episodes: z.number().int().optional(),
   media_type: z.string().optional(),
   mean: z.number().optional(),
@@ -63,6 +71,11 @@ const SearchSchema = z.object({
   data: z.array(z.object({ node: z.unknown() })),
 });
 
+function toStartSeason(raw: Node['start_season']): MalStats['startSeason'] {
+  const season = MalSeasonSchema.safeParse(raw?.season).data;
+  return raw && season ? { year: raw.year, season } : null;
+}
+
 function toStats(node: Node): MalStats {
   return {
     id: node.id,
@@ -75,6 +88,10 @@ function toStats(node: Node): MalStats {
     airing: MalAiringSchema.safeParse(node.status).data ?? null,
     // MAL reports 0 episodes for a show whose count is not known yet.
     episodes: node.num_episodes || null,
+    startDate: MAL_START_DATE_PATTERN.test(node.start_date ?? '')
+      ? (node.start_date ?? null)
+      : null,
+    startSeason: toStartSeason(node.start_season),
   };
 }
 

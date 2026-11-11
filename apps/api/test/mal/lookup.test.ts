@@ -35,6 +35,8 @@ function withMal(client: Partial<MalClient> = {}) {
       members: 300,
       airing: 'finished_airing',
       episodes: 170,
+      startDate: '2017-10-03',
+      startSeason: { year: 2017, season: 'fall' },
     }),
     ...client,
   };
@@ -76,6 +78,8 @@ describe('lookup with MyAnimeList', () => {
       members: 157000,
       airing: 'finished_airing',
       episodes: 170,
+      startDate: null,
+      startSeason: { year: 2017, season: 'fall' },
     });
     expect(searches).toHaveLength(1);
   });
