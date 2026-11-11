@@ -240,7 +240,8 @@ export function PosterCard({
                 </span>
               </div>
             ) : countdown ? (
-              <div className="af-tags bottom-2 z-2">
+              <div className="af-tags bottom-2 z-2 flex-col items-stretch text-center [&>.af-tag:first-child]:rounded-[var(--radius-sm)_var(--radius-sm)_0_0]! [&>.af-tag:last-child]:rounded-[0_0_var(--radius-sm)_var(--radius-sm)]!">
+                <span className="af-tag">Sắp chiếu</span>
                 <span
                   className="af-tag af-tag--watch"
                   data-testid="card:countdown"

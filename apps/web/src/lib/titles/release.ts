@@ -65,7 +65,7 @@ export function releaseInfo(
   }
   if (date?.month !== undefined) {
     return {
-      label: `Tháng ${date.month}/${date.year}`,
+      label: `${date.month}/${date.year}`,
       sortKey: Date.UTC(date.year, date.month - 1, 1),
       endsAt: Date.UTC(date.year, date.month, 1),
     };

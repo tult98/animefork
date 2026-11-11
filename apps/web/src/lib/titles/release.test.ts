@@ -65,11 +65,11 @@ describe('releaseInfo', () => {
   });
 
   describe('a month', () => {
-    it('reads Tháng m/yyyy and sorts at the first of the month', () => {
+    it('reads m/yyyy and sorts at the first of the month', () => {
       expect(
         releaseInfo({ year: 2027, mal: mal({ startDate: '2027-01' }) }, NOW),
       ).toEqual({
-        label: 'Tháng 1/2027',
+        label: '1/2027',
         sortKey: Date.UTC(2027, 0, 1),
         endsAt: Date.UTC(2027, 1, 1),
       });
@@ -77,7 +77,7 @@ describe('releaseInfo', () => {
 
     it('does not pad the month and rolls December into the next year', () => {
       const info = releaseInfo({ mal: mal({ startDate: '2027-12' }) }, NOW);
-      expect(info?.label).toBe('Tháng 12/2027');
+      expect(info?.label).toBe('12/2027');
       expect(info?.endsAt).toBe(Date.UTC(2028, 0, 1));
     });
 
@@ -91,7 +91,7 @@ describe('releaseInfo', () => {
         },
         NOW,
       );
-      expect(info?.label).toBe('Tháng 2/2027');
+      expect(info?.label).toBe('2/2027');
     });
   });
 

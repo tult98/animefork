@@ -297,7 +297,7 @@ test('MAL start dates make the upcoming tags precise and reorder the shelf', asy
     'Còn 2 tuần',
     'Mùa đông 2027',
     '2027',
-    'Tháng 1/2027',
+    '1/2027',
     'Còn 3 tháng',
     '2029',
     '2030',
@@ -307,5 +307,5 @@ test('MAL start dates make the upcoming tags precise and reorder the shelf', asy
     shelf
       .getByTestId('card:/phim/minato-machi-diary-a7010/')
       .locator('[data-cover]'),
-  ).toHaveAttribute('aria-label', 'Minato Machi Diary, PV/??, Tháng 1/2027');
+  ).toHaveAttribute('aria-label', 'Minato Machi Diary, PV/??, 1/2027');
 });
