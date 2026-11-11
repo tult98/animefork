@@ -13,6 +13,16 @@ export interface ParsedHome {
 // The anime only list ordered by latest update. The home shelf and /new-episodes both read it.
 export const NEW_EPISODES_PATH = '/danh-sach/all/all/all/all/all/all/jp/';
 
+const SEASON_PATH = /^\/season\/(winter|spring|summer|autumn)\/(\d{4})\/?$/;
+
+// The season page lists Chinese donghua next to the anime. The site's own list filter keeps one country, so the shelf and its listing read that list for the same season and year. A path in another shape is read as it is.
+export function japaneseSeasonPath(seasonPath: string): string {
+  const match = SEASON_PATH.exec(seasonPath);
+  return match
+    ? `/danh-sach/all/all/${match[1]}/${match[2]}/all/all/jp/`
+    : seasonPath;
+}
+
 const SEASON_LINK = '#single-home a.STPb[data-tag="anime-season"]';
 
 function nonEmpty(titles: Title[]): Title[] {

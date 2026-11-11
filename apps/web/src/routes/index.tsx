@@ -23,6 +23,7 @@ import {
   fetchHome,
   fetchNewEpisodes,
   fetchSeason,
+  japaneseSeasonPath,
 } from '../lib/titles/home.ts';
 import { lookupTitles } from '../lib/titles/lookup.ts';
 import { buildHome } from '../lib/titles/shelves.ts';
@@ -47,7 +48,8 @@ function Home() {
   const season = useQuery({
     queryKey: ['season', seasonPath],
     queryFn: seasonPath
-      ? ({ signal }) => fetchSeason(transport, seasonPath, signal)
+      ? ({ signal }) =>
+          fetchSeason(transport, japaneseSeasonPath(seasonPath), signal)
       : skipToken,
   });
 

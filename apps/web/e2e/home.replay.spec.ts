@@ -164,10 +164,13 @@ test('the season shelf shows its own loading state without blocking the rest', a
 }) => {
   let release!: () => void;
   const gate = new Promise<void>((resolve) => (release = resolve));
-  await page.route('**/fixtures/default/season/**', async (route) => {
-    await gate;
-    await route.continue();
-  });
+  await page.route(
+    '**/fixtures/default/danh-sach/all/all/autumn/**',
+    async (route) => {
+      await gate;
+      await route.continue();
+    },
+  );
   await page.goto('/?transport=replay');
 
   await expect(page.getByTestId('shelf:new-episodes')).toBeVisible();
@@ -188,8 +191,9 @@ test.describe('season request fails', () => {
   test.use({ allowedConsoleErrors: [/404/] });
 
   test('hides only the airing shelf', async ({ page }) => {
-    await page.route('**/fixtures/default/season/**', (route) =>
-      route.fulfill({ status: 404, body: '' }),
+    await page.route(
+      '**/fixtures/default/danh-sach/all/all/autumn/**',
+      (route) => route.fulfill({ status: 404, body: '' }),
     );
     await page.goto('/?transport=replay');
 

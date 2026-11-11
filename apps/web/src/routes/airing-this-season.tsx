@@ -11,7 +11,7 @@ import {
   ListSearchSchema,
   seasonLabel,
 } from '../lib/titles/airing-list.ts';
-import { fetchHome } from '../lib/titles/home.ts';
+import { fetchHome, japaneseSeasonPath } from '../lib/titles/home.ts';
 import { useTransport } from '../lib/transport/index.ts';
 
 export const Route = createFileRoute('/airing-this-season')({
@@ -41,7 +41,11 @@ function AiringThisSeason() {
     <TitleListing
       heading="Đang chiếu mùa này"
       emptyText="Chưa có phim nào đang chiếu."
-      sourcePath={home.isPending ? undefined : seasonPath}
+      sourcePath={
+        home.isPending
+          ? undefined
+          : seasonPath && japaneseSeasonPath(seasonPath)
+      }
       headerLabel={seasonLabel(seasonPath)}
       search={{ sort, page }}
       onSearch={(next, { replace }) =>

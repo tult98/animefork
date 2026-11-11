@@ -35,12 +35,11 @@ const DRAGON_BALL = 'dragon-ball-super-beerus-a6000';
 const SEITOKAI = 'seitokai-ni-mo-ana-wa-aru-a6109';
 const ROMELIA = 'romelia-senki-a6110';
 const YASEI = 'yasei-no-last-boss-ga-arawareta-2nd-season-a6088';
-const TOUGEN = 'tougen-anki-nikko-kegon-no-taki-hen-a6097';
 const KASHITA = 'kashita-maryoku-wa-revo-barai-de-kyousei-choushuu-a6103';
 const TOKYO = 'tokyo-revengers-santen-sensou-hen-a6096';
 const AO_ASHI = 'ao-ashi-2nd-season-a6104';
+const VERTEX = 'vertex-force-a6099';
 const CONAN = 'meitantei-conan-30-gou-satsujin-jiken-a6089';
-const MOVIE = 'the-gioi-hoan-my-movie-cuu-kiep-phan-thien-a6075';
 
 const RATINGS: Record<string, TitleRatings> = {
   [PSYREN]: mal(7.9, 50000),
@@ -52,7 +51,7 @@ const RATINGS: Record<string, TitleRatings> = {
   [KYOUFU]: mal(6.5, 20000),
 };
 
-const TOTAL = 22 + 8 + 3;
+const TOTAL = 22 + 9;
 const PAGES = 2;
 
 async function stubLookup(page: Page) {
@@ -120,7 +119,7 @@ test('counts every page of the season in the header and shows them 30 at a time'
   await expect(current(page)).toHaveText('2');
   const last = await order(page);
   expect(last).toHaveLength(TOTAL - 30);
-  expect(last.at(-1)).toBe(MOVIE);
+  expect(last.at(-1)).toBe(CONAN);
   await expect(page.getByTestId('listing:count')).toHaveText(
     `Mùa thu 2026 · ${TOTAL} phim`,
   );
@@ -257,11 +256,11 @@ test.describe('sorts', () => {
       DOUMO,
       ROMELIA,
       YASEI,
-      TOUGEN,
+      SHUIRO,
       AO_ASHI,
     ]);
     const asc = await head(page, 'rating-asc', 5);
-    expect(asc).toEqual([KASHITA, TOKYO, KYOUFU, CONAN, MOVIE]);
+    expect(asc).toEqual([KASHITA, TOKYO, KYOUFU, CONAN, VERTEX]);
   });
 
   test('most viewed', async ({ page }) => {
@@ -329,10 +328,13 @@ test('the control waits for every season page and the count waits with them', as
   await stubLookup(page);
   let release: () => void = () => undefined;
   const gate = new Promise<void>((resolve) => (release = resolve));
-  await page.route('**/season/autumn/2026/trang-2.html', async (route) => {
-    await gate;
-    await route.continue();
-  });
+  await page.route(
+    '**/danh-sach/all/all/autumn/2026/all/all/jp/trang-2.html',
+    async (route) => {
+      await gate;
+      await route.continue();
+    },
+  );
   await page.goto(PAGE);
   await expect(cards(page)).toHaveCount(22);
   await expect(page.getByTestId('listing:sort')).toBeDisabled();
@@ -370,15 +372,16 @@ test.describe('a later season page that fails', () => {
     page,
   }) => {
     await stubLookup(page);
-    await page.route('**/season/autumn/2026/trang-2.html', (route) =>
-      route.fulfill({ status: 500, body: 'no' }),
+    await page.route(
+      '**/danh-sach/all/all/autumn/2026/all/all/jp/trang-2.html',
+      (route) => route.fulfill({ status: 500, body: 'no' }),
     );
     await page.goto(PAGE);
     await expect(page.getByTestId('listing:partial')).toHaveText(
       'Chưa tải hết danh sách.',
     );
     await expect(page.getByTestId('listing:count')).toHaveText(
-      `Mùa thu 2026 · ${22 + 3} phim`,
+      `Mùa thu 2026 · 22 phim`,
     );
     await expect(page.getByTestId('error-screen')).toHaveCount(0);
   });
@@ -494,10 +497,13 @@ test.describe('the sort dropdown', () => {
   test('stays disabled and closed while the list loads', async ({ page }) => {
     let release: () => void = () => undefined;
     const gate = new Promise<void>((resolve) => (release = resolve));
-    await page.route('**/season/autumn/2026/trang-3.html', async (route) => {
-      await gate;
-      await route.continue();
-    });
+    await page.route(
+      '**/danh-sach/all/all/autumn/2026/all/all/jp/trang-2.html',
+      async (route) => {
+        await gate;
+        await route.continue();
+      },
+    );
     await page.goto(PAGE);
     await expect(trigger(page)).toBeDisabled();
     await trigger(page).click({ force: true });
