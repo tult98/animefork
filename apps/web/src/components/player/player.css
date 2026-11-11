@@ -173,3 +173,10 @@
 .pl-er .pl-row:hover {
   background: transparent;
 }
+
+.pl-chrome {
+  transition: opacity 0.25s ease;
+}
+[data-idle='true'] .pl-chrome {
+  opacity: 0;
+}
