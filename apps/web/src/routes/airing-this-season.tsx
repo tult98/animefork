@@ -144,9 +144,10 @@ function AiringThisSeason() {
       art: art.data,
       pollsLeft,
       failed: art.isError,
+      sent: new Set(lookup.map((t) => t.slug)),
     });
     return marked?.items ?? shelf[0]?.items ?? [];
-  }, [shelf, art.data, art.isError, apiOn, pollsLeft]);
+  }, [shelf, lookup, art.data, art.isError, apiOn, pollsLeft]);
 
   const entries = useMemo(() => arrange(titles, { sort }), [titles, sort]);
   const paged = paginate(entries, page);

@@ -74,8 +74,9 @@ function Home() {
       art: art.data,
       pollsLeft,
       failed: art.isError,
+      sent: new Set(titles.map((t) => t.slug)),
     });
-  }, [built, art.data, art.isError, apiOn, pollsLeft]);
+  }, [built, titles, art.data, art.isError, apiOn, pollsLeft]);
   useAvsSubmit(
     shelves,
     art.data?.avsStale ?? NO_SLUGS,

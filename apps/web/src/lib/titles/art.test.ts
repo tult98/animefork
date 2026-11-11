@@ -768,6 +768,16 @@ describe('waiting for art', () => {
     expect(isWaitingForArt('b-2', wait({ art: a }))).toBe(false);
   });
 
+  it('does not wait for a slug that was never sent for lookup', () => {
+    const a = art(['a-1'], ['a-1']);
+    expect(
+      isWaitingForArt('b-2', wait({ art: a, sent: new Set(['a-1']) })),
+    ).toBe(false);
+    expect(
+      isWaitingForArt('a-1', wait({ art: a, sent: new Set(['a-1']) })),
+    ).toBe(true);
+  });
+
   it('settles after a failed lookup', async () => {
     const failed = await fetchHomeArt([{ slug: 'a-1', name: 'A' }], {
       env,
