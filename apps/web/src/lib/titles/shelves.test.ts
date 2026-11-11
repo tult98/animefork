@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MalStats } from '../../../../api/src/art/contract.ts';
 import {
   MIN_SHELF_TITLES,
+  NEW_EPISODES_SHELF_LIMIT,
   SEASON_SHELF_LIMIT,
   UPCOMING_MIN_TITLES,
   UPCOMING_SHELF_LIMIT,
@@ -90,6 +91,29 @@ describe('buildHome', () => {
       (s) => s.id === 'new-episodes',
     )!;
     expect(news.items).toEqual(base.newEpisodes);
+  });
+
+  it('caps new episodes at NEW_EPISODES_SHELF_LIMIT, keeping the first in order', () => {
+    const newEpisodes = range(100, 130);
+    const news = buildHome({ ...base, newEpisodes }).find(
+      (s) => s.id === 'new-episodes',
+    )!;
+    expect(news.items).toHaveLength(NEW_EPISODES_SHELF_LIMIT);
+    expect(paths(news.items)).toEqual(
+      paths(newEpisodes.slice(0, NEW_EPISODES_SHELF_LIMIT)),
+    );
+  });
+
+  it('dedupes airing only against the new episodes actually shown', () => {
+    const newEpisodes = range(100, 130);
+    const cutOff = newEpisodes[NEW_EPISODES_SHELF_LIMIT]!;
+    const shown = newEpisodes[0]!;
+    const season = [shown, cutOff, ...range(300, 320)];
+    const airing = buildHome({ ...base, newEpisodes, season }).find(
+      (s) => s.id === 'airing-this-season',
+    )!;
+    expect(paths(airing.items)).toContain(cutOff.path);
+    expect(paths(airing.items)).not.toContain(shown.path);
   });
 
   it('caps airing at SEASON_SHELF_LIMIT after dedupe', () => {
