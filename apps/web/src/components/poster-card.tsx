@@ -1,13 +1,14 @@
 import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { titleLink, titleWatchLink } from '../lib/titles/link.ts';
+import { titleWatchLink } from '../lib/titles/link.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
   HOVER_WIDTH,
   hoverPosition,
   type Anchor,
 } from '../lib/ui/hover-position.ts';
-import { Play, ChevronDown } from './ui/icons.ts';
+import { useDetails } from './details/details-context.tsx';
+import { Play, ChevronDown, Star } from './ui/icons.ts';
 
 const OPEN_DELAY_MS = 250;
 const NO_HOVER_QUERY = '(hover: none), (pointer: coarse)';
@@ -20,6 +21,27 @@ function formatVoters(n: number): string {
   return n >= 1000
     ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`
     : String(n);
+}
+
+function RatingChip({
+  score,
+  label,
+  voters,
+}: {
+  score: string;
+  label: string;
+  voters: number | null | undefined;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm/[1.3] text-muted">
+      <Star aria-hidden="true" className="size-3.5 fill-rating stroke-none" />
+      <b className="text-base font-bold text-ink">{score}</b>
+      <span>
+        {label}
+        {voters == null ? '' : ` ${formatVoters(voters)}`}
+      </span>
+    </span>
+  );
 }
 
 interface PosterCardProps {
@@ -54,7 +76,8 @@ export function PosterCard({
   newEpisode = false,
 }: PosterCardProps) {
   const isRank = rank !== undefined;
-  const coverRef = useRef<HTMLAnchorElement>(null);
+  const details = useDetails();
+  const coverRef = useRef<HTMLButtonElement>(null);
   const timer = useRef<number | undefined>(undefined);
   const closeTimer = useRef<number | undefined>(undefined);
   const [anchor, setAnchor] = useState<Opening | null>(null);
@@ -146,7 +169,10 @@ export function PosterCard({
     [anchor],
   );
 
-  const detailLink = titleLink(title);
+  const openDetails = () => {
+    unmount();
+    details.open(title);
+  };
   const watch = titleWatchLink(title);
   const label = `${isRank ? `Hạng ${rank}: ` : ''}${title.name}, ${title.episodeLabel}`;
   const hd = title.quality && /hd/i.test(title.quality) ? title.quality : null;
@@ -177,12 +203,13 @@ export function PosterCard({
         </span>
       ) : null}
       <div className={isRank ? 'relative z-1 w-(--rkposter)' : 'relative z-1'}>
-        <Link
-          {...detailLink}
+        <button
+          type="button"
           ref={coverRef}
           data-cover=""
           aria-label={label}
-          className="block rounded-lg"
+          className="block w-full cursor-pointer rounded-lg border-0 bg-transparent p-0 text-left"
+          onClick={openDetails}
         >
           <div className="relative">
             {isRank ? (
@@ -203,7 +230,7 @@ export function PosterCard({
               </div>
             ) : null}
           </div>
-        </Link>
+        </button>
       </div>
       {anchor ? (
         <div
@@ -233,35 +260,50 @@ export function PosterCard({
               src={title.backdrop ?? title.image}
             />
           </Link>
-          <div className="af-hover-body card-preview-body">
+          <div
+            className="af-hover-body card-preview-body cursor-pointer hover:bg-surface-alt"
+            data-testid={`card:${title.path}:body`}
+            onClick={openDetails}
+          >
             <div className="af-hover-actions">
               <Link
                 {...watch}
                 aria-label={`Phát ${title.name}`}
                 className="af-circle af-circle--play"
+                onClick={(event) => event.stopPropagation()}
               >
                 <Play aria-hidden="true" />
               </Link>
               <span className="af-spacer" />
-              <Link
-                {...detailLink}
+              <button
+                type="button"
                 aria-label={`Xem chi tiết ${title.name}`}
+                data-testid={`card:${title.path}:details`}
                 className="af-circle"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openDetails();
+                }}
               >
                 <ChevronDown aria-hidden="true" />
-              </Link>
+              </button>
+            </div>
+            <h3 className="m-0 mb-2 text-xl/[1.25] font-bold">{title.name}</h3>
+            <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1">
+              {title.mal?.score == null ? null : (
+                <RatingChip
+                  score={title.mal.score.toFixed(2)}
+                  label="MAL"
+                  voters={title.mal.voters}
+                />
+              )}
+              <RatingChip
+                score={title.rating.toFixed(1)}
+                label="AVS"
+                voters={title.avsVoters}
+              />
             </div>
             <div className="af-hover-meta">
-              <span className="af-box">{title.rating.toFixed(1)}</span>
-              {title.avsVoters === undefined ? null : (
-                <span>{formatVoters(title.avsVoters)}</span>
-              )}
-              {title.mal?.score == null ? null : (
-                <span className="af-box">MAL {title.mal.score.toFixed(2)}</span>
-              )}
-              {title.mal?.voters == null ? null : (
-                <span>{formatVoters(title.mal.voters)}</span>
-              )}
               {title.year === undefined ? null : <span>{title.year}</span>}
               <span>{title.episodeLabel}</span>
               {hd ? <span className="af-box">{hd}</span> : null}
@@ -272,11 +314,6 @@ export function PosterCard({
                   <span key={genre}>{genre}</span>
                 ))}
               </div>
-            ) : null}
-            {title.description ? (
-              <p className="mt-2 line-clamp-2 text-legal text-muted">
-                {title.description}
-              </p>
             ) : null}
           </div>
         </div>

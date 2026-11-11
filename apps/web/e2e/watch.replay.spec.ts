@@ -279,28 +279,16 @@ test('the watch screen has no site chrome', async ({ page }) => {
   await expect(page.getByRole('contentinfo')).toHaveCount(0);
 });
 
-test('the title page opens the first episode in the player', async ({
-  page,
-}) => {
-  await page.goto(`/title/${SLUG}/?transport=replay`);
-  await page.getByTestId('title:watch').click();
-  await expect(page).toHaveURL(new RegExp(`/watch/${SLUG}$`));
-  await expect(page.getByTestId('player')).toBeVisible();
-  await expect(page.getByTestId('player:episode-label')).toHaveText(
-    'Tập 1_BD_Full',
-  );
-});
-
 test('the back button leaves the player for the page before it, even after switching episode', async ({
   page,
 }) => {
-  await page.goto(`/title/${SLUG}/?transport=replay`);
-  await page.getByTestId('title:watch').click();
-  await expect(page.getByTestId('player')).toBeVisible();
+  await page.goto('/?transport=replay');
+  await expect(page.getByTestId('hero')).toBeVisible();
+  await open(page);
   await page.getByTestId('player:next').click();
   await expect(page.getByTestId('player:episode-label')).toHaveText('Tập 2');
   await page.getByTestId('player:back').click();
-  await expect(page).toHaveURL(new RegExp(`/title/${SLUG}/?`));
+  await expect(page).toHaveURL(/\/\?transport=replay$/);
   await expect(page.getByTestId('player')).toHaveCount(0);
 });
 

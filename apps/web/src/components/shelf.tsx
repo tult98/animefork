@@ -49,8 +49,8 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
     const covers = [
-      ...event.currentTarget.querySelectorAll<HTMLAnchorElement>(
-        'a[data-cover]',
+      ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+        '[data-cover]',
       ),
     ];
     const index = covers.findIndex((cover) => cover === document.activeElement);

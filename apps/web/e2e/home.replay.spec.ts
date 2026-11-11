@@ -56,7 +56,7 @@ test('a card is the art and its badge, with the details in the accessible name',
     .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/');
 
   await expect(
-    card.getByRole('link', { name: 'Ushiro no Shoumen Kamui-san, Tập 19' }),
+    card.getByRole('button', { name: 'Ushiro no Shoumen Kamui-san, Tập 19' }),
   ).toBeVisible();
   await expect(card).toContainText('Tập mới');
   await expect(card).toContainText('Tập 19');
@@ -65,18 +65,54 @@ test('a card is the art and its badge, with the details in the accessible name',
   await expect(page.locator('body')).not.toContainText(/\bNaN\b/);
 });
 
-test('a card opens the English title route', async ({ page }) => {
+test('a card opens the details modal instead of a page', async ({ page }) => {
   await page.goto('/?transport=replay');
   await page
     .getByTestId('shelf:new-episodes')
     .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/')
-    .getByRole('link')
+    .locator('[data-cover]')
     .click();
 
-  await expect(page).toHaveURL(
-    /\/title\/ushiro-no-shoumen-kamui-san-a6084\/?$/,
+  const modal = page.getByTestId('details');
+  await expect(modal).toBeVisible();
+  await expect(modal.getByRole('heading', { level: 2 })).toHaveText(
+    'Ushiro no Shoumen Kamui-san',
   );
-  await expect(page.getByTestId('page:Title')).toBeVisible();
+  await expect(page).toHaveURL(/\/\?transport=replay$/);
+  await expect(modal.getByTestId('details:play')).toHaveAttribute(
+    'href',
+    '/watch/ushiro-no-shoumen-kamui-san-a6084',
+  );
+  await expect(modal.getByTestId('details:episode:81001')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(modal).toHaveCount(0);
+});
+
+test('the details modal switches season and plays an episode', async ({
+  page,
+}) => {
+  await page.goto('/?transport=replay');
+  await page
+    .getByTestId('shelf:new-episodes')
+    .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/')
+    .locator('[data-cover]')
+    .click();
+  const modal = page.getByTestId('details');
+  await expect(modal.getByTestId('details:episode:81001')).toBeVisible();
+
+  await modal.getByTestId('details:season-button').click();
+  await modal
+    .getByTestId('details:season:tonikaku-kawaii-2nd-season-a4476')
+    .click();
+  await expect(modal.getByTestId('details:episode:81001')).toHaveCount(0);
+  await expect(
+    modal.getByTestId('details:episodes').getByRole('link').first(),
+  ).toBeVisible();
+
+  await modal.getByTestId('details:episodes').getByRole('link').first().click();
+  await expect(page).toHaveURL(/\/watch\/tonikaku-kawaii-2nd-season-a4476\//);
+  await expect(page.getByTestId('details')).toHaveCount(0);
 });
 
 test('image requests are answered locally, never by the CDN', async ({
@@ -183,4 +219,42 @@ test('the shell navigates and exposes window.__app', async ({ page }) => {
   await expect(page.getByTestId('page:Browse')).toBeVisible();
   expect(await page.evaluate(() => window.__app?.route())).toBe('/browse');
   expect(await shelves(page)).toEqual([]);
+});
+
+test('a long description in the details modal is clamped and expands on click', async ({
+  page,
+}) => {
+  await page.route('**/api.test/**', (route) =>
+    route.fulfill({
+      json: {
+        art: {
+          'ushiro-no-shoumen-kamui-san-a6084': {
+            status: 'ready',
+            backdropPath: null,
+            backdropLang: null,
+            posterPath: null,
+            overview: 'Một câu chuyện rất dài. '.repeat(40),
+          },
+        },
+      },
+    }),
+  );
+  await page.goto('/?transport=replay');
+  await page
+    .getByTestId('shelf:new-episodes')
+    .getByTestId('card:/phim/ushiro-no-shoumen-kamui-san-a6084/')
+    .locator('[data-cover]')
+    .click();
+  const modal = page.getByTestId('details');
+  const text = modal.getByTestId('details:description');
+  const toggle = modal.getByTestId('details:description-toggle');
+  const height = () => text.evaluate((el) => el.clientHeight);
+
+  const clamped = await height();
+  await expect(toggle).toHaveText('Xem thêm');
+  await toggle.click();
+  await expect(toggle).toHaveText('Thu gọn');
+  expect(await height()).toBeGreaterThan(clamped);
+  await toggle.click();
+  expect(await height()).toBe(clamped);
 });

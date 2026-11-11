@@ -424,13 +424,13 @@ describe('applyHomeArt', () => {
       );
     });
 
-    it('keeps the source excerpt on cards and ranking items', () => {
+    it('replaces the excerpt on cards and ranking items that have an overview, and keeps the rest', () => {
       const [, cards, top] = applyHomeArt(withExcerpts(), overviews);
       expect(cards?.items.map((t) => t.description)).toEqual([
-        'Trích đoạn A...',
+        'Tóm tắt A.',
         'Trích đoạn C...',
       ]);
-      expect(top?.items[0]?.description).toBe('Trích đoạn A...');
+      expect(top?.items[0]?.description).toBe('Tóm tắt A.');
     });
 
     it('sets an overview on a hero item that had no excerpt', () => {

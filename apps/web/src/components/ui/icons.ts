@@ -23,9 +23,11 @@ export {
   RotateCw,
   Search,
   SkipForward,
+  Star,
   TriangleAlert,
   Trophy,
   Volume2,
   VolumeX,
+  X,
 } from 'lucide-react';
 export type { LucideIcon } from 'lucide-react';
