@@ -38,7 +38,7 @@ In dev, `window.__app` exposes `route()`, `queryKeys()`, `shelves()` (the id and
 
 ## Fixtures
 
-**The fixtures in `public/fixtures/default/` are excerpts of the live site, captured from a real browser on 2026-11-10.** `default/index.html` holds the `.MovieListSldCn`, `#single-home` and `#hot-home` sections of the home page. `default/season/autumn/2026.html` holds the first 22 cards of the autumn 2026 season page, the page the home page's season tab links to. Each file starts with an HTML comment naming its source and date. Scripts, ads and inline handlers were removed, and the cast lists were dropped because no parser reads them. They are not full pages. Image URLs stay the upstream `https://cdn.animevietsub.best/...` URLs, and the Playwright fixtures answer those requests locally so no test depends on the CDN.
+**The fixtures in `public/fixtures/default/` are excerpts of the live site, captured from a real browser on 2026-11-10.** `default/index.html` holds the `.MovieListSldCn`, `#single-home` and `#hot-home` sections of the home page. `default/season/autumn/2026.html` holds the first 22 cards of the autumn 2026 season page, the page the home page's season tab links to, with its pager ("Trang 1 của 3"). `default/season/autumn/2026/trang-2.html` (8 of its 30 cards) and `trang-3.html` (all 3) are pages 2 and 3 of the same season, captured 2026-11-11; the pager of page 1 is written to match them. The site's real season has 63 titles over those 3 pages. Each file starts with an HTML comment naming its source and date. Scripts, ads and inline handlers were removed, and the cast lists were dropped because no parser reads them. They are not full pages. Image URLs stay the upstream `https://cdn.animevietsub.best/...` URLs, and the Playwright fixtures answer those requests locally so no test depends on the CDN.
 
 `invalid-title` is the same markup cut down to one card per section, with one hero card given a non-numeric rating to prove the zod error path.
 
@@ -52,7 +52,7 @@ Full pages must be captured from a real browser with the extension. The upstream
 - `home.ts` parses the hero, the new episodes and the top 10 from `GET /`, and the season tab's `href` from the same page. `fetchSeason` then reads that path. The season is never computed from the date.
 - `shelves.ts` is the pure `buildHome`. It orders the shelves, dedupes new episodes against airing this season, drops a shelf under 8 titles and caps airing at 12.
 
-The home route runs two queries, `['home']` and `['season', seasonPath]`. A slow or failed season request only affects its own shelf.
+The listing page reads every season page; see Airing listing below. The home route runs two queries, `['home']` and `['season', seasonPath]`. A slow or failed season request only affects its own shelf.
 
 ## Home page
 
@@ -66,3 +66,16 @@ The home route runs two queries, `['home']` and `['season', seasonPath]`. A slow
 The search, notification and account buttons in the header are rendered but disabled until those features exist. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/title/$`.
 
 The `data-testid` names the e2e tests use: `hero`, `hero:slide:<index>`, `hero:description`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.
+
+## Airing listing
+
+`/airing-this-season` (`src/routes/airing-this-season.tsx`) is where the Xem tất cả link of the Đang chiếu mùa này shelf goes. The other shelves still link to `/browse`. The page lists the whole season, not the 12 of the shelf, and does its sorting and paging in the browser.
+
+- Data. `home.ts` names the season path (the `['home']` query is shared with the home route). `season-pages.ts` reads page 1 (`['season-first', path]`, which also gives the page count from `.wp-pagenavi .pages`, "Trang X của N", capped at 10 and 1 when the pager is missing) and then pages 2 to N at `<season path>/trang-N.html` (`['season-rest', path, N]`). A later page that fails is skipped and the page says `Chưa tải hết danh sách.` Titles repeated across pages are dropped. Until the rest has arrived the sort dropdown and the pager are disabled, and only the untouched first page shows.
+- MAL data. Once every page is in, the titles go to the art lookup like the home shelves (chunked at 50, polled while pending). Without `VITE_API_URL`, or when the lookup fails, the page works on scraped data: sorts by MAL keep the upstream order.
+- URL. `sort` (`recent`, `avs-desc`, `avs-asc`, `mal-desc`, `mal-asc`, `views-desc`, `voters-desc`) and `page` (default 1) are search params, validated with a fallback to the default so a bad value never errors. Defaults are left out of the URL, other params such as `transport` are kept. Changing the sort resets the page and replaces the history entry, changing the page pushes one and scrolls to the grid.
+- Dropdown. `components/dropdown.tsx` is a custom menu button (the native select menu does not match the design). `aria-haspopup="menu"`, `role="menu"` with `menuitemradio` options. Opening focuses the selected option, the arrows, Home and End move, Escape, Tab, a pick or a click outside close it and focus returns to the trigger. Near the right edge of a phone the menu aligns to the trigger's right edge.
+- Sorts. `recent` is the site's own newest-first order. Every sort keeps that order for ties and puts titles without the value last. The rating tag in the card's hover preview shows the AVS score, or `MAL x.xx` (`MAL —` when absent) while sorting by MAL score.
+- Paging. 30 titles a page over the sorted list (`lib/ui/paging.ts`). The pager hides at one page, shows every page number up to 7 and collapses to first, last and the neighbours of the current page with ellipses above that, and below 768px shows `Trang X / N` instead of the numbers. A page past the end shows the last page.
+
+The `data-testid` names: `listing`, `listing:count`, `listing:sort`, `listing:sort:option:<value>`, `listing:grid`, `listing:loading`, `listing:empty`, `listing:partial`, `listing:pager`, `listing:prev`, `listing:next`, `listing:page:<n>`, `listing:summary`, and `card:rating-tag` for the tag in a card's preview.

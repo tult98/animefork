@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AiringThisSeasonRouteImport } from './routes/airing-this-season'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as DesignRouteImport } from './routes/design'
 import { Route as MyListRouteImport } from './routes/my-list'
@@ -20,6 +21,11 @@ import { Route as WatchSlugChar123EpisodeChar125RouteImport } from './routes/wat
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiringThisSeasonRoute = AiringThisSeasonRouteImport.update({
+  id: '/airing-this-season',
+  path: '/airing-this-season',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrowseRoute = BrowseRouteImport.update({
@@ -56,6 +62,7 @@ const WatchSlugChar123EpisodeChar125Route =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/airing-this-season': typeof AiringThisSeasonRoute
   '/browse': typeof BrowseRoute
   '/design': typeof DesignRoute
   '/my-list': typeof MyListRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/airing-this-season': typeof AiringThisSeasonRoute
   '/browse': typeof BrowseRoute
   '/design': typeof DesignRoute
   '/my-list': typeof MyListRoute
@@ -75,6 +83,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/airing-this-season': typeof AiringThisSeasonRoute
   '/browse': typeof BrowseRoute
   '/design': typeof DesignRoute
   '/my-list': typeof MyListRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/airing-this-season'
     | '/browse'
     | '/design'
     | '/my-list'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/airing-this-season'
     | '/browse'
     | '/design'
     | '/my-list'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/airing-this-season'
     | '/browse'
     | '/design'
     | '/my-list'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AiringThisSeasonRoute: typeof AiringThisSeasonRoute
   BrowseRoute: typeof BrowseRoute
   DesignRoute: typeof DesignRoute
   MyListRoute: typeof MyListRoute
@@ -129,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/airing-this-season': {
+      id: '/airing-this-season'
+      path: '/airing-this-season'
+      fullPath: '/airing-this-season'
+      preLoaderRoute: typeof AiringThisSeasonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/browse': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AiringThisSeasonRoute: AiringThisSeasonRoute,
   BrowseRoute: BrowseRoute,
   DesignRoute: DesignRoute,
   MyListRoute: MyListRoute,

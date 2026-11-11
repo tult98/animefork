@@ -12,6 +12,8 @@ const SEE_ALL_SHELVES = new Set([
   'upcoming',
 ]);
 
+const SEE_ALL_TO = { 'airing-this-season': '/airing-this-season' } as const;
+
 const ARROW_CLASS =
   'bg-border-strong/70 text-ink hover:bg-border-strong/90 cursor-pointer border-0';
 
@@ -75,9 +77,9 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
         </h2>
         {SEE_ALL_SHELVES.has(shelf.id) ? (
           <Link
-            to="/browse"
+            to={SEE_ALL_TO[shelf.id as keyof typeof SEE_ALL_TO] ?? '/browse'}
             data-testid={`shelf:${shelf.id}:see-all`}
-            className="ml-auto flex min-h-11 items-center gap-1 text-sm/[1.3] font-medium text-muted hover:text-ink"
+            className="relative z-10 ml-auto flex min-h-11 items-center gap-1 text-sm/[1.3] font-medium text-muted hover:text-ink"
           >
             Xem tất cả
             <ChevronRight aria-hidden="true" className="size-4" />
@@ -134,7 +136,7 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
   );
 }
 
-const SHIMMER =
+export const SHIMMER =
   "relative overflow-hidden bg-surface-alt after:absolute after:inset-0 after:-translate-x-full after:animate-shimmer after:bg-linear-to-r after:from-transparent after:via-white/6 after:to-transparent after:content-[''] motion-reduce:after:animate-none";
 
 export function ShelfSkeleton({ id }: { id: string }) {

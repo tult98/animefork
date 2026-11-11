@@ -42,17 +42,20 @@ test('only the new episodes shelf shows the Tập mới badge', async ({
   );
 });
 
-test('Xem tất cả links to /browse', async ({ page }) => {
+test('Xem tất cả links to the listing page of its shelf, or /browse', async ({
+  page,
+}) => {
   await page.goto('/?transport=replay');
-  for (const id of [
-    'new-episodes',
-    'top-10-today',
-    'airing-this-season',
-    'upcoming',
-  ]) {
+  const targets: Record<string, string> = {
+    'new-episodes': '/browse',
+    'top-10-today': '/browse',
+    'airing-this-season': '/airing-this-season',
+    upcoming: '/browse',
+  };
+  for (const [id, href] of Object.entries(targets)) {
     await expect(page.getByTestId(`shelf:${id}:see-all`)).toHaveAttribute(
       'href',
-      '/browse',
+      href,
     );
   }
 });
