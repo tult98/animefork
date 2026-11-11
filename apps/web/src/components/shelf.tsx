@@ -12,7 +12,10 @@ const SEE_ALL_SHELVES = new Set([
   'upcoming',
 ]);
 
-const SEE_ALL_TO = { 'airing-this-season': '/airing-this-season' } as const;
+const SEE_ALL_TO = {
+  'new-episodes': '/new-episodes',
+  'airing-this-season': '/airing-this-season',
+} as const;
 
 const ARROW_CLASS = 'cursor-pointer';
 

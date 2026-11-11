@@ -8,7 +8,9 @@ import {
   fetchSeasonFirstPage,
   fetchSeasonRest,
   joinSeasonPages,
+  limitTitles,
   MAX_SEASON_PAGES,
+  pagesNeeded,
   parsePageCount,
   seasonPagePath,
 } from './season-pages.ts';
@@ -127,5 +129,46 @@ describe('the season pages', () => {
       get: async () => ({ status: 200, data: html }),
     };
     expect((await fetchSeasonFirstPage(single, '/s/')).pageCount).toBe(1);
+  });
+});
+
+describe('pagesNeeded', () => {
+  it('without a limit takes every source page up to the cap', () => {
+    expect(pagesNeeded(3, 22)).toBe(3);
+    expect(pagesNeeded(50, 30)).toBe(MAX_SEASON_PAGES);
+  });
+  it('derives the pages from the first page card count', () => {
+    expect(pagesNeeded(200, 30, 200)).toBe(7);
+    expect(pagesNeeded(200, 20, 200)).toBe(10);
+    expect(pagesNeeded(200, 22, 200)).toBe(MAX_SEASON_PAGES);
+    expect(pagesNeeded(200, 50, 200)).toBe(4);
+  });
+  it('never exceeds the pages the source has', () => {
+    expect(pagesNeeded(3, 30, 200)).toBe(3);
+  });
+  it('asks for one page when the first page had no cards', () => {
+    expect(pagesNeeded(200, 0, 200)).toBe(1);
+  });
+  it('stops at the first page when the limit is smaller than it', () => {
+    expect(pagesNeeded(200, 30, 10)).toBe(1);
+  });
+  it('treats a source total below one as one page', () => {
+    expect(pagesNeeded(0, 30, 200)).toBe(1);
+  });
+});
+
+describe('limitTitles', () => {
+  const list = Array.from(
+    { length: 5 },
+    (_, i) => ({ path: `/${i}` }) as Title,
+  );
+  it('keeps the first titles in source order', () => {
+    expect(limitTitles(list, 3).map((t) => t.path)).toEqual(['/0', '/1', '/2']);
+  });
+  it('returns everything when the limit exceeds the source', () => {
+    expect(limitTitles(list, 200)).toHaveLength(5);
+  });
+  it('leaves the list alone without a limit', () => {
+    expect(limitTitles(list)).toBe(list);
   });
 });

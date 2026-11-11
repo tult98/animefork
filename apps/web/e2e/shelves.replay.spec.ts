@@ -47,7 +47,7 @@ test('Xem tất cả links to the listing page of its shelf, or /browse', async 
 }) => {
   await page.goto('/?transport=replay');
   const targets: Record<string, string> = {
-    'new-episodes': '/browse',
+    'new-episodes': '/new-episodes',
     'airing-this-season': '/airing-this-season',
     upcoming: '/browse',
   };

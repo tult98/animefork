@@ -2,6 +2,7 @@ import { releaseInfo } from './release.ts';
 import type { Title } from './title.ts';
 
 export const MIN_SHELF_TITLES = 8;
+export const NEW_EPISODES_SHELF_LIMIT = 12;
 export const SEASON_SHELF_LIMIT = 12;
 export const TOP_10_SIZE = 10;
 export const UPCOMING_MIN_TITLES = 3;
@@ -59,12 +60,15 @@ export function buildHome(
   if (hero.length > 0) shelves.push({ kind: 'hero', id: 'hero', items: hero });
 
   const keepNewEpisodes = newEpisodes.length >= MIN_SHELF_TITLES;
+  const shownNewEpisodes = keepNewEpisodes
+    ? newEpisodes.slice(0, NEW_EPISODES_SHELF_LIMIT)
+    : [];
   if (keepNewEpisodes) {
     shelves.push({
       kind: 'default',
       id: 'new-episodes',
       title: 'Mới cập nhật',
-      items: newEpisodes,
+      items: shownNewEpisodes,
     });
   }
 
@@ -80,9 +84,7 @@ export function buildHome(
   }
 
   if (season) {
-    const shown = new Set(
-      keepNewEpisodes ? newEpisodes.map((title) => title.path) : [],
-    );
+    const shown = new Set(shownNewEpisodes.map((title) => title.path));
     const airing = season
       .filter((title) => !shown.has(title.path))
       .slice(0, SEASON_SHELF_LIMIT);

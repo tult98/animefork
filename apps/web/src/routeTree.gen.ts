@@ -14,6 +14,7 @@ import { Route as AiringThisSeasonRouteImport } from './routes/airing-this-seaso
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as DesignRouteImport } from './routes/design'
 import { Route as MyListRouteImport } from './routes/my-list'
+import { Route as NewEpisodesRouteImport } from './routes/new-episodes'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as WatchSlugChar123EpisodeChar125RouteImport } from './routes/watch.$slug.{-$episode}'
@@ -43,6 +44,11 @@ const MyListRoute = MyListRouteImport.update({
   path: '/my-list',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewEpisodesRoute = NewEpisodesRouteImport.update({
+  id: '/new-episodes',
+  path: '/new-episodes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RankingsRoute = RankingsRouteImport.update({
   id: '/rankings',
   path: '/rankings',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/browse': typeof BrowseRoute
   '/design': typeof DesignRoute
   '/my-list': typeof MyListRoute
+  '/new-episodes': typeof NewEpisodesRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
   '/watch/$slug/{-$episode}': typeof WatchSlugChar123EpisodeChar125Route
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/browse': typeof BrowseRoute
   '/design': typeof DesignRoute
   '/my-list': typeof MyListRoute
+  '/new-episodes': typeof NewEpisodesRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
   '/watch/$slug/{-$episode}': typeof WatchSlugChar123EpisodeChar125Route
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/browse': typeof BrowseRoute
   '/design': typeof DesignRoute
   '/my-list': typeof MyListRoute
+  '/new-episodes': typeof NewEpisodesRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
   '/watch/$slug/{-$episode}': typeof WatchSlugChar123EpisodeChar125Route
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/design'
     | '/my-list'
+    | '/new-episodes'
     | '/rankings'
     | '/schedule'
     | '/watch/$slug/{-$episode}'
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/design'
     | '/my-list'
+    | '/new-episodes'
     | '/rankings'
     | '/schedule'
     | '/watch/$slug/{-$episode}'
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/design'
     | '/my-list'
+    | '/new-episodes'
     | '/rankings'
     | '/schedule'
     | '/watch/$slug/{-$episode}'
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   BrowseRoute: typeof BrowseRoute
   DesignRoute: typeof DesignRoute
   MyListRoute: typeof MyListRoute
+  NewEpisodesRoute: typeof NewEpisodesRoute
   RankingsRoute: typeof RankingsRoute
   ScheduleRoute: typeof ScheduleRoute
   WatchSlugChar123EpisodeChar125Route: typeof WatchSlugChar123EpisodeChar125Route
@@ -172,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MyListRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/new-episodes': {
+      id: '/new-episodes'
+      path: '/new-episodes'
+      fullPath: '/new-episodes'
+      preLoaderRoute: typeof NewEpisodesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rankings': {
       id: '/rankings'
       path: '/rankings'
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   BrowseRoute: BrowseRoute,
   DesignRoute: DesignRoute,
   MyListRoute: MyListRoute,
+  NewEpisodesRoute: NewEpisodesRoute,
   RankingsRoute: RankingsRoute,
   ScheduleRoute: ScheduleRoute,
   WatchSlugChar123EpisodeChar125Route: WatchSlugChar123EpisodeChar125Route,
