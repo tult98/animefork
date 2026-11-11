@@ -256,6 +256,12 @@ export function PosterCard({
               {title.avsVoters === undefined ? null : (
                 <span>{formatVoters(title.avsVoters)}</span>
               )}
+              {title.mal?.score == null ? null : (
+                <span className="af-box">MAL {title.mal.score.toFixed(2)}</span>
+              )}
+              {title.mal?.voters == null ? null : (
+                <span>{formatVoters(title.mal.voters)}</span>
+              )}
               {title.year === undefined ? null : <span>{title.year}</span>}
               <span>{title.episodeLabel}</span>
               {hd ? <span className="af-box">{hd}</span> : null}

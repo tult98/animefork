@@ -474,6 +474,59 @@ describe('ratings in a lookup', () => {
   });
 });
 
+describe('MAL ratings in a lookup', () => {
+  const titles = [{ slug: 'a-1', name: 'A' }];
+  const mal = {
+    id: 1,
+    score: 7.55,
+    voters: 69596,
+    rank: 2006,
+    popularity: 1762,
+    members: 157000,
+  };
+  const answer = (body: object) =>
+    vi.fn(async () => Response.json(body)) as unknown as typeof fetch;
+
+  it('carries the MAL numbers, nulls included, through fetchHomeArt', async () => {
+    const art = await fetchHomeArt(titles, {
+      env,
+      fetch: answer({
+        art: { 'a-1': { status: 'none' } },
+        ratings: { 'a-1': { mal: { ...mal, rank: null } } },
+      }),
+    });
+    expect(art.ratings.get('a-1')?.mal).toEqual({ ...mal, rank: null });
+    expect(art.pending).toBe(false);
+  });
+
+  it('polls again while the API is still filling MAL, as for pending art', async () => {
+    const art = await fetchHomeArt(titles, {
+      env,
+      fetch: answer({
+        art: { 'a-1': { status: 'none' } },
+        ratingsPending: true,
+      }),
+    });
+    expect(art.pending).toBe(true);
+  });
+
+  it('puts the MAL numbers on the title', () => {
+    const title: Title = {
+      path: '/phim/a-1/',
+      name: 'A',
+      image: 'i.jpg',
+      rating: 8,
+      episodeLabel: 'Tập 1',
+      genres: [],
+    };
+    const shelves = [
+      { kind: 'default', id: 'x', items: [title] },
+    ] as unknown as HomeShelves;
+    const out = applyRatings(shelves, new Map([['a-1', { mal }]]));
+    expect(out[0]!.items[0]).toMatchObject({ mal });
+  });
+});
+
 describe('applyRatings', () => {
   const card = (path: string, quality?: string): Title => ({
     path,

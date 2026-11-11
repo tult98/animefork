@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MalStatsSchema } from '../../../../api/src/art/contract.ts';
 
 export const TitleSchema = z.object({
   path: z.string().min(1),
@@ -14,6 +15,7 @@ export const TitleSchema = z.object({
   views: z.number().int().nonnegative().optional(),
   quality: z.string().min(1).optional(),
   avsVoters: z.number().int().nonnegative().optional(),
+  mal: MalStatsSchema.optional(),
 });
 
 export type Title = z.infer<typeof TitleSchema>;

@@ -131,6 +131,8 @@ The web hero showed the source site's card excerpt, which the site cuts at about
 | `DEEPSEEK_API_KEY`      | no       | DeepSeek API key. Unset turns overview translation off              |
 | `DEEPSEEK_API_BASE`     | no       | DeepSeek API root, `https://api.deepseek.com` by default, or a stub |
 | `DEEPSEEK_MODEL`        | no       | DeepSeek chat model, `deepseek-flash` by default                    |
+| `MAL_CLIENT_ID`         | no       | MyAnimeList API client id. Unset turns the MAL numbers off          |
+| `MAL_API_BASE`          | no       | MyAnimeList API root, `https://api.myanimelist.net/v2` by default   |
 
 A missing or invalid variable stops the boot with `missing or invalid env:` and its name.
 
@@ -152,7 +154,7 @@ Vitest compiles the same decorators without a plugin. Vite's built-in transform 
 
 ## Run it locally
 
-Copy `.env.example` to `.env` and fill in `TMDB_API_KEY`, `TYPESAFE_API_KEY` to turn Jev on, and `DEEPSEEK_API_KEY` to translate English-only overviews. Git ignores `.env`.
+Copy `.env.example` to `.env` and fill in `TMDB_API_KEY`, `TYPESAFE_API_KEY` to turn Jev on, `DEEPSEEK_API_KEY` to translate English-only overviews, and `MAL_CLIENT_ID` for the MyAnimeList numbers. Git ignores `.env`.
 
 ```sh
 docker compose -f apps/api/docker-compose.yml up -d --wait   # Postgres 17 on localhost:54330, database api

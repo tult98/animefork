@@ -84,11 +84,12 @@ async function lookupChunk(
     body: JSON.stringify(episodes ? { titles, episodes } : { titles }),
   });
   if (!res.ok) throw new Error(`art lookup answered ${res.status}`);
-  const { art, ratings, avsStale } = LookupResponseSchema.parse(
+  const { art, ratings, avsStale, ratingsPending } = LookupResponseSchema.parse(
     await res.json(),
   );
   const ready = new Map<string, ReadyEntry>();
-  let pending = false;
+  // A MyAnimeList lookup still being filled asks the page to come back, just like pending art.
+  let pending = ratingsPending === true;
   for (const [slug, entry] of Object.entries(art)) {
     if (entry.status === 'ready') ready.set(slug, entry);
     else if (entry.status === 'pending') pending = true;
@@ -265,11 +266,13 @@ function withRatings(title: Title, ratings: Map<string, TitleRatings>): Title {
   // The card's own count is read from the page just loaded, so it beats what the API stored earlier.
   const avsVoters = title.avsVoters ?? found?.avs?.voters;
   const quality = title.quality ?? found?.quality;
-  if (avsVoters === undefined && !quality) return title;
+  const mal = found?.mal;
+  if (avsVoters === undefined && !quality && !mal) return title;
   return {
     ...title,
     ...(avsVoters !== undefined && { avsVoters }),
     ...(quality && { quality }),
+    ...(mal && { mal }),
   };
 }
 
