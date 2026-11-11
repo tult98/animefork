@@ -15,10 +15,7 @@ export function useIdle(
 
   useEffect(() => {
     const root = target.current;
-    if (!enabled || !root) {
-      setIdle(false);
-      return;
-    }
+    if (!enabled || !root) return;
 
     let timer: number | undefined;
     const arm = () => {
@@ -38,8 +35,9 @@ export function useIdle(
     return () => {
       window.clearTimeout(timer);
       for (const name of WAKE_EVENTS) root.removeEventListener(name, wake);
+      setIdle(false);
     };
   }, [target, enabled]);
 
-  return idle;
+  return enabled && idle;
 }
