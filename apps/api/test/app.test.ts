@@ -4,7 +4,11 @@ import request from 'supertest';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ART_SYNC, ArtFiller } from '../src/art/art.filler.ts';
 import { ART_STORE, type ArtStore } from '../src/art/art.store.ts';
-import { LOOKUP_PATH, MAX_TITLES_PER_LOOKUP } from '../src/art/contract.ts';
+import {
+  AVS_RATINGS_PATH,
+  LOOKUP_PATH,
+  MAX_TITLES_PER_LOOKUP,
+} from '../src/art/contract.ts';
 import {
   DeepSeekTranslator,
   OVERVIEW_TRANSLATOR,
@@ -13,6 +17,7 @@ import { AppModule } from '../src/app.module.ts';
 import { configureApp } from '../src/app.setup.ts';
 import { APP_CONFIG, ENV, type Env } from '../src/config/app.config.ts';
 import { MigrationRunner, PG_POOL } from '../src/database/migration-runner.ts';
+import { RATINGS_STORE } from '../src/ratings/ratings.store.ts';
 import { setup, TONIKAWA } from './art/helpers.ts';
 import { DETAIL_100_VI } from './art/tmdb/fixtures.ts';
 
@@ -34,7 +39,7 @@ async function build(
   env: Env = {},
   over: { store?: (store: ArtStore) => ArtStore } = {},
 ) {
-  const { store, sync, searches } = setup();
+  const { store, ratings, sync, searches } = setup();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(ENV)
     .useValue({ ...BASE_ENV, ...env })
@@ -44,6 +49,8 @@ async function build(
     .useValue({})
     .overrideProvider(ART_STORE)
     .useValue(over.store ? over.store(store) : store)
+    .overrideProvider(RATINGS_STORE)
+    .useValue(ratings)
     .overrideProvider(ART_SYNC)
     .useValue(sync)
     .compile();
@@ -61,7 +68,7 @@ async function build(
       .set({ 'content-type': 'application/json', ...headers });
     return req.send(typeof body === 'string' ? body : JSON.stringify(body));
   };
-  return { app, http, post, filler: app.get(ArtFiller), searches };
+  return { app, http, post, filler: app.get(ArtFiller), searches, ratings };
 }
 
 describe('api app', () => {
@@ -77,6 +84,8 @@ describe('api app', () => {
     expect(first.status).toBe(200);
     expect(first.body).toEqual({
       art: { [TONIKAWA.slug]: { status: 'pending' } },
+      ratings: {},
+      avsStale: [TONIKAWA.slug],
     });
     await filler.idle();
     const later = await post({ titles: [TONIKAWA], episodes: true });
@@ -92,6 +101,8 @@ describe('api app', () => {
           stills: { '1': '/e1.jpg', '3': '/e3.jpg' },
         },
       },
+      ratings: {},
+      avsStale: [TONIKAWA.slug],
     });
     expect(searches).toHaveLength(1);
   });
@@ -121,6 +132,34 @@ describe('api app', () => {
       error: 'invalid_request',
       issues: [{ path: 'titles.0.slug', message: expect.any(String) }],
     });
+  });
+
+  it('stores a submitted AVS rating and answers it on the next lookup', async () => {
+    const { http, post } = await build();
+    const submit = await http()
+      .post(AVS_RATINGS_PATH)
+      .set('content-type', 'application/json')
+      .send({
+        items: [
+          { slug: TONIKAWA.slug, score: 8.2, voters: 1284, quality: 'HD' },
+        ],
+      });
+    expect(submit.status).toBe(204);
+    const res = await post({ titles: [TONIKAWA] });
+    expect(res.body.avsStale).toEqual([]);
+    expect(res.body.ratings).toEqual({
+      [TONIKAWA.slug]: { avs: { score: 8.2, voters: 1284 }, quality: 'HD' },
+    });
+  });
+
+  it('answers 400 for a bad AVS submission', async () => {
+    const { http } = await build();
+    const res = await http()
+      .post(AVS_RATINGS_PATH)
+      .set('content-type', 'application/json')
+      .send({ items: [{ slug: 'a-1', score: 11, voters: 1 }] });
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: 'invalid_request' });
   });
 
   it('accepts exactly the title cap', async () => {

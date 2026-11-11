@@ -5,13 +5,21 @@ import { ErrorScreen } from '../components/error-screen.tsx';
 import { Hero, HeroSkeleton } from '../components/hero.tsx';
 import { Shelf, ShelfSkeleton } from '../components/shelf.tsx';
 import { publishShelves } from '../lib/app-hook.ts';
-import { applyHomeArt, artPollDelay, fetchHomeArt } from '../lib/titles/art.ts';
+import {
+  applyHomeArt,
+  applyRatings,
+  artPollDelay,
+  fetchHomeArt,
+} from '../lib/titles/art.ts';
+import { useAvsSubmit } from '../lib/titles/use-avs-submit.ts';
 import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
 import { lookupTitles } from '../lib/titles/lookup.ts';
 import { buildHome } from '../lib/titles/shelves.ts';
 import { useTransport } from '../lib/transport/index.ts';
 
 export const Route = createFileRoute('/')({ component: Home });
+
+const NO_SLUGS: readonly string[] = [];
 
 function Home() {
   const transport = useTransport();
@@ -41,9 +49,14 @@ function Home() {
     refetchInterval: (query) =>
       artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
   });
-  const shelves = useMemo(
-    () => (art.data ? applyHomeArt(built, art.data.paths) : built),
-    [built, art.data],
+  const shelves = useMemo(() => {
+    if (!art.data) return built;
+    return applyRatings(applyHomeArt(built, art.data.paths), art.data.ratings);
+  }, [built, art.data]);
+  useAvsSubmit(
+    shelves,
+    art.data?.avsStale ?? NO_SLUGS,
+    import.meta.env.VITE_API_URL,
   );
 
   useEffect(() => {
