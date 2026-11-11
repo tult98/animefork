@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { expect, test as base } from '@playwright/test';
+import { expect, test as base, type Page } from '@playwright/test';
 
 const poster = readFileSync(
   resolve(import.meta.dirname, '../public/fixtures/poster.svg'),
@@ -12,13 +12,26 @@ interface Options {
 }
 
 export const test = base.extend<
-  Options & { consoleErrors: string[]; stubCdnImages: void }
+  Options & {
+    consoleErrors: string[];
+    stubCdnImages: void;
+    stubArtApi: void;
+  }
 >({
   allowedConsoleErrors: [[], { option: true }],
   stubCdnImages: [
     async ({ page }, use) => {
       await page.route('**/cdn.animevietsub.best/**', (route) =>
         route.fulfill({ contentType: 'image/svg+xml', body: poster }),
+      );
+      await use();
+    },
+    { auto: true },
+  ],
+  stubArtApi: [
+    async ({ page }, use) => {
+      await page.route('**/api.test/**', (route) =>
+        route.fulfill({ json: { art: {} } }),
       );
       await use();
     },
@@ -43,3 +56,17 @@ export const test = base.extend<
 });
 
 export { expect };
+
+// Renames the first hero slides of the replayed home page, in order.
+export async function renameHeroSlides(page: Page, names: string[]) {
+  await page.route('**/fixtures/default/index.html', async (route) => {
+    const res = await route.fetch();
+    let n = 0;
+    const body = (await res.text()).replace(
+      /<div class="Title">[^<]*<\/div>/g,
+      (match) =>
+        n < names.length ? `<div class="Title">${names[n++]}</div>` : match,
+    );
+    await route.fulfill({ response: res, body });
+  });
+}

@@ -1,0 +1,21 @@
+name: api
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: api
+      POSTGRES_USER: api
+      POSTGRES_PASSWORD: local-api
+    ports:
+      - '54330:5432'
+    volumes:
+      - api-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U api -d api']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  api-db:

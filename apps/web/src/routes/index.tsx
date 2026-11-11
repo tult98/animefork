@@ -1,11 +1,13 @@
-import { skipToken, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo } from 'react';
 import { ErrorScreen } from '../components/error-screen.tsx';
 import { Hero, HeroSkeleton } from '../components/hero.tsx';
 import { Shelf, ShelfSkeleton } from '../components/shelf.tsx';
 import { publishShelves } from '../lib/app-hook.ts';
+import { applyHomeArt, artPollDelay, fetchHomeArt } from '../lib/titles/art.ts';
 import { fetchHome, fetchSeason } from '../lib/titles/home.ts';
+import { lookupTitles } from '../lib/titles/lookup.ts';
 import { buildHome } from '../lib/titles/shelves.ts';
 import { useTransport } from '../lib/transport/index.ts';
 
@@ -25,18 +27,27 @@ function Home() {
       : skipToken,
   });
 
-  const shelves = useMemo(
+  const built = useMemo(
     () => (home.data ? buildHome({ ...home.data, season: season.data }) : []),
     [home.data, season.data],
   );
+  const titles = useMemo(() => lookupTitles(built), [built]);
+  const art = useQuery({
+    queryKey: ['home-art', titles],
+    queryFn: ({ signal }) =>
+      fetchHomeArt(titles, { env: import.meta.env, signal }),
+    enabled: titles.length > 0 && Boolean(import.meta.env.VITE_API_URL),
+    placeholderData: keepPreviousData,
+    refetchInterval: (query) =>
+      artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
+  });
+  const shelves = useMemo(
+    () => (art.data ? applyHomeArt(built, art.data.paths) : built),
+    [built, art.data],
+  );
 
   useEffect(() => {
-    publishShelves(
-      shelves.map((shelf) => ({
-        id: shelf.id,
-        paths: shelf.items.map((title) => title.path),
-      })),
-    );
+    publishShelves(shelves);
     return () => publishShelves([]);
   }, [shelves]);
 

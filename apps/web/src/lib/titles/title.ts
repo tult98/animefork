@@ -4,6 +4,7 @@ export const TitleSchema = z.object({
   path: z.string().min(1),
   name: z.string().min(1),
   image: z.string().min(1),
+  backdrop: z.string().min(1).optional(),
   rating: z.number().min(0).max(10),
   episodeLabel: z.string().min(1),
   year: z.number().int().optional(),

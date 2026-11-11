@@ -1,0 +1,95 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --env-file-if-exists=.env --enable-source-maps dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "eval-matcher": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/eval-matcher.ts"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ]
+      },
+      "dev": {
+        "continuous": true,
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "options": {
+          "cwd": "{projectRoot}",
+          "parallel": true,
+          "commands": [
+            "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+            "node --env-file-if-exists=.env --enable-source-maps --watch dist/main.js"
+          ]
+        }
+      },
+      "start": {
+        "continuous": true,
+        "dependsOn": [
+          "build"
+        ]
+      },
+      "typecheck": {
+        "cache": true,
+        "inputs": [
+          "default",
+          "^production"
+        ]
+      },
+      "lint": {
+        "cache": true,
+        "inputs": [
+          "default",
+          "{projectRoot}/eslint.config.mjs"
+        ]
+      },
+      "test": {
+        "cache": true,
+        "inputs": [
+          "default",
+          "^production"
+        ]
+      },
+      "eval-matcher": {
+        "cache": false
+      }
+    }
+  },
+  "dependencies": {
+    "@nestjs/common": "12.4.2",
+    "@nestjs/core": "12.4.2",
+    "@nestjs/platform-express": "12.4.2",
+    "@nestjs/throttler": "6.7.1",
+    "@typesafe-ai/sdk": "0.7.0",
+    "pg": "8.16.3",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@nestjs/testing": "12.4.2",
+    "@types/pg": "8.15.5",
+    "@types/supertest": "7.2.1",
+    "eslint": "10.14.0",
+    "globals": "17.13.0",
+    "supertest": "7.3.2",
+    "typescript-eslint": "8.72.1",
+    "vitest": "4.1.12"
+  }
+}

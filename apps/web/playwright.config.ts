@@ -25,6 +25,9 @@ export default defineConfig({
   webServer: {
     command: `pnpm exec vite --port ${port} --strictPort`,
     url: `http://localhost:${port}`,
+    env: {
+      VITE_API_URL: 'https://api.test',
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

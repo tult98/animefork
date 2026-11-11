@@ -19,6 +19,12 @@ Run everything through Nx from the repo root.
 
 Playwright drives the installed Google Chrome so no browser download is needed. CI sets `PW_CHANNEL=chromium` after `playwright install chromium`.
 
+## TMDB art
+
+The home hero and watch backdrop (original size), the new episodes and airing shelves (w780) and the watch screen (backdrop and episode stills) swap in TMDB art from the art module of `apps/api`. Set `VITE_API_URL` to the service root (for example `http://localhost:3100`, see `apps/api/README.md`) to turn the lookup on. The service holds the TMDB key and the database, so the bundle carries neither. The hero also replaces each slide's description with the service's Vietnamese `overview` when the lookup answers one. The source site cuts its card excerpt at about 70 characters and ends it with `...`, so the hero keeps that excerpt only when `overview` is null or missing. Cards and the top 10 hover keep the source excerpt.
+
+The page posts its titles to `/v1/art/lookup` and applies the `ready` entries. A title the service has not seen answers `pending` while it is matched in the background, so the page asks again after 3, 6 and 12 seconds and stops as soon as nothing is pending. The home art loads after the home data so a slow art API never delays first paint. The Top 10 posters keep the source image. Without `VITE_API_URL`, or when the request fails, times out after 3 seconds or answers an unexpected shape, the page shows the source site's own images.
+
 ## Transport
 
 Routes never fetch directly. They call `useTransport()` from `src/lib/transport/`, which returns one of two implementations.
@@ -59,4 +65,4 @@ The home route runs two queries, `['home']` and `['season', seasonPath]`. A slow
 
 The search, notification and account buttons in the header are rendered but disabled until those features exist. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/title/$`.
 
-The `data-testid` names the e2e tests use: `hero`, `hero:slide:<index>`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.
+The `data-testid` names the e2e tests use: `hero`, `hero:slide:<index>`, `hero:description`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.

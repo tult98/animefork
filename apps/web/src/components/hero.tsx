@@ -83,18 +83,25 @@ export function Hero({ items }: { items: Title[] }) {
                 alt=""
                 loading={slide === 0 ? 'eager' : 'lazy'}
                 decoding="async"
-                className="af-billboard-art object-cover object-center"
+                className="af-billboard-art object-cover object-[50%_15%]"
               />
               <div className="hero-scrim absolute inset-0" />
               <div className="af-billboard-body absolute bottom-0 left-0 pb-8 max-md:right-0 max-md:max-w-none max-md:p-4">
-                <h2 className="af-billboard-title line-clamp-2 max-md:text-4xl">
+                <h2
+                  data-testid="hero:title"
+                  title={title.name}
+                  className="af-billboard-title line-clamp-3 text-4xl leading-[1.1] max-md:text-[28px]"
+                >
                   {title.name}
                 </h2>
                 <div className="af-billboard-meta flex flex-wrap items-center gap-x-2 gap-y-1">
                   {heroMeta(title)}
                 </div>
                 {title.description ? (
-                  <p className="af-billboard-text line-clamp-2">
+                  <p
+                    data-testid="hero:description"
+                    className="af-billboard-text line-clamp-2"
+                  >
                     {title.description}
                   </p>
                 ) : null}

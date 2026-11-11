@@ -1,4 +1,5 @@
-import { expect, test } from './fixtures.ts';
+import { expect, renameHeroSlides, test } from './fixtures.ts';
+import { HERO_NAMES } from './names.ts';
 
 async function openHome(page: import('@playwright/test').Page) {
   await page.clock.install();
@@ -126,4 +127,59 @@ test('the hero controls show a focus ring', async ({ page }) => {
     .getByTestId('hero:next')
     .evaluate((el) => getComputedStyle(el).outlineStyle);
   expect(outline).toBe('solid');
+});
+
+test.describe('long hero names', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('names that fit show in full, a very long one is clamped to 3 lines, all at one font size', async ({
+    page,
+  }) => {
+    await renameHeroSlides(page, HERO_NAMES);
+    await page.goto('/?transport=replay');
+    await page.getByTestId('hero:pause').click();
+    await expect(page.getByTestId('hero')).toBeVisible();
+    const hero = (await page.getByTestId('hero').boundingBox())!;
+    const sizes: number[] = [];
+
+    for (const [i, name] of HERO_NAMES.entries()) {
+      while (
+        !(await page.getByTestId('hero:counter').innerText()).startsWith(
+          `${i + 1} `,
+        )
+      )
+        await page.getByTestId('hero:next').click();
+      const slide = page.getByTestId(`hero:slide:${i}`);
+      const title = slide.getByTestId('hero:title');
+      await expect(title).toHaveText(name);
+      await expect(title).toBeVisible();
+      const measured = await title.evaluate((el) => {
+        const style = getComputedStyle(el);
+        return {
+          clipped: el.scrollHeight > el.clientHeight,
+          textOverflow: style.textOverflow,
+          lineClamp: style.webkitLineClamp,
+          lines: Math.round(
+            el.getBoundingClientRect().height / parseFloat(style.lineHeight),
+          ),
+          size: parseFloat(style.fontSize),
+        };
+      });
+      await expect(title).toHaveAttribute('title', name);
+      if (name === HERO_NAMES[0]) {
+        expect(measured.lines).toBe(3);
+        expect(measured.clipped, 'long name is clamped').toBe(true);
+      } else {
+        expect(measured.clipped, `${name.length} chars clipped`).toBe(false);
+      }
+      expect(measured.lineClamp).toBe('3');
+      sizes.push(measured.size);
+
+      const box = (await title.boundingBox())!;
+      const meta = (await slide.locator('.af-billboard-meta').boundingBox())!;
+      expect(box.y).toBeGreaterThanOrEqual(hero.y);
+      expect(box.y + box.height).toBeLessThanOrEqual(meta.y + 0.5);
+    }
+    expect(new Set(sizes).size).toBe(1);
+  });
 });
