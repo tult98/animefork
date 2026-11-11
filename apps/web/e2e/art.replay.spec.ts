@@ -197,7 +197,7 @@ test('a top 10 card shows the TMDB poster and its hover preview the backdrop', a
     'src',
     'https://image.tmdb.org/t/p/w342/top-poster.jpg',
   );
-  await first.locator('a[data-cover]').hover();
+  await first.locator('[data-cover]').hover();
   await expect(previewImg).toHaveAttribute(
     'src',
     'https://image.tmdb.org/t/p/w780/top.jpg',
@@ -210,7 +210,7 @@ test('a top 10 card shows the TMDB poster and its hover preview the backdrop', a
     'src',
     /^https:\/\/cdn\.animevietsub\.best\/data\/poster\//,
   );
-  await second.locator('a[data-cover]').hover();
+  await second.locator('[data-cover]').hover();
   await expect(previewImg).toHaveAttribute(
     'src',
     /^https:\/\/cdn\.animevietsub\.best\//,
@@ -233,7 +233,7 @@ test('a top 10 title without a posterPath keeps the source poster in its card', 
     .poll(() => bodies.flatMap((b) => b.titles.map((t) => t.slug)))
     .toContain(TOP10_SLUG);
 
-  await first.locator('a[data-cover]').hover();
+  await first.locator('[data-cover]').hover();
   await expect(page.locator('[data-testid$=":preview"] img')).toHaveAttribute(
     'src',
     'https://image.tmdb.org/t/p/w780/top.jpg',

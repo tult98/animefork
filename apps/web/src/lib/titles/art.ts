@@ -222,19 +222,22 @@ export function applyHomeArt(
   art: Map<string, HomeArtPaths>,
 ): HomeShelves {
   if (art.size === 0) return shelves;
+  // The card's own description is cut short with "...", so the stored overview replaces it.
+  const withOverview = <T extends Title>(title: T): T => {
+    const overview = art.get(slugOf(title))?.overview;
+    return overview ? { ...title, description: overview } : title;
+  };
   const withBackdrop = (title: Title, size: ImageSize): Title => {
     const path = art.get(slugOf(title))?.backdropPath;
-    return path ? { ...title, image: tmdbImageUrl(path, size) } : title;
+    return withOverview(
+      path ? { ...title, image: tmdbImageUrl(path, size) } : title,
+    );
   };
   return shelves.map((shelf) => {
     if (shelf.kind === 'hero') {
       return {
         ...shelf,
-        items: shelf.items.map((t) => {
-          const overview = art.get(slugOf(t))?.overview;
-          const title = withBackdrop(t, BACKDROP_SIZE);
-          return overview ? { ...title, description: overview } : title;
-        }),
+        items: shelf.items.map((t) => withBackdrop(t, BACKDROP_SIZE)),
       };
     }
     if (shelf.kind === 'default') {
@@ -250,7 +253,7 @@ export function applyHomeArt(
         if (!paths) return t;
         const { backdropPath, posterPath } = paths;
         return {
-          ...t,
+          ...withOverview(t),
           ...(posterPath && { image: tmdbImageUrl(posterPath, POSTER_SIZE) }),
           ...(backdropPath && {
             backdrop: tmdbImageUrl(backdropPath, CARD_BACKDROP_SIZE),

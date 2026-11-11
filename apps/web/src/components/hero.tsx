@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { titleLink } from '../lib/titles/link.ts';
+import { titleWatchLink } from '../lib/titles/link.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
   HERO_ADVANCE_MS,
@@ -9,7 +9,8 @@ import {
   nextIndex,
   prevIndex,
 } from '../lib/ui/carousel.ts';
-import { ChevronLeft, ChevronRight, Pause, Play } from './ui/icons.ts';
+import { useDetails } from './details/details-context.tsx';
+import { ChevronLeft, ChevronRight, Info, Pause, Play } from './ui/icons.ts';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 
@@ -32,6 +33,7 @@ const CONTROL_CLASS =
 
 export function Hero({ items }: { items: Title[] }) {
   const reducedMotion = useReducedMotion();
+  const details = useDetails();
   const [index, setIndex] = useState(0);
   const [userPaused, setUserPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -107,7 +109,7 @@ export function Hero({ items }: { items: Title[] }) {
                 ) : null}
                 <div className="af-billboard-actions">
                   <Link
-                    {...titleLink(title)}
+                    {...titleWatchLink(title)}
                     tabIndex={active ? undefined : -1}
                     className="af-pill af-pill--play max-md:flex-1"
                   >
@@ -117,6 +119,19 @@ export function Hero({ items }: { items: Title[] }) {
                     />
                     Phát
                   </Link>
+                  <button
+                    type="button"
+                    data-testid="hero:info"
+                    tabIndex={active ? undefined : -1}
+                    className="af-pill af-pill--quiet max-md:flex-1"
+                    onClick={() => details.open(title)}
+                  >
+                    <Info
+                      aria-hidden="true"
+                      className="fill-none stroke-current stroke-2"
+                    />
+                    Thông tin
+                  </button>
                 </div>
               </div>
             </div>

@@ -110,8 +110,9 @@ test('a slide shows the name, the meta line, a clamped description and a Play li
   await expect(slide).not.toContainText(/\d\d\/(\d\d|\?\?)/);
   await expect(slide.getByRole('link', { name: 'Phát' })).toHaveAttribute(
     'href',
-    /^\/title\//,
+    /^\/watch\//,
   );
+  await expect(slide.getByTestId('hero:info')).toBeVisible();
   const lines = await slide
     .locator('.af-billboard-text')
     .evaluate((el) => getComputedStyle(el).webkitLineClamp);
@@ -181,5 +182,21 @@ test.describe('long hero names', () => {
       expect(box.y + box.height).toBeLessThanOrEqual(meta.y + 0.5);
     }
     expect(new Set(sizes).size).toBe(1);
+  });
+});
+
+test.describe('the info button', () => {
+  // The replayed upstream has no episode list for the hero titles, so the modal's episode request 404s.
+  test.use({ allowedConsoleErrors: [/404/] });
+
+  test('opens the details modal for the slide', async ({ page }) => {
+    await page.goto('/?transport=replay');
+    const slide = page.getByTestId('hero:slide:0');
+    const name = await slide.getByRole('heading').innerText();
+    await slide.getByTestId('hero:info').click();
+    const modal = page.getByTestId('details');
+    await expect(modal.getByRole('heading', { level: 2 })).toHaveText(name);
+    await modal.getByTestId('details:close').click();
+    await expect(modal).toHaveCount(0);
   });
 });

@@ -17,7 +17,7 @@ test('top 10 draws the rank numerals 1 to 10', async ({ page }) => {
   expect(numerals).toEqual(
     Array.from({ length: 10 }, (_, index) => String(index + 1)),
   );
-  await expect(items.first().getByRole('link')).toHaveAttribute(
+  await expect(items.first().locator('[data-cover]')).toHaveAttribute(
     'aria-label',
     /^Hạng 1: Black Clover 2nd Season/,
   );
@@ -54,7 +54,7 @@ test('Xem tất cả links to /browse', async ({ page }) => {
 
 test('ArrowRight moves focus to the next cover', async ({ page }) => {
   await page.goto('/?transport=replay');
-  const covers = page.getByTestId(NEW_EPISODES).locator('a[data-cover]');
+  const covers = page.getByTestId(NEW_EPISODES).locator('[data-cover]');
   await covers.first().focus();
   await page.keyboard.press('ArrowRight');
   await expect(covers.nth(1)).toBeFocused();
@@ -99,7 +99,7 @@ test('the arrows are 44px pills centred on the card art', async ({ page }) => {
     await expect(arrowLocator).toHaveCSS('opacity', '1');
     const art = await page
       .getByTestId(id)
-      .locator('a[data-cover] img')
+      .locator('[data-cover] img')
       .first()
       .boundingBox();
     const arrow = await arrowLocator.boundingBox();
@@ -137,12 +137,12 @@ test('the arrows show for keyboard focus on an arrow or a card', async ({
   const right = page.getByTestId(`${NEW_EPISODES}:scroll-right`);
   await expect(right).toHaveCSS('opacity', '0');
 
-  await page.getByTestId(NEW_EPISODES).locator('a[data-cover]').first().focus();
+  await page.getByTestId(NEW_EPISODES).locator('[data-cover]').first().focus();
   await expect(right).toHaveCSS('opacity', '1');
 
   await page
     .getByTestId('shelf:top-10-today')
-    .locator('a[data-cover]')
+    .locator('[data-cover]')
     .first()
     .focus();
   await expect(right).toHaveCSS('opacity', '0');
@@ -165,7 +165,7 @@ test('the hover preview opens after 250 ms and closes on leave', async ({
   await expect(card).toBeVisible();
   await page.clock.pauseAt(new Date(Date.now() + 5_000));
 
-  await card.locator('a[data-cover]').hover();
+  await card.locator('[data-cover]').hover();
   await page.clock.runFor(200);
   await expect(preview).toHaveCount(0);
   await page.clock.runFor(100);
@@ -174,7 +174,7 @@ test('the hover preview opens after 250 ms and closes on leave', async ({
     preview.getByRole('link', { name: 'Phát Ushiro no Shoumen Kamui-san' }),
   ).toBeVisible();
   await expect(
-    preview.getByRole('link', {
+    preview.getByRole('button', {
       name: 'Xem chi tiết Ushiro no Shoumen Kamui-san',
     }),
   ).toBeVisible();
@@ -204,7 +204,7 @@ test('the preview opens, closes through a closing state and reopens on re-entry'
   });
   await page.clock.pauseAt(new Date(Date.now() + 5_000));
 
-  await card.locator('a[data-cover]').hover();
+  await card.locator('[data-cover]').hover();
   await page.clock.runFor(300);
   await expect(preview).toHaveAttribute('data-state', 'open');
   await expect(preview).toHaveCSS('opacity', '1');
@@ -234,7 +234,7 @@ test('the preview unmounts when the closing transition ends', async ({
   await page
     .getByTestId(NEW_EPISODES)
     .getByTestId(KAMUI)
-    .locator('a[data-cover]')
+    .locator('[data-cover]')
     .hover();
   await expect(preview).toHaveAttribute('data-state', 'open');
   await page.mouse.move(5, 5);
@@ -243,7 +243,7 @@ test('the preview unmounts when the closing transition ends', async ({
 
 test.describe('the preview closes when the page scrolls', () => {
   const cover = (page: Page) =>
-    page.getByTestId(NEW_EPISODES).locator('a[data-cover]').nth(3);
+    page.getByTestId(NEW_EPISODES).locator('[data-cover]').nth(3);
   const previewOf = (page: Page) => page.locator('[data-testid$=":preview"]');
 
   const openPreview = async (page: Page) => {
@@ -298,7 +298,7 @@ test.describe('the preview closes when the page scrolls', () => {
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/?transport=replay');
-    const covers = page.getByTestId(NEW_EPISODES).locator('a[data-cover]');
+    const covers = page.getByTestId(NEW_EPISODES).locator('[data-cover]');
     const scroller = page.getByTestId(NEW_EPISODES).getByRole('list');
     await covers.first().focus();
     for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowRight');
@@ -388,7 +388,7 @@ test.describe('reduced motion', () => {
     await page
       .getByTestId(NEW_EPISODES)
       .getByTestId(KAMUI)
-      .locator('a[data-cover]')
+      .locator('[data-cover]')
       .hover();
     await expect(preview).toHaveAttribute('data-state', 'open');
     await page.mouse.move(5, 5);
@@ -404,11 +404,7 @@ test.describe('reduced motion', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/?transport=replay');
     const preview = page.locator('[data-testid$=":preview"]');
-    await page
-      .getByTestId(NEW_EPISODES)
-      .locator('a[data-cover]')
-      .nth(3)
-      .hover();
+    await page.getByTestId(NEW_EPISODES).locator('[data-cover]').nth(3).hover();
     await expect(preview).toHaveAttribute('data-state', 'open');
     await page.mouse.wheel(0, 150);
     await expect(preview).toHaveCount(0);
@@ -419,7 +415,7 @@ test('keyboard focus opens the preview and Escape closes it', async ({
   page,
 }) => {
   await page.goto('/?transport=replay');
-  const cover = page.getByTestId(NEW_EPISODES).locator('a[data-cover]').first();
+  const cover = page.getByTestId(NEW_EPISODES).locator('[data-cover]').first();
   await cover.focus();
   const preview = page.locator('[data-testid$=":preview"]');
   await expect(preview).toBeVisible();
@@ -443,7 +439,7 @@ test.describe('touch', () => {
     ).toBe(true);
     const cover = page
       .getByTestId(NEW_EPISODES)
-      .locator('a[data-cover]')
+      .locator('[data-cover]')
       .first();
     await cover.scrollIntoViewIfNeeded();
     await cover.focus();

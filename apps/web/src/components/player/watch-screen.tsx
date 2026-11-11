@@ -1,18 +1,14 @@
-import { skipToken, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
-import { applyArt, artPollDelay, fetchArt } from '../../lib/titles/art.ts';
 import { watchLink } from '../../lib/titles/link.ts';
-import { watchLookupTitle } from '../../lib/titles/lookup.ts';
 import {
   EpisodeNotFoundError,
-  fetchWatchPage,
   selectEpisode,
   type Episode,
   type WatchPage,
 } from '../../lib/titles/watch.ts';
-import { useTransport } from '../../lib/transport/index.ts';
+import { useWatchPage } from '../../lib/titles/use-watch-page.ts';
 import { ErrorScreen } from '../error-screen.tsx';
 import { LoaderCircle } from '../ui/icons.ts';
 import {
@@ -21,34 +17,6 @@ import {
   type EpisodesView,
 } from './episodes-panel.tsx';
 import { Player } from './player.tsx';
-
-function useWatchPage(slug: string) {
-  const transport = useTransport();
-  const watch = useQuery({
-    queryKey: ['watch', slug],
-    queryFn: ({ signal }) => fetchWatchPage(transport, slug, signal),
-  });
-  const title = useMemo(
-    () => (watch.data ? watchLookupTitle(watch.data) : undefined),
-    [watch.data],
-  );
-  const art = useQuery({
-    queryKey: ['watch-art', title],
-    queryFn:
-      title && import.meta.env.VITE_API_URL
-        ? ({ signal }) => fetchArt(title, { env: import.meta.env, signal })
-        : skipToken,
-    refetchInterval: (query) =>
-      artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
-  });
-  // The first art answer is awaited so a stored backdrop never flashes in after the source image.
-  const artSettling = art.isPending && art.fetchStatus === 'fetching';
-  const data = useMemo(() => {
-    if (!watch.data || artSettling) return undefined;
-    return art.data ? applyArt(watch.data, art.data) : watch.data;
-  }, [watch.data, art.data, artSettling]);
-  return { data, error: watch.error, refetch: watch.refetch };
-}
 
 function select(page: WatchPage, episodeId?: string) {
   try {
