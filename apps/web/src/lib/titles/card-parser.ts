@@ -13,6 +13,7 @@ export interface RawCard {
   views: number | undefined;
   quality: string | undefined;
   avsVoters: number | undefined;
+  releasesAt: number | undefined;
 }
 
 const text = (el: Element, selector: string): string =>
@@ -46,7 +47,25 @@ function parseVoters(el: Element): number | undefined {
   return digits ? Number(digits) : undefined;
 }
 
-export function parseCard(el: Element): RawCard {
+const UPCOMING_FALLBACK_LABEL = 'Sắp chiếu';
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+// The countdown span carries the seconds left. Without it the site only shows a date, or just a year.
+function parseReleasesAt(el: Element, now: number): number | undefined {
+  const seconds = Number(
+    el
+      .querySelector('.mli-timeschedule')
+      ?.getAttribute('data-timer_second')
+      ?.trim() || Number.NaN,
+  );
+  if (Number.isFinite(seconds)) return now + Math.round(seconds) * 1000;
+  const date = text(el, '.b');
+  return ISO_DATE.test(date)
+    ? finiteOrUndefined(Date.parse(`${date}T00:00:00Z`))
+    : undefined;
+}
+
+export function parseCard(el: Element, now: number = Date.now()): RawCard {
   const rating =
     text(el, '.anime-avg-user-rating') || text(el, '.AAIco-star') || '';
   const views = text(el, '.Year')
@@ -60,7 +79,9 @@ export function parseCard(el: Element): RawCard {
     image: el.querySelector('img[src]')?.getAttribute('src') ?? undefined,
     rating: rating === '' ? Number.NaN : Number(rating),
     episodeLabel:
-      formatEpisodeLabel(text(el, '.mli-eps')) || text(el, '.Info .Time'),
+      formatEpisodeLabel(text(el, '.mli-eps')) ||
+      text(el, '.Info .Time') ||
+      (el.querySelector('.mli-timeschedule') ? UPCOMING_FALLBACK_LABEL : ''),
     year: finiteOrUndefined(parseInt(text(el, '.AAIco-date_range'), 10)),
     genres: [...el.querySelectorAll('.Genre > a')]
       .map((a) => a.textContent?.trim() ?? '')
@@ -70,11 +91,16 @@ export function parseCard(el: Element): RawCard {
     views: views === undefined ? undefined : Number(views),
     quality: orUndefined(text(el, '.Qlty')),
     avsVoters: parseVoters(el),
+    releasesAt: parseReleasesAt(el, now),
   };
 }
 
-export function parseCards(root: ParentNode, selector: string): Title[] {
+export function parseCards(
+  root: ParentNode,
+  selector: string,
+  now: number = Date.now(),
+): Title[] {
   return [...root.querySelectorAll(selector)].map((el) =>
-    TitleSchema.parse(parseCard(el)),
+    TitleSchema.parse(parseCard(el, now)),
   );
 }

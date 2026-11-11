@@ -121,3 +121,37 @@ describe('fetchHome and fetchSeason through ReplayTransport', () => {
     );
   });
 });
+
+describe('parseHome upcoming block', () => {
+  const NOW = Date.UTC(2026, 10, 11);
+  const home = parseHome(homeHtml, NOW);
+
+  it('reads the Sắp chiếu cards from the fixture', () => {
+    expect(home.upcoming).toHaveLength(7);
+    expect(home.upcoming[0]).toMatchObject({
+      name: 'Tsuki no Sakamichi',
+      episodeLabel: 'PV/12',
+      releasesAt: NOW + 7_200_000,
+    });
+  });
+
+  it('keeps cards with no usable date but without a releasesAt', () => {
+    expect(home.upcoming.at(-1)?.releasesAt).toBeUndefined();
+    expect(home.upcoming.at(-2)?.releasesAt).toBe(Date.UTC(2099, 0, 1));
+  });
+
+  it('is empty, not an error, when the page has no block', () => {
+    const html = homeHtml.replace('id="new-home"', 'id="other"');
+    expect(parseHome(html, NOW).upcoming).toEqual([]);
+  });
+
+  it('drops an invalid upcoming card instead of failing the page', () => {
+    const html = homeHtml.replace(
+      /(<section id="new-home">.*?<img[^>]*?) src="[^"]*"/s,
+      '$1',
+    );
+    const parsed = parseHome(html, NOW);
+    expect(parsed.upcoming).toHaveLength(6);
+    expect(parsed.hero).toHaveLength(10);
+  });
+});
