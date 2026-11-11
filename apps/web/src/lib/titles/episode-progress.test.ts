@@ -10,6 +10,8 @@ const mal = (over: object) => ({
   members: null,
   airing: 'currently_airing' as const,
   episodes: 12,
+  startDate: null,
+  startSeason: null,
   ...over,
 });
 

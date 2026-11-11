@@ -11,12 +11,3 @@ export function formatCountdown(releasesAt: number, now: number): string {
   if (days < YEAR_DAYS) return `Còn ${Math.floor(days / MONTH_DAYS)} tháng`;
   return String(new Date(releasesAt).getFullYear());
 }
-
-export function upcomingTag(
-  title: { releasesAt?: number; year?: number },
-  now: number,
-): string | null {
-  if (title.releasesAt !== undefined)
-    return formatCountdown(title.releasesAt, now);
-  return title.year === undefined ? null : String(title.year);
-}

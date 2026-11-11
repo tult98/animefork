@@ -38,8 +38,9 @@ export const MalStatsSchema = z.object({
   airing: MalAiringSchema.nullable(),
   // MAL reports no total for a show whose episode count is not known yet.
   episodes: z.number().int().positive().nullable(),
-  startDate: z.string().regex(MAL_START_DATE_PATTERN).nullable(),
-  startSeason: MalStartSeasonSchema.nullable(),
+  // An answer from before these were stored leaves them out, which reads as unknown.
+  startDate: z.string().regex(MAL_START_DATE_PATTERN).nullable().default(null),
+  startSeason: MalStartSeasonSchema.nullable().default(null),
 });
 
 export type MalStats = z.infer<typeof MalStatsSchema>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCountdown, upcomingTag } from './countdown.ts';
+import { formatCountdown } from './countdown.ts';
 
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 10, 11, 12);
@@ -27,21 +27,5 @@ describe('formatCountdown', () => {
     const at = NOW + 365 * DAY;
     expect(formatCountdown(at, NOW)).toBe(String(new Date(at).getFullYear()));
     expect(formatCountdown(Date.UTC(2030, 5, 1), NOW)).toBe('2030');
-  });
-});
-
-describe('upcomingTag', () => {
-  it('formats an exact release time as a countdown', () => {
-    expect(
-      upcomingTag({ releasesAt: NOW + 5 * DAY + 1, year: 2027 }, NOW),
-    ).toBe('Còn 5 ngày');
-  });
-
-  it('is just the year when there is no release time', () => {
-    expect(upcomingTag({ year: 2027 }, NOW)).toBe('2027');
-  });
-
-  it('is null with neither', () => {
-    expect(upcomingTag({}, NOW)).toBeNull();
   });
 });

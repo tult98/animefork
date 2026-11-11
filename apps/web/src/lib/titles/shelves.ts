@@ -1,3 +1,4 @@
+import { releaseInfo } from './release.ts';
 import type { Title } from './title.ts';
 
 export const MIN_SHELF_TITLES = 8;
@@ -35,6 +36,18 @@ export interface HomeInput {
   top: Title[];
   upcoming: Title[];
   season: Title[] | undefined;
+}
+
+// A title is kept until the period its release falls in is over, and the nearest come first.
+export function arrangeUpcoming(titles: Title[], now: number): Title[] {
+  return titles
+    .flatMap((title) => {
+      const info = releaseInfo(title, now);
+      return info && info.endsAt > now ? [{ title, key: info.sortKey }] : [];
+    })
+    .sort((a, b) => a.key - b.key)
+    .slice(0, UPCOMING_SHELF_LIMIT)
+    .map(({ title }) => title);
 }
 
 export function buildHome(
@@ -83,22 +96,7 @@ export function buildHome(
     }
   }
 
-  const thisYear = new Date(now).getFullYear();
-  const dated = upcoming
-    .filter(
-      (title): title is Title & { releasesAt: number } =>
-        title.releasesAt !== undefined && title.releasesAt > now,
-    )
-    .sort((a, b) => a.releasesAt - b.releasesAt);
-  const yearOnly = upcoming
-    .filter(
-      (title): title is Title & { year: number } =>
-        title.releasesAt === undefined &&
-        title.year !== undefined &&
-        title.year >= thisYear,
-    )
-    .sort((a, b) => a.year - b.year);
-  const soon = [...dated, ...yearOnly].slice(0, UPCOMING_SHELF_LIMIT);
+  const soon = arrangeUpcoming(upcoming, now);
   if (soon.length >= UPCOMING_MIN_TITLES) {
     shelves.push({
       kind: 'default',

@@ -55,6 +55,9 @@ export const test = base.extend<
   ],
 });
 
+// The upcoming shelf keeps the fixture's years, so its tests fix the page clock instead of reading the real one.
+export const UPCOMING_NOW = new Date('2026-11-11T12:00:00Z');
+
 export { expect };
 
 // Renames the first hero slides of the replayed home page, in order.

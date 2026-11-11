@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { upcomingTag } from '../lib/titles/countdown.ts';
 import { episodeProgress } from '../lib/titles/episode-progress.ts';
 import { titleWatchLink } from '../lib/titles/link.ts';
+import { releaseInfo } from '../lib/titles/release.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
   HOVER_WIDTH,
@@ -181,7 +181,9 @@ export function PosterCard({
     details.open(title);
   };
   const watch = titleWatchLink(title);
-  const countdown = upcoming ? upcomingTag(title, shownAt) : null;
+  const countdown = upcoming
+    ? (releaseInfo(title, shownAt)?.label ?? null)
+    : null;
   const label = `${isRank ? `Hạng ${rank}: ` : ''}${title.name}, ${title.episodeLabel}${countdown ? `, ${countdown}` : ''}`;
   const airing = title.mal?.airing === 'currently_airing';
   const hd = title.quality && /hd/i.test(title.quality) ? title.quality : null;

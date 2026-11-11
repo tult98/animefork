@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures.ts';
+import { expect, test, UPCOMING_NOW } from './fixtures.ts';
 
 const SEASON_PATH = '/season/autumn/2026/';
 
@@ -262,9 +262,10 @@ test('a long description in the details modal is clamped and expands on click', 
   expect(await height()).toBe(clamped);
 });
 
-test('the upcoming shelf shows countdown tags, soonest first then year-only, without a see-all link', async ({
+test('the upcoming shelf shows countdown tags in order of the earliest instant, without a see-all link', async ({
   page,
 }) => {
+  await page.clock.setFixedTime(UPCOMING_NOW);
   await page.goto('/?transport=replay');
   const shelf = page.getByTestId('shelf:upcoming');
   await expect(shelf).toBeVisible();
@@ -273,18 +274,18 @@ test('the upcoming shelf shows countdown tags, soonest first then year-only, wit
 
   const tags = shelf.getByTestId('card:countdown');
   await expect(tags).toHaveCount(10);
-  const year = new Date().getFullYear();
-  const texts = await tags.allTextContents();
-  expect(texts.slice(0, 4)).toEqual([
+  expect(await tags.allTextContents()).toEqual([
     'Hôm nay',
     'Còn 5 ngày',
     'Còn 2 tuần',
+    '2027',
+    '2027',
     'Còn 3 tháng',
+    '2028',
+    '2029',
+    '2030',
+    '2099',
   ]);
-  expect(texts[4]).toMatch(/^20\d\d$/);
-  expect(Number(texts[4])).toBeGreaterThan(year);
-  expect(texts[5]).toBe('2099');
-  expect(texts.slice(6)).toEqual(['2027', '2027', '2028', '2030']);
   await expect(
     shelf
       .getByTestId('card:/phim/akatsuki-no-ryuu-a7009/')
@@ -300,6 +301,7 @@ test.describe('upcoming card details', () => {
   test.use({ allowedConsoleErrors: [/404/] });
 
   test('an upcoming card still opens the details modal', async ({ page }) => {
+    await page.clock.setFixedTime(UPCOMING_NOW);
     await page.goto('/?transport=replay');
     const card = page
       .getByTestId('shelf:upcoming')

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { MalStats } from '../../../../api/src/art/contract.ts';
 import {
   MIN_SHELF_TITLES,
   SEASON_SHELF_LIMIT,
@@ -287,5 +288,61 @@ describe('buildHome upcoming shelf', () => {
       const many = Array.from({ length: 20 }, (_, i) => yr(i, year + 1));
       expect(upcomingShelf(many)!.items).toHaveLength(UPCOMING_SHELF_LIMIT);
     });
+  });
+});
+
+describe('buildHome upcoming shelf with MyAnimeList dates', () => {
+  const NOW = Date.UTC(2026, 10, 11);
+  const yr = (n: number, year: number): Title => ({ ...t(n), year });
+  const withMal = (title: Title, over: Partial<MalStats>): Title => ({
+    ...title,
+    mal: {
+      id: 1,
+      score: null,
+      voters: null,
+      rank: null,
+      popularity: null,
+      members: null,
+      airing: null,
+      episodes: null,
+      startDate: null,
+      startSeason: null,
+      ...over,
+    },
+  });
+
+  it('puts an exact moment, a month, a season and a year in order of earliest instant', () => {
+    const shelf = buildHome(
+      {
+        ...base,
+        upcoming: [
+          yr(1, 2028),
+          withMal(yr(2, 2027), { startSeason: { year: 2027, season: 'fall' } }),
+          withMal(yr(3, 2027), { startDate: '2027-01' }),
+          { ...t(4), releasesAt: NOW + 5 * 86_400_000 },
+          yr(5, 2027),
+        ],
+      },
+      NOW,
+    ).find((s) => s.id === 'upcoming')!;
+    expect(paths(shelf.items)).toEqual([4, 3, 5, 2, 1].map((n) => t(n).path));
+  });
+
+  it('keeps page order between titles that share a sort key', () => {
+    const shelf = buildHome(
+      {
+        ...base,
+        upcoming: [
+          yr(1, 2027),
+          withMal(yr(2, 2027), { startDate: '2027-01' }),
+          withMal(yr(3, 2027), {
+            startSeason: { year: 2027, season: 'winter' },
+          }),
+          yr(4, 2027),
+        ],
+      },
+      NOW,
+    ).find((s) => s.id === 'upcoming')!;
+    expect(paths(shelf.items)).toEqual([1, 2, 3, 4].map((n) => t(n).path));
   });
 });
