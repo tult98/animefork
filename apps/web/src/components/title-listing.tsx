@@ -23,6 +23,8 @@ import {
   fetchSeasonFirstPage,
   fetchSeasonRest,
   joinSeasonPages,
+  limitTitles,
+  pagesNeeded,
 } from '../lib/titles/season-pages.ts';
 import { lookupTitles } from '../lib/titles/lookup.ts';
 import type { DefaultShelf } from '../lib/titles/shelves.ts';
@@ -41,6 +43,9 @@ export interface TitleListingProps {
   sourcePath: string | undefined | null;
   headerLabel?: string | null;
   newEpisode?: boolean;
+  showCount?: boolean;
+  /** Keep only the newest `limit` titles of the source and fetch no more pages than that needs. */
+  limit?: number;
   search: { sort: SortKey; page: number };
   onSearch: (
     next: Partial<{ sort: SortKey; page: number }>,
@@ -77,6 +82,8 @@ export function TitleListing({
   sourcePath,
   headerLabel = null,
   newEpisode = false,
+  showCount = true,
+  limit,
   search: { sort, page },
   onSearch,
   sourceError,
@@ -87,14 +94,16 @@ export function TitleListing({
 
   const seasonPath = sourcePath ?? null;
   const first = useQuery({
-    queryKey: ['season-first', seasonPath],
+    queryKey: ['season-first', seasonPath, limit],
     queryFn: seasonPath
       ? ({ signal }) => fetchSeasonFirstPage(transport, seasonPath, signal)
       : skipToken,
   });
-  const pageCount = first.data?.pageCount ?? 1;
+  const pageCount = first.data
+    ? pagesNeeded(first.data.pageCount, first.data.titles.length, limit)
+    : 1;
   const rest = useQuery({
-    queryKey: ['season-rest', seasonPath, pageCount],
+    queryKey: ['season-rest', seasonPath, pageCount, limit],
     queryFn:
       seasonPath && first.data
         ? ({ signal }) =>
@@ -109,13 +118,13 @@ export function TitleListing({
         kind: 'default',
         id: 'airing-this-season',
         title: 'Đang chiếu mùa này',
-        items: joinSeasonPages([
-          first.data?.titles ?? [],
-          rest.data?.titles ?? [],
-        ]),
+        items: limitTitles(
+          joinSeasonPages([first.data?.titles ?? [], rest.data?.titles ?? []]),
+          limit,
+        ),
       },
     ],
-    [first.data?.titles, rest.data?.titles],
+    [first.data?.titles, rest.data?.titles, limit],
   );
   const lookup = useMemo(() => lookupTitles(shelf), [shelf]);
   const apiOn = Boolean(import.meta.env.VITE_API_URL);
@@ -180,7 +189,7 @@ export function TitleListing({
     <div className="px-(--pad) pt-(--space-xl)" data-testid="listing">
       <div>
         <h1 className="text-title-lg">{heading}</h1>
-        {showSkeleton || !settled ? null : (
+        {!showCount || showSkeleton || !settled ? null : (
           <p className="mt-(--space-xs) text-muted" data-testid="listing:count">
             {headerLabel ? `${headerLabel} · ${count}` : count}
           </p>

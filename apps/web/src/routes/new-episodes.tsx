@@ -11,6 +11,7 @@ import {
 } from '../lib/titles/airing-list.ts';
 
 const NEW_EPISODES_PATH = '/anime-moi/';
+const NEW_EPISODES_LIMIT = 200;
 
 export const Route = createFileRoute('/new-episodes')({
   validateSearch: ListSearchSchema,
@@ -35,6 +36,8 @@ function NewEpisodes() {
       emptyText="Chưa có phim nào mới cập nhật."
       sourcePath={NEW_EPISODES_PATH}
       newEpisode
+      showCount={false}
+      limit={NEW_EPISODES_LIMIT}
       search={{ sort, page }}
       onSearch={(next, { replace }) =>
         navigate({ search: (prev) => ({ ...prev, ...next }), replace })
