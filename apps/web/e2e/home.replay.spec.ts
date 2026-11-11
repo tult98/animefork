@@ -262,7 +262,7 @@ test('a long description in the details modal is clamped and expands on click', 
   expect(await height()).toBe(clamped);
 });
 
-test('the upcoming shelf shows countdown tags in order of the earliest instant, without a see-all link', async ({
+test('the upcoming shelf shows countdown tags in order of the earliest instant and a see-all link', async ({
   page,
 }) => {
   await page.clock.setFixedTime(UPCOMING_NOW);
@@ -270,7 +270,10 @@ test('the upcoming shelf shows countdown tags in order of the earliest instant, 
   const shelf = page.getByTestId('shelf:upcoming');
   await expect(shelf).toBeVisible();
   await expect(shelf).toHaveAttribute('aria-label', 'Sắp ra mắt');
-  await expect(shelf.getByTestId('shelf:upcoming:see-all')).toHaveCount(0);
+  await expect(shelf.getByTestId('shelf:upcoming:see-all')).toHaveAttribute(
+    'href',
+    '/browse',
+  );
 
   const tags = shelf.getByTestId('card:countdown');
   await expect(tags).toHaveCount(10);

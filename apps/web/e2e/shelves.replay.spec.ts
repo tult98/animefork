@@ -44,7 +44,12 @@ test('only the new episodes shelf shows the Tập mới badge', async ({
 
 test('Xem tất cả links to /browse', async ({ page }) => {
   await page.goto('/?transport=replay');
-  for (const id of ['new-episodes', 'top-10-today', 'airing-this-season']) {
+  for (const id of [
+    'new-episodes',
+    'top-10-today',
+    'airing-this-season',
+    'upcoming',
+  ]) {
     await expect(page.getByTestId(`shelf:${id}:see-all`)).toHaveAttribute(
       'href',
       '/browse',

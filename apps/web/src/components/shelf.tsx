@@ -9,6 +9,7 @@ const SEE_ALL_SHELVES = new Set([
   'new-episodes',
   'top-10-today',
   'airing-this-season',
+  'upcoming',
 ]);
 
 const ARROW_CLASS =
