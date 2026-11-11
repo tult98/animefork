@@ -20,7 +20,7 @@ export function ErrorScreen({
       </h1>
       <p className="text-muted">
         {missing
-          ? 'Install and enable the AnimeVsub Helper extension, then retry.'
+          ? 'Install and enable the Animefork Helper extension, then retry.'
           : 'We could not load or read the data from the source.'}
       </p>
       <Button

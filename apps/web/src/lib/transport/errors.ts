@@ -3,7 +3,7 @@ export class ExtensionMissingError extends Error {
 
   constructor() {
     super(
-      'The AnimeVsub Helper browser extension is not installed or not enabled.',
+      'The Animefork Helper browser extension is not installed or not enabled.',
     );
     this.name = 'ExtensionMissingError';
   }
