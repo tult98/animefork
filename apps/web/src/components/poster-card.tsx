@@ -51,7 +51,6 @@ interface PosterCardProps {
   rank?: number;
   newEpisode?: boolean;
   upcoming?: boolean;
-  ratingTag?: string;
 }
 
 function CardImage({
@@ -81,7 +80,6 @@ export function PosterCard({
   rank,
   newEpisode = false,
   upcoming = false,
-  ratingTag,
 }: PosterCardProps) {
   const isRank = rank !== undefined;
   const [shownAt] = useState(Date.now);
@@ -333,11 +331,6 @@ export function PosterCard({
               />
             </div>
             <div className="af-hover-meta">
-              {ratingTag ? (
-                <span className="af-box" data-testid="card:rating-tag">
-                  {ratingTag}
-                </span>
-              ) : null}
               {title.year === undefined ? null : <span>{title.year}</span>}
               <span>{episodeProgress(title)}</span>
               {hd ? <span className="af-box">{hd}</span> : null}

@@ -2,20 +2,12 @@ import { z } from 'zod';
 import type { Title } from './title.ts';
 
 export type SortKey =
-  | 'recent'
-  | 'avs-desc'
-  | 'avs-asc'
-  | 'mal-desc'
-  | 'mal-asc'
-  | 'views-desc'
-  | 'voters-desc';
+  'recent' | 'score-desc' | 'score-asc' | 'views-desc' | 'voters-desc';
 
 export const SORT_LABELS: Record<SortKey, string> = {
   recent: 'Tập mới nhất',
-  'avs-desc': 'Điểm AVS: cao đến thấp',
-  'avs-asc': 'Điểm AVS: thấp đến cao',
-  'mal-desc': 'Điểm MAL: cao đến thấp',
-  'mal-asc': 'Điểm MAL: thấp đến cao',
+  'score-desc': 'Điểm: cao đến thấp',
+  'score-asc': 'Điểm: thấp đến cao',
   'views-desc': 'Xem nhiều nhất',
   'voters-desc': 'Nhiều lượt bình chọn',
 };
@@ -41,26 +33,15 @@ export const ListSearchSchema = z.looseObject({
 
 export type ListSearch = z.infer<typeof ListSearchSchema>;
 
-export interface ListEntry {
-  title: Title;
-  rating: string;
-}
-
-export interface Arranged {
-  entries: ListEntry[];
-  source: 'avs' | 'mal';
-}
-
 interface Row {
   title: Title;
   index: number;
 }
 
-const RATING_TEXT = {
-  avs: (title: Title) => `AVS ${title.rating.toFixed(1)}`,
-  mal: (title: Title) =>
-    `MAL ${title.mal?.score == null ? '—' : title.mal.score.toFixed(2)}`,
-};
+export function listingScore(title: Title): number {
+  const mal = title.mal?.score;
+  return mal == null ? title.rating : (title.rating + mal) / 2;
+}
 
 function byValue(
   value: (title: Title) => number | null | undefined,
@@ -78,10 +59,8 @@ function byValue(
 
 const SORTERS: Record<SortKey, (a: Row, b: Row) => number> = {
   recent: (a, b) => a.index - b.index,
-  'avs-desc': byValue((t) => t.rating, -1),
-  'avs-asc': byValue((t) => t.rating, 1),
-  'mal-desc': byValue((t) => t.mal?.score, -1),
-  'mal-asc': byValue((t) => t.mal?.score, 1),
+  'score-desc': byValue(listingScore, -1),
+  'score-asc': byValue(listingScore, 1),
   'views-desc': byValue((t) => t.views, -1),
   'voters-desc': byValue((t) => t.avsVoters, -1),
 };
@@ -89,16 +68,9 @@ const SORTERS: Record<SortKey, (a: Row, b: Row) => number> = {
 export function arrange(
   titles: readonly Title[],
   { sort }: Pick<ListSearch, 'sort'>,
-): Arranged {
+): Title[] {
   const rows: Row[] = titles.map((title, index) => ({ title, index }));
-  const source = sort === 'mal-desc' || sort === 'mal-asc' ? 'mal' : 'avs';
-  return {
-    source,
-    entries: rows.sort(SORTERS[sort]).map((row) => ({
-      title: row.title,
-      rating: RATING_TEXT[source](row.title),
-    })),
-  };
+  return rows.sort(SORTERS[sort]).map((row) => row.title);
 }
 
 const SEASON_NAMES: Record<string, string> = {

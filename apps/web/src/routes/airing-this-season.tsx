@@ -134,7 +134,7 @@ function AiringThisSeason() {
     return applied?.items ?? items;
   }, [shelf, art.data]);
 
-  const { entries } = useMemo(() => arrange(titles, { sort }), [titles, sort]);
+  const entries = useMemo(() => arrange(titles, { sort }), [titles, sort]);
   const paged = paginate(entries, page);
 
   if (home.error || first.error) {
@@ -198,9 +198,9 @@ function AiringThisSeason() {
           <ListSkeleton />
         ) : paged.items.length > 0 ? (
           <div role="list" className={GRID_CLASS} data-testid="listing:grid">
-            {paged.items.map(({ title, rating }) => (
+            {paged.items.map((title) => (
               <div key={title.path} role="listitem" className="min-w-0">
-                <PosterCard title={title} ratingTag={rating} />
+                <PosterCard title={title} />
               </div>
             ))}
           </div>

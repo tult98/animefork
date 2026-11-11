@@ -34,6 +34,10 @@ const DOUMO = 'doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu-a6113';
 const DRAGON_BALL = 'dragon-ball-super-beerus-a6000';
 const SEITOKAI = 'seitokai-ni-mo-ana-wa-aru-a6109';
 const KASHITA = 'kashita-maryoku-wa-revo-barai-de-kyousei-choushuu-a6103';
+const TOKYO = 'tokyo-revengers-santen-sensou-hen-a6096';
+const VERTEX = 'vertex-force-a6099';
+const AO_ASHI = 'ao-ashi-2nd-season-a6104';
+const CONAN = 'meitantei-conan-30-gou-satsujin-jiken-a6089';
 const MOVIE = 'the-gioi-hoan-my-movie-cuu-kiep-phan-thien-a6075';
 
 const RATINGS: Record<string, TitleRatings> = {
@@ -177,10 +181,10 @@ test.describe('the pager', () => {
     await expect(current(page)).toHaveText('2');
     const before = await page.evaluate(() => history.length);
 
-    await pick(page, 'avs-desc');
+    await pick(page, 'score-desc');
     await expect(page).not.toHaveURL(/page=/);
     await expect(current(page)).toHaveText('1');
-    expect((await order(page))[0]).toBe(BLACK_CLOVER);
+    expect((await order(page))[0]).toBe(AO_NO_HAKO);
     expect(await page.evaluate(() => history.length)).toBe(before);
   });
 });
@@ -200,6 +204,18 @@ test('a page past the end clamps to the last page', async ({ page }) => {
   await expect(cards(page)).toHaveCount(TOTAL - 30);
 });
 
+test.describe('an old sort value', () => {
+  for (const old of ['mal-asc', 'mal-desc', 'avs-asc', 'avs-desc']) {
+    test(`${old} falls back to the default sort`, async ({ page }) => {
+      await stubLookup(page);
+      await page.goto(`${PAGE}&sort=${old}`);
+      await expect(cards(page)).toHaveCount(30);
+      await expect(page.getByTestId('listing:sort')).toHaveText('Tập mới nhất');
+      expect((await order(page))[0]).toBe(PSYREN);
+    });
+  }
+});
+
 test('a bad page value falls back to page 1', async ({ page }) => {
   await stubLookup(page);
   await page.goto(`${PAGE}&page=-4&sort=az`);
@@ -213,11 +229,6 @@ test.describe('sorts', () => {
     await expect(page).toHaveURL(new RegExp(`sort=${sort}`));
     return (await order(page)).slice(0, count);
   };
-  const lastOfSeason = async (page: Page) => {
-    await page.getByTestId('listing:page:2').click();
-    await expect(current(page)).toHaveText('2');
-    return (await order(page)).at(-1);
-  };
 
   test.beforeEach(async ({ page }) => {
     await stubLookup(page);
@@ -229,29 +240,23 @@ test.describe('sorts', () => {
     expect((await order(page)).slice(0, 3)).toEqual([PSYREN, DOUMO, KYOUFU]);
   });
 
-  test('AVS score both ways, ties in upstream order', async ({ page }) => {
-    expect(await head(page, 'avs-desc', 3)).toEqual([
-      BLACK_CLOVER,
-      AO_NO_HAKO,
-      HOTARU,
-    ]);
-    expect(await head(page, 'avs-asc', 3)).toEqual([MOVIE, KYOUFU, KASHITA]);
-  });
-
-  test('MAL score both ways puts unscored titles last either way', async ({
+  test('score both ways blends AVS with MAL where MAL has a score', async ({
     page,
   }) => {
-    const scored = [SHUIRO, BLACK_CLOVER, PSYREN, TENSEI, HOTARU, KYOUFU];
-    const desc = await head(page, 'mal-desc');
-    expect(desc.slice(0, 6)).toEqual(scored);
-    expect(desc[6]).toBe(DOUMO);
-    expect(await lastOfSeason(page)).toBe(MOVIE);
-
-    await pick(page, 'mal-asc');
-    const asc = await order(page);
-    expect(asc.slice(0, 6)).toEqual([...scored].reverse());
-    expect(asc[6]).toBe(DOUMO);
-    expect(await lastOfSeason(page)).toBe(MOVIE);
+    expect(await head(page, 'score-desc', 3)).toEqual([
+      AO_NO_HAKO,
+      SEITOKAI,
+      AO_ASHI,
+    ]);
+    expect(await head(page, 'score-asc', 7)).toEqual([
+      MOVIE,
+      KYOUFU,
+      KASHITA,
+      TOKYO,
+      VERTEX,
+      CONAN,
+      TENSEI,
+    ]);
   });
 
   test('most viewed and most voted', async ({ page }) => {
@@ -267,22 +272,30 @@ test.describe('sorts', () => {
     ]);
   });
 
-  test('the preview chip follows the sort', async ({ page }) => {
-    const chip = async (id: string, text: string) => {
+  test('the preview shows the AVS and MAL scores on every sort', async ({
+    page,
+  }) => {
+    const body = async (id: string) => {
       await page.mouse.move(0, 0);
       await page.getByTestId(`card:/phim/${id}/`).hover();
-      const tag = page
-        .getByTestId(`card:/phim/${id}/:body`)
-        .getByTestId('card:rating-tag');
-      await expect(tag).toHaveText(text);
+      const preview = page.getByTestId(`card:/phim/${id}/:body`);
+      await expect(preview).toContainText('AVS');
+      return preview;
     };
-    await pick(page, 'avs-desc');
-    await chip(BLACK_CLOVER, 'AVS 9.6');
-    await pick(page, 'mal-desc');
-    await chip(BLACK_CLOVER, 'MAL 8.40');
-    await chip(DOUMO, 'MAL —');
+    const both = async (id: string, avs: string, malScore: string) => {
+      const preview = await body(id);
+      await expect(preview).toContainText(`${avs}AVS`);
+      await expect(preview).toContainText(`${malScore}MAL`);
+    };
+    await both(PSYREN, '8.4', '7.90');
+    await pick(page, 'score-desc');
+    const unscored = await body(AO_NO_HAKO);
+    await expect(unscored).toContainText('9.5AVS');
+    await expect(unscored).not.toContainText('MAL');
+    await pick(page, 'score-asc');
+    await both(KYOUFU, '5.7', '6.50');
     await pick(page, 'views-desc');
-    await chip(BLACK_CLOVER, 'AVS 9.6');
+    await both(BLACK_CLOVER, '9.6', '8.40');
   });
 });
 
@@ -294,17 +307,17 @@ test('the dropdowns write the URL by replacing history, and a reload keeps them'
   await expect(cards(page)).toHaveCount(30);
   const before = await page.evaluate(() => history.length);
 
-  await pick(page, 'mal-asc');
-  await expect(page).toHaveURL(/sort=mal-asc/);
+  await pick(page, 'score-asc');
+  await expect(page).toHaveURL(/sort=score-asc/);
   await expect(page).toHaveURL(/transport=replay/);
   expect(await page.evaluate(() => history.length)).toBe(before);
 
   await page.reload();
   await expect(page.getByTestId('listing:sort')).toHaveText(
-    'Điểm MAL: thấp đến cao',
+    'Điểm: thấp đến cao',
   );
   await expect(cards(page)).toHaveCount(30);
-  expect((await order(page))[0]).toBe(KYOUFU);
+  expect((await order(page))[0]).toBe(MOVIE);
 
   await pick(page, 'recent');
   await expect(page).not.toHaveURL(/sort=/);
@@ -345,10 +358,8 @@ test.describe('with the lookup failing', () => {
     );
     await expect(cards(page)).toHaveCount(30);
 
-    await pick(page, 'avs-desc');
+    await pick(page, 'score-desc');
     expect((await order(page))[0]).toBe(BLACK_CLOVER);
-    await pick(page, 'mal-desc');
-    expect((await order(page))[0]).toBe(PSYREN);
   });
 });
 
@@ -374,7 +385,7 @@ test.describe('a later season page that fails', () => {
 });
 
 test.describe('the sort dropdown', () => {
-  const OPTIONS = 7;
+  const OPTIONS = 5;
   const trigger = (page: Page) => page.getByTestId('listing:sort');
   const option = (page: Page, value: string) =>
     page.getByTestId(`listing:sort:option:${value}`);
@@ -442,16 +453,15 @@ test.describe('the sort dropdown', () => {
   test('focuses the selected option on open and moves with the arrows', async ({
     page,
   }) => {
-    await page.goto(`${PAGE}&sort=mal-desc`);
+    await page.goto(`${PAGE}&sort=score-desc`);
     await expect(cards(page)).toHaveCount(30);
     await trigger(page).click();
-    await expect(option(page, 'mal-desc')).toBeFocused();
+    await expect(option(page, 'score-desc')).toBeFocused();
 
     await page.keyboard.press('ArrowDown');
-    await expect(option(page, 'mal-asc')).toBeFocused();
+    await expect(option(page, 'score-asc')).toBeFocused();
     await page.keyboard.press('ArrowUp');
-    await page.keyboard.press('ArrowUp');
-    await expect(option(page, 'avs-asc')).toBeFocused();
+    await expect(option(page, 'score-desc')).toBeFocused();
     await page.keyboard.press('Home');
     await expect(option(page, 'recent')).toBeFocused();
     await page.keyboard.press('ArrowUp');

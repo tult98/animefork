@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MalStats } from '../../../../api/src/art/contract.ts';
 import {
   arrange,
+  listingScore,
   ListSearchSchema,
   seasonLabel,
   type SortKey,
@@ -42,7 +43,22 @@ const title = (name: string, rating: number, extra: Extra = {}): Title => ({
 });
 
 const names = (titles: Title[], sort: SortKey) =>
-  arrange(titles, { sort }).entries.map((e) => e.title.name);
+  arrange(titles, { sort }).map((t) => t.name);
+
+describe('listingScore', () => {
+  it('averages the AVS and MAL scores', () => {
+    expect(listingScore(title('a', 8, { score: 7 }))).toBe(7.5);
+  });
+  it('uses the AVS score when MAL has no score', () => {
+    expect(listingScore(title('a', 8, { score: null }))).toBe(8);
+  });
+  it('uses the AVS score when there is no MAL data', () => {
+    expect(listingScore(title('a', 8, { noMal: true }))).toBe(8);
+  });
+  it('does not round', () => {
+    expect(listingScore(title('a', 8.4, { score: 7.91 }))).toBeCloseTo(8.155);
+  });
+});
 
 describe('arrange', () => {
   const titles = [
@@ -53,34 +69,30 @@ describe('arrange', () => {
     title('e', 9, { score: 7 }),
   ];
 
-  it('sorts avs descending with upstream order breaking ties', () => {
-    expect(names(titles, 'avs-desc')).toEqual(['b', 'e', 'a', 'c', 'd']);
+  it('sorts by score descending with upstream order breaking ties', () => {
+    expect(names(titles, 'score-desc')).toEqual(['b', 'c', 'e', 'a', 'd']);
   });
 
-  it('sorts avs both ways with upstream order breaking ties', () => {
-    expect(names(titles, 'avs-asc')).toEqual(['d', 'a', 'c', 'b', 'e']);
+  it('sorts by score ascending with upstream order breaking ties', () => {
+    expect(names(titles, 'score-asc')).toEqual(['d', 'a', 'e', 'c', 'b']);
   });
 
-  it('puts titles without a MAL score last in both directions', () => {
-    expect(names(titles, 'mal-desc')).toEqual(['c', 'a', 'e', 'b', 'd']);
-    expect(names(titles, 'mal-asc')).toEqual(['a', 'e', 'c', 'b', 'd']);
+  it('keeps the upstream order for equal scores in both directions', () => {
+    const tied = [
+      title('p', 8, { noMal: true }),
+      title('q', 7, { score: 9 }),
+      title('r', 8, { score: null }),
+    ];
+    expect(names(tied, 'score-desc')).toEqual(['p', 'q', 'r']);
+    expect(names(tied, 'score-asc')).toEqual(['p', 'q', 'r']);
   });
 
-  it('shows the chip of the sorted source', () => {
-    const avs = arrange(titles, { sort: 'recent' });
-    expect(avs.source).toBe('avs');
-    expect(avs.entries.find((e) => e.title.name === 'a')?.rating).toBe(
-      'AVS 8.0',
-    );
-    const byScore = arrange(titles, { sort: 'mal-desc' });
-    expect(byScore.source).toBe('mal');
-    expect(byScore.entries.map((e) => e.rating)).toEqual([
-      'MAL 8.50',
-      'MAL 7.00',
-      'MAL 7.00',
-      'MAL —',
-      'MAL —',
-    ]);
+  it('sorts on the unrounded score', () => {
+    const close = [
+      title('x', 8, { score: 8.1 }),
+      title('y', 8, { score: 8.2 }),
+    ];
+    expect(names(close, 'score-desc')).toEqual(['y', 'x']);
   });
 
   it('keeps the upstream order for recent', () => {
@@ -101,9 +113,6 @@ describe('arrange', () => {
     it('sorts by voters descending with missing values last', () => {
       expect(names(counted, 'voters-desc')).toEqual(['c', 'a', 'e', 'b', 'd']);
     });
-    it('keeps the AVS chip', () => {
-      expect(arrange(counted, { sort: 'views-desc' }).source).toBe('avs');
-    });
   });
 });
 
@@ -123,10 +132,11 @@ describe('ListSearchSchema', () => {
   });
   it('falls back per field on a bad value', () => {
     const parse = (raw: unknown) => ListSearchSchema.parse(raw);
-    expect(parse({ sort: 'mal-asc', page: 2 })).toEqual({
-      sort: 'mal-asc',
+    expect(parse({ sort: 'score-asc', page: 2 })).toEqual({
+      sort: 'score-asc',
       page: 2,
     });
+    expect(parse({ sort: 'mal-asc' })).toMatchObject({ sort: 'recent' });
     expect(parse({ sort: 'az' })).toMatchObject({ sort: 'recent' });
     expect(parse({ sort: null })).toMatchObject({ sort: 'recent' });
   });
