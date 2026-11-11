@@ -61,6 +61,14 @@ export function artPollDelay(
   return ART_POLL_DELAYS_MS[fetches - 1] ?? false;
 }
 
+// How long a card may sit on a skeleton: the first answer plus one poll. After that it shows the source image,
+// and later polls still swap in the TMDB art when it lands.
+export const ART_SKELETON_FETCHES = 1;
+
+export function artSkeletonLeft(fetches: number): boolean {
+  return fetches <= ART_SKELETON_FETCHES;
+}
+
 type ReadyEntry = Extract<ArtEntry, { status: 'ready' }>;
 
 interface LookupResult {
@@ -288,11 +296,14 @@ export interface ArtWait {
   // False once the poll budget is spent, so a title still pending then shows its source image.
   pollsLeft: boolean;
   failed?: boolean;
+  // The slugs sent for lookup. One left out (the API refused its shape) is never answered, so it must not wait.
+  sent?: Set<string>;
 }
 
 // A slug the answer in hand does not cover counts as waiting, so a list that grows never flashes the source image.
 export function isWaitingForArt(slug: string, wait: ArtWait): boolean {
   if (!wait.apiOn || wait.failed) return false;
+  if (wait.sent && !wait.sent.has(slug)) return false;
   if (!wait.art?.answered.has(slug)) return true;
   return wait.art.pendingSlugs.has(slug) && wait.pollsLeft;
 }

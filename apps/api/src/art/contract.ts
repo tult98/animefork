@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const MAX_TITLES_PER_LOOKUP = 50;
 
-export const SLUG_PATTERN = /^[a-z0-9-]{1,400}$/;
+export const SLUG_PATTERN = /^[a-zA-Z0-9-]{1,400}$/;
 
 export const MalAiringSchema = z.enum([
   'currently_airing',
