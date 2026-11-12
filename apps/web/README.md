@@ -66,7 +66,7 @@ The listing page reads every season page; see Airing listing below. The home rou
 - `components/poster-card.tsx` is one card. After 250 ms of hover or keyboard focus it opens a 340px preview, clamped to the viewport, that grows out of the cover in 220 ms and shrinks back in 140 ms (`data-state` is `open` then `closing`, and there is no motion under `prefers-reduced-motion`). Touch devices get no preview. Only the new episodes shelf shows the `Tập mới` badge.
 - The art of a default card is cropped to `--card-art-ratio` (`src/styles.css`, 16:9). Change that one variable to change the crop. Portrait posters keep their top (`object-top`).
 
-The search, notification and account buttons in the header are rendered but disabled until those features exist. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/title/$`.
+The search and notification buttons in the header are rendered but disabled until those features exist. The account slot is described under Accounts below. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/title/$`.
 
 The `data-testid` names the component tests use: `hero`, `hero:slide:<index>`, `hero:description`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:art-skeleton`, `hero:art-skeleton`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.
 
@@ -87,3 +87,11 @@ The `data-testid` names: `listing`, `listing:count`, `listing:sort`, `listing:so
 ## Upcoming listing
 
 `/upcoming` (`src/routes/upcoming.tsx`) is where the Xem tất cả link of the Sắp ra mắt shelf goes. It reads `/anime-sap-chieu/` (`UPCOMING_PATH`) through the same `TitleListing` as the airing listing, so the source's 2 pages (30 and 17 cards in the fixtures) load the same way and the sort and page search params behave the same. The cards carry the countdown tag of the home shelf (`upcoming` on `TitleListing`), and the default sort is the site's own order.
+
+## Accounts
+
+`/sign-in`, `/sign-up` and `/verify-email` (`src/routes/`) render in `AuthLayout` without the header, footer and tab bar (`isFullScreen` in `src/routes/__root.tsx`). They talk to the account endpoints of `apps/api` (see "Account endpoints" in `apps/api/README.md`) through `src/lib/auth/client.ts`, which uses the API's zod schemas, sends the session cookie (`credentials: 'include'`) and answers `{ ok, data | error }` instead of throwing. The error kinds are `invalid_credentials`, `invalid_token`, `invalid_request`, `rate_limited` (with `retryAfterSeconds` from `Retry-After`) and `network`, which also covers an unset `VITE_API_URL`, a 5xx and an unexpected body. Without `VITE_API_URL` the session is signed out and a form shows the generic failure message.
+
+`useSession()` (`['session']` query) is `loading`, `signedOut` or `signedIn`. Sign-in writes the user to that query, sign-out clears it, and a signed-in visitor on `/sign-in` or `/sign-up` is sent home. The header (`components/account-menu.tsx`) shows nothing while the session loads, a "Đăng nhập" link when signed out, and the avatar with a profile menu (email and "Đăng xuất") when signed in. The mailed link is `/verify-email#token=...`. The page reads the token from the fragment once, removes it from the URL and posts it once, because a token is single use. All auth copy is in `src/lib/auth/copy.ts`.
+
+Not built, because the API has no support: display name, subtitle language, terms, remember me, password reset, email sign-in link and resending the verification mail.

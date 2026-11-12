@@ -1,10 +1,10 @@
 import { Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { NAV_ITEMS } from '../nav.ts';
+import { AccountMenu } from './account-menu.tsx';
 import {
   Header,
   HeaderActions,
-  HeaderAvatarButton,
   HeaderIconButton,
   HeaderNav,
   NAV_PILL_CLASS,
@@ -72,11 +72,7 @@ export function TopBar() {
           disabled
           className={ICON_BUTTON_CLASS}
         />
-        <HeaderAvatarButton
-          label="Tài khoản"
-          disabled
-          className={ICON_BUTTON_CLASS}
-        />
+        <AccountMenu buttonClassName={ICON_BUTTON_CLASS} />
       </HeaderActions>
     </Header>
   );
