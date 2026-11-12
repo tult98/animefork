@@ -2,35 +2,17 @@
 import fetchMock from '@fetch-mock/vitest';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  API,
-  ME,
-  mockUser,
-  SIGN_IN,
-  unauthenticated,
-} from '../../../lib/auth/__mockData__/index.ts';
 import { render, screen, waitFor } from '../../../test/test-utils.tsx';
 import { AccountMenu } from '../../account-menu.tsx';
 import { SignInForm } from '../sign-in-form.tsx';
 
-beforeEach(() => void vi.stubEnv('VITE_API_URL', API));
-
-const emailField = () => screen.getByLabelText('Địa chỉ email');
-const passwordField = () => screen.getByLabelText('Mật khẩu');
-
-async function fill(email: string, password: string) {
-  await userEvent.type(emailField(), email);
-  await userEvent.type(passwordField(), password);
-}
-
-const submit = () =>
-  userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
-
-const form = () => render(<SignInForm />, { path: '/sign-in' });
+beforeEach(() => void vi.stubEnv('VITE_API_URL', 'https://api.test'));
 
 describe('the sign-in form', () => {
   it('signs the visitor in with a trimmed lowercase email and shows the account menu', async () => {
-    fetchMock.get(ME, unauthenticated).post(SIGN_IN, { user: mockUser });
+    fetchMock.get('path:/v1/auth/me', 401).post('path:/v1/auth/sign-in', {
+      user: { id: 'u1', email: 'mai@example.com' },
+    });
     render(
       <>
         <SignInForm />
@@ -39,86 +21,122 @@ describe('the sign-in form', () => {
       { path: '/sign-in' },
     );
     await screen.findByRole('link', { name: 'Đăng nhập' });
-    await fill('  Mai@Example.com ', 'correct horse');
-    await submit();
+    await userEvent.type(
+      screen.getByLabelText('Địa chỉ email'),
+      '  Mai@Example.com ',
+    );
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'correct horse');
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
 
     await screen.findByTestId('account-button');
-    expect(fetchMock).toHavePosted(SIGN_IN, {
+    expect(fetchMock).toHavePosted('path:/v1/auth/sign-in', {
       body: { email: 'mai@example.com', password: 'correct horse' },
     });
   });
 
   it('shows an alert and marks both fields when the credentials do not match', async () => {
-    fetchMock.post(SIGN_IN, {
+    fetchMock.post('path:/v1/auth/sign-in', {
       status: 401,
       body: { error: 'invalid_credentials' },
     });
-    form();
-    await screen.findByRole('heading', { name: 'Đăng nhập' });
-    await fill('mai@example.com', 'wrong password');
-    await submit();
+    render(<SignInForm />, { path: '/sign-in' });
+    await userEvent.type(
+      await screen.findByLabelText('Địa chỉ email'),
+      'mai@example.com',
+    );
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'wrong password');
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
 
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Email hoặc mật khẩu không đúng',
     );
-    expect(emailField().getAttribute('aria-invalid')).toBe('true');
-    expect(passwordField().getAttribute('aria-invalid')).toBe('true');
+    expect(
+      screen.getByLabelText('Địa chỉ email').getAttribute('aria-invalid'),
+    ).toBe('true');
+    expect(screen.getByLabelText('Mật khẩu').getAttribute('aria-invalid')).toBe(
+      'true',
+    );
   });
 
-  it.each([
-    [
-      'tells a rate-limited visitor how many minutes to wait',
-      {
-        status: 429,
-        body: { error: 'rate_limited' },
-        headers: { 'retry-after': '600' },
-      },
-      '10 phút',
-    ],
-    [
-      'asks the visitor to retry when the API cannot be reached',
-      { throws: new TypeError('Failed to fetch') },
-      'Hãy thử lại',
-    ],
-  ])('%s', async (_name, response, message) => {
-    fetchMock.post(SIGN_IN, response);
-    form();
-    await screen.findByRole('heading', { name: 'Đăng nhập' });
-    await fill('mai@example.com', 'correct horse');
-    await submit();
+  it('tells a rate-limited visitor how many minutes to wait', async () => {
+    fetchMock.post('path:/v1/auth/sign-in', {
+      status: 429,
+      body: { error: 'rate_limited' },
+      headers: { 'retry-after': '600' },
+    });
+    render(<SignInForm />, { path: '/sign-in' });
+    await userEvent.type(
+      await screen.findByLabelText('Địa chỉ email'),
+      'mai@example.com',
+    );
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'correct horse');
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
 
-    expect((await screen.findByRole('alert')).textContent).toContain(message);
+    expect((await screen.findByRole('alert')).textContent).toContain('10 phút');
+  });
+
+  it('asks the visitor to retry when the API cannot be reached', async () => {
+    fetchMock.post('path:/v1/auth/sign-in', {
+      throws: new TypeError('Failed to fetch'),
+    });
+    render(<SignInForm />, { path: '/sign-in' });
+    await userEvent.type(
+      await screen.findByLabelText('Địa chỉ email'),
+      'mai@example.com',
+    );
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'correct horse');
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Hãy thử lại',
+    );
   });
 
   it('flags an invalid email or a short password without sending anything', async () => {
-    form();
-    await screen.findByRole('heading', { name: 'Đăng nhập' });
-    await fill('not-an-email', 'correct horse');
-    await submit();
+    render(<SignInForm />, { path: '/sign-in' });
+    await userEvent.type(
+      await screen.findByLabelText('Địa chỉ email'),
+      'not-an-email',
+    );
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'correct horse');
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
     await screen.findByText('Nhập một địa chỉ email hợp lệ.');
 
-    await userEvent.clear(emailField());
-    await userEvent.clear(passwordField());
-    await fill('mai@example.com', 'short');
-    await submit();
+    await userEvent.clear(screen.getByLabelText('Địa chỉ email'));
+    await userEvent.clear(screen.getByLabelText('Mật khẩu'));
+    await userEvent.type(
+      screen.getByLabelText('Địa chỉ email'),
+      'mai@example.com',
+    );
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'short');
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
     await screen.findByRole('alert');
-    expect(fetchMock).not.toHaveFetched(SIGN_IN);
+    expect(fetchMock).not.toHaveFetched('path:/v1/auth/sign-in');
   });
 
   it('disables the button while sending and sends once on a double submit', async () => {
     let release: () => void = () => {};
     const gate = new Promise<void>((resolve) => (release = resolve));
-    fetchMock.post(SIGN_IN, () => gate.then(() => ({ user: mockUser })));
-    form();
-    await screen.findByRole('heading', { name: 'Đăng nhập' });
-    await fill('mai@example.com', 'correct horse');
-    await userEvent.type(passwordField(), '{Enter}{Enter}');
+    fetchMock.post('path:/v1/auth/sign-in', () =>
+      gate.then(() => ({ user: { id: 'u1', email: 'mai@example.com' } })),
+    );
+    render(<SignInForm />, { path: '/sign-in' });
+    await userEvent.type(
+      await screen.findByLabelText('Địa chỉ email'),
+      'mai@example.com',
+    );
+    await userEvent.type(
+      screen.getByLabelText('Mật khẩu'),
+      'correct horse{Enter}{Enter}',
+    );
 
     const button = await screen.findByRole('button', {
       name: 'Đang đăng nhập...',
     });
     expect(button.hasAttribute('disabled')).toBe(true);
     release();
-    await waitFor(() => expect(fetchMock).toHavePostedTimes(1, SIGN_IN));
+    await waitFor(() =>
+      expect(fetchMock).toHavePostedTimes(1, 'path:/v1/auth/sign-in'),
+    );
   });
 });

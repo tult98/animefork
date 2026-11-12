@@ -1,32 +1,31 @@
 // @vitest-environment jsdom
 import fetchMock from '@fetch-mock/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { API, VERIFY_EMAIL } from '../../../lib/auth/__mockData__/index.ts';
 import { render, screen } from '../../../test/test-utils.tsx';
 import { VerifyEmailStatus } from '../verify-email-status.tsx';
 
-beforeEach(() => void vi.stubEnv('VITE_API_URL', API));
+beforeEach(() => void vi.stubEnv('VITE_API_URL', 'https://api.test'));
 afterEach(() => window.history.replaceState(null, '', '/'));
 
-// The component reads the token from the address bar fragment of the emailed link.
-const open = (hash: string, strict = false) => {
-  window.history.replaceState(null, '', `/verify-email${hash}`);
-  return render(<VerifyEmailStatus />, { path: '/verify-email', strict });
-};
-
+// The component reads the token from the fragment of the emailed link in the address bar.
 describe('the email verification status', () => {
   it('shows progress, then success with a sign-in link, and removes the token from the address bar', async () => {
     let release: () => void = () => {};
     const gate = new Promise<void>((resolve) => (release = resolve));
-    fetchMock.post(VERIFY_EMAIL, () => gate.then(() => ({ ok: true })));
-    open('#token=abc123');
+    fetchMock.post('path:/v1/auth/verify-email', () =>
+      gate.then(() => ({ ok: true })),
+    );
+    window.history.replaceState(null, '', '/verify-email#token=abc123');
+    render(<VerifyEmailStatus />, { path: '/verify-email' });
     expect((await screen.findByRole('status')).textContent).toContain(
       'Đang xác nhận',
     );
 
     release();
     await screen.findByRole('heading', { name: 'Email đã được xác nhận' });
-    expect(fetchMock).toHavePosted(VERIFY_EMAIL, { body: { token: 'abc123' } });
+    expect(fetchMock).toHavePosted('path:/v1/auth/verify-email', {
+      body: { token: 'abc123' },
+    });
     expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveProperty(
       'pathname',
       '/sign-in',
@@ -35,11 +34,12 @@ describe('the email verification status', () => {
   });
 
   it('shows the failed state with a link to sign up for an invalid token', async () => {
-    fetchMock.post(VERIFY_EMAIL, {
+    fetchMock.post('path:/v1/auth/verify-email', {
       status: 400,
       body: { error: 'invalid_token' },
     });
-    open('#token=stale');
+    window.history.replaceState(null, '', '/verify-email#token=stale');
+    render(<VerifyEmailStatus />, { path: '/verify-email' });
 
     await screen.findByRole('heading', { name: 'Liên kết không dùng được' });
     expect(screen.getByRole('alert').textContent).toContain('hết hạn');
@@ -50,15 +50,19 @@ describe('the email verification status', () => {
   });
 
   it('fails without a request when the link has no token', async () => {
-    open('');
+    window.history.replaceState(null, '', '/verify-email');
+    render(<VerifyEmailStatus />, { path: '/verify-email' });
 
     await screen.findByRole('heading', { name: 'Liên kết không dùng được' });
-    expect(fetchMock).not.toHaveFetched(VERIFY_EMAIL);
+    expect(fetchMock).not.toHaveFetched('path:/v1/auth/verify-email');
   });
 
   it('asks the visitor to retry when the API cannot be reached', async () => {
-    fetchMock.post(VERIFY_EMAIL, { throws: new TypeError('Failed to fetch') });
-    open('#token=abc123');
+    fetchMock.post('path:/v1/auth/verify-email', {
+      throws: new TypeError('Failed to fetch'),
+    });
+    window.history.replaceState(null, '', '/verify-email#token=abc123');
+    render(<VerifyEmailStatus />, { path: '/verify-email' });
 
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Không thể xác nhận',
@@ -66,10 +70,11 @@ describe('the email verification status', () => {
   });
 
   it('posts the token once under StrictMode and still succeeds', async () => {
-    fetchMock.post(VERIFY_EMAIL, { ok: true });
-    open('#token=abc123', true);
+    fetchMock.post('path:/v1/auth/verify-email', { ok: true });
+    window.history.replaceState(null, '', '/verify-email#token=abc123');
+    render(<VerifyEmailStatus />, { path: '/verify-email', strict: true });
 
     await screen.findByRole('heading', { name: 'Email đã được xác nhận' });
-    expect(fetchMock).toHavePostedTimes(1, VERIFY_EMAIL);
+    expect(fetchMock).toHavePostedTimes(1, 'path:/v1/auth/verify-email');
   });
 });

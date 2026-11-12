@@ -15,6 +15,15 @@ Vitest, React Testing Library and `@fetch-mock/vitest` (a Vitest wrapper over `f
 - Test a hook through the component that uses it, not on its own, so one test covers the whole feature. Render the components that share state together when the behavior crosses them (a sign-in form next to the account menu). Use `renderHook` only when no component uses the hook.
 - Do not test plumbing that has no behavior of its own, such as `apiRequest` or a Zod schema that the code under test already runs.
 
+## Write the test so it reads on its own
+
+A reader should understand a test from top to bottom without opening another file.
+
+- Inline small things: URLs, status codes, a user object, an email, a label. Write `fetchMock.get('path:/v1/auth/me', 401)`, not `fetchMock.get(ME, unauthenticated)`.
+- Do not hide a test's steps in helpers such as `fill()`, `submit()` or `signUpAndWait()`. Repeating two or three lines of `userEvent` is fine.
+- Extract only what is big and used in several tests, such as a page of HTML. That belongs in `__mockData__`, and the test says what it contains in its name or a comment.
+- Do not make constants for values a test asserts on or routes by. The test shows them.
+
 ## Choose the scenarios
 
 - Name the few behaviors a reader of the feature cares about before writing: the main success, the failure the user sees, and the one edge that changes what is shown. Test those.
@@ -31,27 +40,27 @@ Say what the feature shows or does, not how the call is answered.
 ## Network: fetch-mock, every call explicit
 
 - `src/test/setup.ts` mocks global `fetch` for every test. A request with no route throws, so a test lists every call it expects. No test reaches a real server.
-- Import it with `import fetchMock from '@fetch-mock/vitest'`. Set routes with `fetchMock.get(url, response)`. Chain several routes in one statement:
+- Import it with `import fetchMock from '@fetch-mock/vitest'`. Set routes with `fetchMock.get(matcher, response)` and match by path: `'path:/v1/auth/me'` matches that path on any origin, so a test needs no origin constant. Chain several routes in one statement:
   ```ts
   fetchMock
-    .get(upstream('/'), mockHomeHtml)
-    .get(upstream(SEASON_PATH), mockSeasonHtml);
+    .get('path:/', mockHomeHtml)
+    .get('path:/season/autumn/2026/', mockSeasonHtml);
   ```
 - A status alone is a response: `fetchMock.get(url, 503)`. Use `{ repeat: 1 }` for a call that fails once and then succeeds.
 - Assert that the expected request was made with the matchers, not only the parsed result. Do not read `fetchMock.callHistory` in a test.
   ```ts
   const home = await fetchHome(transport);
-  expect(fetchMock).toHaveFetched(upstream('/'));
+  expect(fetchMock).toHaveFetched('path:/');
   expect(home.hero).toHaveLength(2);
   ```
-  The matchers are `toHaveFetched(url)`, `toHaveNthFetched(n, url)` (1-based, for order), `toHaveFetchedTimes(n, url)`, `.not.toHaveFetched(url)` for a call that must not happen, and the verb forms such as `toHavePosted(url, body)`.
-- First-party API calls use the full URL (`https://api.test/v1/...`) and set `VITE_API_URL` with `vi.stubEnv`.
-- Upstream site pages go through the `Transport`, which the custom `render` backs with `FetchTransport`. Name the URL with `upstream(path)` from `src/test/fetch-transport.ts`.
+  The matchers are `toHaveFetched(matcher)`, `toHaveNthFetched(n, matcher)` (1-based, for order), `toHaveFetchedTimes(n, matcher)`, `.not.toHaveFetched(matcher)` for a call that must not happen, and the verb forms such as `toHavePosted(matcher, { body })`.
+- First-party API calls need `VITE_API_URL`: set it in the test file with `vi.stubEnv('VITE_API_URL', 'https://api.test')`, then match the route by path (`'path:/v1/auth/me'`).
+- Upstream site pages go through the `Transport`, which the custom `render` backs with `FetchTransport`. Match them by path too (`'path:/phim/x/xem-phim.html'`).
 - Do not stub `fetch` with `vi.stubGlobal`, and do not write a fake `Transport` by hand.
 
 ## Mock data
 
-- Each feature keeps its mock data in `__mockData__/index.ts` next to the code (`src/lib/titles/__mockData__/index.ts`). Export plain strings and objects such as `mockHomeHtml`.
+- A feature keeps its big mock data, such as an HTML page, in `__mockData__/index.ts` next to the code (`src/lib/titles/__mockData__/index.ts`). Export plain strings and objects such as `mockHomeHtml`. Small values stay inline in the test.
 - Give a test only the data it needs. A page has 2 or 3 titles, not a captured copy of the site. Do not read files from `public/fixtures` in unit tests.
 - Change a copy of the mock inside the test when a case needs a variation (`mockHomeHtml.replace(...)`), instead of adding a second full page.
 
