@@ -1,8 +1,19 @@
+import fetchMock from 'fetch-mock';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 // A developer's .env points VITE_API_URL at a local service, which no test may reach.
 beforeEach(() => {
   vi.stubEnv('VITE_API_URL', '');
+});
+
+// No test reaches a real server. A request without a route throws, so a test lists every call it expects.
+beforeEach(() => {
+  fetchMock.mockGlobal();
+});
+afterEach(() => {
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  fetchMock.unmockGlobal();
 });
 
 if (typeof document !== 'undefined') {
