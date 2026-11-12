@@ -1,4 +1,9 @@
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
+
+// A developer's .env points VITE_API_URL at a local service, which no test may reach.
+beforeEach(() => {
+  vi.stubEnv('VITE_API_URL', '');
+});
 
 if (typeof document !== 'undefined') {
   const { cleanup, configure } = await import('@testing-library/react');
