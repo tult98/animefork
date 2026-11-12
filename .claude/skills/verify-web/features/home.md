@@ -1,0 +1,33 @@
+# Home
+
+The landing page: a hero carousel over five shelves (new episodes, top 10, airing this season, upcoming), inside the app shell (header, footer, and a tab bar below 1100px). Cards open a hover preview.
+
+## Sub-features
+
+- Hero carousel: auto-advance every 7s, pause button, prev, next, counter (`1 trên 10`).
+- Shelves: snap scroller, arrows from 1100px up, "Xem tất cả" link.
+- Poster card hover preview after 250ms.
+- Art skeletons while TMDB art loads (only when `VITE_API_URL` answers).
+
+## How to get to it (user POV)
+
+- Open `/`, or click the brand (`brand`).
+- Header nav: `nav:home`, `nav:browse`, `nav:schedule`, `nav:rankings`, `nav:my-list`. Below 1100px the same items are `tab:<id>` in `tab-bar`.
+
+## Driving it with Playwright
+
+Proved end to end by `../scripts/home-live.mjs`: `EV=$(cat apps/web/artifacts/verify-web/latest) node .claude/skills/verify-web/scripts/home-live.mjs`.
+
+- Loaded: `page.waitForSelector('[data-testid="hero"]', { timeout: 60000 })`. Observable: `window.__app.transport.constructor.name === 'ExtensionTransport'` and `window.__app.shelves()` lists `hero, new-episodes, top-10-today, airing-this-season, upcoming`, each with cards (seen: 10, 12, 10, 12, 10).
+- Pause then next: `r.click(page.getByTestId('hero:pause'), ...)`, `r.click(page.getByTestId('hero:next'), ...)`. Observable: `hero:counter` changes from `1 trên 10` to `2 trên 10`. Pause first so the 7s timer cannot race the read.
+- See all: `r.click(page.getByTestId('shelf:airing-this-season:see-all'), ...)`. Observable: path `/airing-this-season` and `listing:grid` visible. The other shelves link to `/browse`.
+- Hover a card (not scripted): `page.locator('[data-testid="shelf:airing-this-season"] [data-testid^="card:/"]').first().hover()`, wait 600ms. Observable: `<card testid>:preview` exists.
+- Open a title (not scripted): a `card:/phim/<slug>/` goes to the placeholder `/title/$` route, not the watch page.
+
+## Gotchas
+
+- Art lookups need `VITE_API_URL` (3100) up. Without it cards show a skeleton for up to ~33s in the worst case. Assert layout, not images.
+- Search and notification buttons in the header are disabled on purpose.
+- The hover preview does not exist on touch devices. Use the default 1280x800 viewport.
+- Reduced motion removes the pause button.
+- Titles and counts are live. Never assert a title.
