@@ -33,8 +33,12 @@ export function isStale(row: Omit<RetryRow, 'attemptedAt'>): boolean {
   return row.status === 'matched' && row.matcherVersion < MATCHED_REFRESH_BELOW;
 }
 
-export function isSettled(row: RetryRow, now: Date): boolean {
+// A miss tried before the title's other names arrived is tried once more with them.
+export function isSettled(row: RetryRow, now: Date, namesAt?: Date): boolean {
   if (row.status !== 'matched' && row.matcherVersion < MISS_RETRY_BELOW) {
+    return false;
+  }
+  if (row.status !== 'matched' && namesAt && row.attemptedAt < namesAt) {
     return false;
   }
   return now.getTime() - row.attemptedAt.getTime() < RETRY_AFTER_MS[row.status];
