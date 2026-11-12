@@ -6,7 +6,7 @@ import type { WatchProgressRow } from './watch-progress.ts';
 export const WATCH_PROGRESS_STORE = Symbol('WatchProgressStore');
 
 export interface WatchProgressStore {
-  save(row: WatchProgressRow): Promise<void>;
+  save(row: WatchProgressRow): Promise<WatchProgressRow>;
   latestPerSlug(userId: string, limit: number): Promise<WatchProgressRow[]>;
   forSlug(userId: string, slug: string): Promise<WatchProgressRow[]>;
 }
@@ -27,13 +27,15 @@ function newestFirst(a: WatchProgressRow, b: WatchProgressRow): number {
 export class MemoryWatchProgressStore implements WatchProgressStore {
   private readonly rows = new Map<string, WatchProgressRow>();
 
-  async save(row: WatchProgressRow): Promise<void> {
+  async save(row: WatchProgressRow): Promise<WatchProgressRow> {
     const key = JSON.stringify([row.userId, row.slug, row.episodeId]);
     const existing = this.rows.get(key);
-    this.rows.set(key, {
+    const stored = {
       ...row,
       completed: row.completed || (existing?.completed ?? false),
-    });
+    };
+    this.rows.set(key, stored);
+    return { ...stored };
   }
 
   async latestPerSlug(
@@ -101,8 +103,8 @@ export class PostgresWatchProgressStore implements WatchProgressStore {
     this.pool = pool;
   }
 
-  async save(row: WatchProgressRow): Promise<void> {
-    await this.pool.query(
+  async save(row: WatchProgressRow): Promise<WatchProgressRow> {
+    const { rows } = await this.pool.query<WatchProgressDbRow>(
       `insert into watch_progress
          (user_id, slug, episode_id, position_s, duration_s, completed,
           title_name, image, episode_label, season_slug, updated_at)
@@ -115,7 +117,8 @@ export class PostgresWatchProgressStore implements WatchProgressStore {
          image = excluded.image,
          episode_label = excluded.episode_label,
          season_slug = excluded.season_slug,
-         updated_at = excluded.updated_at`,
+         updated_at = excluded.updated_at
+       returning ${COLUMNS}`,
       [
         row.userId,
         row.slug,
@@ -130,6 +133,9 @@ export class PostgresWatchProgressStore implements WatchProgressStore {
         row.updatedAt,
       ],
     );
+    const stored = rows[0];
+    if (!stored) throw new Error('watch progress upsert returned no row');
+    return toRow(stored);
   }
 
   async latestPerSlug(

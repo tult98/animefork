@@ -5,6 +5,7 @@ import {
   WATCH_PROGRESS_PATH,
   WATCH_PROGRESS_SHELF_LIMIT,
   WatchProgressEpisodesResponseSchema,
+  SaveWatchProgressResponseSchema,
   WatchProgressShelfResponseSchema,
   watchProgressSlugPath,
 } from '../../src/watch-progress/contract.ts';
@@ -73,12 +74,18 @@ describe('watch progress', () => {
     }
   });
 
-  it('saves with 204 and reads the progress back on both reads', async () => {
+  it('saves with 200 and the stored row, and reads it back on both reads', async () => {
     const app = await buildAuthApp();
     const cookie = await signedIn(app, 'ana@example.test');
 
     const res = await app.put(WATCH_PROGRESS_PATH, save(), cookie);
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(SaveWatchProgressResponseSchema.parse(res.body)).toEqual({
+      episodeId: '1',
+      positionS: 100,
+      durationS: 1400,
+      completed: false,
+    });
 
     expect(await shelf(app, cookie)).toEqual([
       {
@@ -122,7 +129,17 @@ describe('watch progress', () => {
   it('clamps a position past the duration', async () => {
     const app = await buildAuthApp();
     const cookie = await signedIn(app, 'ana@example.test');
-    await app.put(WATCH_PROGRESS_PATH, save({ positionS: 9999 }), cookie);
+    const res = await app.put(
+      WATCH_PROGRESS_PATH,
+      save({ positionS: 9999 }),
+      cookie,
+    );
+    expect(res.body).toEqual({
+      episodeId: '1',
+      positionS: 1400,
+      durationS: 1400,
+      completed: true,
+    });
     expect(await episodes(app, cookie)).toEqual([
       { episodeId: '1', positionS: 1400, durationS: 1400, completed: true },
     ]);
@@ -138,11 +155,12 @@ describe('watch progress', () => {
     async (positionS, durationS, completed) => {
       const app = await buildAuthApp();
       const cookie = await signedIn(app, 'ana@example.test');
-      await app.put(
+      const res = await app.put(
         WATCH_PROGRESS_PATH,
         save({ positionS, durationS }),
         cookie,
       );
+      expect(res.body).toMatchObject({ completed });
       expect((await episodes(app, cookie))[0]?.completed).toBe(completed);
     },
   );
@@ -151,7 +169,17 @@ describe('watch progress', () => {
     const app = await buildAuthApp();
     const cookie = await signedIn(app, 'ana@example.test');
     await app.put(WATCH_PROGRESS_PATH, save({ positionS: 1390 }), cookie);
-    await app.put(WATCH_PROGRESS_PATH, save({ positionS: 20 }), cookie);
+    const res = await app.put(
+      WATCH_PROGRESS_PATH,
+      save({ positionS: 20 }),
+      cookie,
+    );
+    expect(res.body).toEqual({
+      episodeId: '1',
+      positionS: 20,
+      durationS: 1400,
+      completed: true,
+    });
     expect(await episodes(app, cookie)).toEqual([
       { episodeId: '1', positionS: 20, durationS: 1400, completed: true },
     ]);
@@ -199,11 +227,17 @@ describe('watch progress', () => {
     const ana = await signedIn(app, 'ana@example.test');
     const ben = await signedIn(app, 'ben@example.test');
     await app.put(WATCH_PROGRESS_PATH, save({ positionS: 1390 }), ana);
-    await app.put(
+    const benRes = await app.put(
       WATCH_PROGRESS_PATH,
       save({ positionS: 30, titleName: 'Ben show' }),
       ben,
     );
+    expect(benRes.body).toEqual({
+      episodeId: '1',
+      positionS: 30,
+      durationS: 1400,
+      completed: false,
+    });
 
     expect(await episodes(app, ana)).toEqual([
       { episodeId: '1', positionS: 1390, durationS: 1400, completed: true },

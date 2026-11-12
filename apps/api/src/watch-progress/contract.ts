@@ -66,6 +66,12 @@ export const WatchProgressEpisodeSchema = z.object({
 
 export type WatchProgressEpisode = z.infer<typeof WatchProgressEpisodeSchema>;
 
+export const SaveWatchProgressResponseSchema = WatchProgressEpisodeSchema;
+
+export type SaveWatchProgressResponse = z.infer<
+  typeof SaveWatchProgressResponseSchema
+>;
+
 export const WatchProgressEpisodesResponseSchema = z.object({
   items: z.array(WatchProgressEpisodeSchema),
 });

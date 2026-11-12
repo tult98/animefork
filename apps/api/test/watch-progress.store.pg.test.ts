@@ -73,7 +73,8 @@ describe.skipIf(!url)('PostgresWatchProgressStore against DATABASE_URL', () => {
 
   it('saves a row and reads it back', async () => {
     const s = slug('roundtrip');
-    await store.save(row({ slug: s, seasonSlug: 'season-2' }));
+    const stored = await store.save(row({ slug: s, seasonSlug: 'season-2' }));
+    expect(stored).toEqual(row({ slug: s, seasonSlug: 'season-2' }));
     expect(await store.forSlug(ana, s)).toEqual([
       row({ slug: s, seasonSlug: 'season-2' }),
     ]);
@@ -82,7 +83,7 @@ describe.skipIf(!url)('PostgresWatchProgressStore against DATABASE_URL', () => {
   it('upserts in place and never unsets completed', async () => {
     const s = slug('upsert');
     await store.save(row({ slug: s, positionS: 1390, completed: true }));
-    await store.save(
+    const stored = await store.save(
       row({
         slug: s,
         positionS: 20,
@@ -91,6 +92,12 @@ describe.skipIf(!url)('PostgresWatchProgressStore against DATABASE_URL', () => {
         updatedAt: new Date(T0 + 1000),
       }),
     );
+    expect(stored).toMatchObject({
+      positionS: 20,
+      completed: true,
+      titleName: 'Renamed',
+      updatedAt: new Date(T0 + 1000),
+    });
     const rows = await store.forSlug(ana, s);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({

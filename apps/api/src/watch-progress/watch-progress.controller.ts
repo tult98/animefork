@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpCode,
   Inject,
   Param,
   Put,
@@ -19,6 +18,7 @@ import {
   WATCH_PROGRESS_SHELF_LIMIT,
   WATCH_PROGRESS_SLUG_PATH,
   type SaveWatchProgressRequest,
+  type SaveWatchProgressResponse,
   type WatchProgressEpisodesResponse,
   type WatchProgressShelfResponse,
 } from './contract.ts';
@@ -43,14 +43,13 @@ export class WatchProgressController {
   }
 
   @Put(WATCH_PROGRESS_PATH)
-  @HttpCode(204)
   async save(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(SaveWatchProgressRequestSchema))
     body: SaveWatchProgressRequest,
-  ): Promise<void> {
+  ): Promise<SaveWatchProgressResponse> {
     const positionS = clampPosition(body.positionS, body.durationS);
-    await this.store.save({
+    const stored = await this.store.save({
       userId: user.id,
       slug: body.slug,
       episodeId: body.episodeId,
@@ -63,6 +62,12 @@ export class WatchProgressController {
       seasonSlug: body.seasonSlug ?? null,
       updatedAt: this.now(),
     });
+    return {
+      episodeId: stored.episodeId,
+      positionS: stored.positionS,
+      durationS: stored.durationS,
+      completed: stored.completed,
+    };
   }
 
   @Get(WATCH_PROGRESS_PATH)
