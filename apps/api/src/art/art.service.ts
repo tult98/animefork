@@ -3,7 +3,12 @@ import { CLOCK, type Clock } from '../common/clock.ts';
 import type { MalFiller } from '../mal/mal.filler.ts';
 import { MAL_FILLER } from '../mal/mal.module.ts';
 import { isMalSettled } from '../mal/mal.retry.ts';
-import { MAL_STORE, MemoryMalStore, type MalStore } from '../mal/mal.store.ts';
+import {
+  MAL_STORE,
+  MemoryMalStore,
+  type MalStore,
+  type StoredMal,
+} from '../mal/mal.store.ts';
 import { isAvsStale } from '../ratings/ratings.ts';
 import {
   MemoryRatingsStore,
@@ -14,11 +19,18 @@ import type {
   ArtEntry,
   LookupRequest,
   LookupResponse,
+  TitleInput,
   TitleRatings,
 } from './contract.ts';
 import { isOverviewSettled, isSettled, isStale } from './retry.ts';
-import { ART_STORE, type ArtStore } from './art.store.ts';
+import { ART_STORE, type ArtStore, type StoredTitle } from './art.store.ts';
 import { ART_SYNC, ArtFiller } from './art.filler.ts';
+import {
+  MemoryTitleNamesStore,
+  TITLE_NAMES_STORE,
+  type StoredNames,
+  type TitleNamesStore,
+} from './title-names.store.ts';
 import { tmdbAliases } from './tmdb/aliases.ts';
 import type { SyncDeps } from './tmdb/sync.ts';
 
@@ -31,6 +43,7 @@ export class ArtService {
   private readonly mal: MalStore;
   private readonly malFiller: MalFiller | null;
   private readonly tmdb: SyncDeps['tmdb'] | null;
+  private readonly names: TitleNamesStore;
 
   constructor(
     @Inject(ART_STORE) store: ArtStore,
@@ -40,6 +53,8 @@ export class ArtService {
     @Inject(MAL_STORE) mal: MalStore = new MemoryMalStore(),
     @Inject(MAL_FILLER) malFiller: MalFiller | null = null,
     @Inject(ART_SYNC) sync: SyncDeps | null = null,
+    @Inject(TITLE_NAMES_STORE)
+    names: TitleNamesStore = new MemoryTitleNamesStore(),
   ) {
     this.store = store;
     this.filler = filler;
@@ -48,19 +63,29 @@ export class ArtService {
     this.mal = mal;
     this.malFiller = malFiller;
     this.tmdb = sync?.tmdb ?? null;
+    this.names = names;
   }
 
   async lookup(request: LookupRequest): Promise<LookupResponse> {
     const { store, filler } = this;
     const now = this.clock();
-    const titles = new Map(request.titles.map((t) => [t.slug, t]));
-    const rows = await store.find([...titles.keys()]);
+    const requested = new Map(request.titles.map((t) => [t.slug, t]));
+    const slugs = [...requested.keys()];
+    const [rows, malRows] = await Promise.all([
+      store.find(slugs),
+      this.mal.find(slugs),
+    ]);
+    const names = await this.storeNames(requested, rows, malRows, now);
+    const titles = new Map(
+      [...requested].map(([slug, t]) => [slug, withNames(t, names.get(slug))]),
+    );
     const art: Record<string, ArtEntry> = {};
     const ready: string[] = [];
 
     for (const [slug, title] of titles) {
       const row = rows.get(slug);
-      if (row && isSettled(row, now)) {
+      const namesAt = names.get(slug)?.updatedAt;
+      if (row && isSettled(row, now, namesAt)) {
         if (row.status === 'matched') {
           const overviewOk = row.overviewStatus === 'ok';
           art[slug] = {
@@ -86,7 +111,7 @@ export class ArtService {
         }
         continue;
       }
-      if (!filler.has(slug)) void filler.fill(title);
+      if (!filler.has(slug)) void filler.fill(title, namesAt);
       art[slug] = { status: 'pending' };
     }
 
@@ -103,8 +128,7 @@ export class ArtService {
         }),
       );
     }
-    const stored = await this.ratings.find([...titles.keys()]);
-    const malRows = await this.mal.find([...titles.keys()]);
+    const stored = await this.ratings.find(slugs);
     const ratings: Record<string, TitleRatings> = {};
     const avsStale: string[] = [];
     let ratingsPending = false;
@@ -131,9 +155,14 @@ export class ArtService {
           startSeason: mal.startSeason,
         };
       }
-      if (this.malFiller && !isMalSettled(mal, now)) {
+      const namesAt = names.get(slug)?.updatedAt;
+      if (this.malFiller && !isMalSettled(mal, now, namesAt)) {
         if (!this.malFiller.has(slug)) {
-          void this.malFiller.fill(title, this.aliasSource(rows.get(slug)));
+          void this.malFiller.fill(
+            title,
+            this.aliasSource(rows.get(slug)),
+            namesAt,
+          );
         }
         // A stored number is already shown, so only a title with none yet is worth asking about again.
         if (mal?.status !== 'ok') ratingsPending = true;
@@ -148,10 +177,46 @@ export class ArtService {
     };
   }
 
+  // Names are kept only while they can still help: once both matches are settled they would change nothing.
+  private async storeNames(
+    titles: Map<string, TitleInput>,
+    rows: Map<string, Pick<StoredTitle, 'status'>>,
+    malRows: Map<string, Pick<StoredMal, 'status'>>,
+    now: Date,
+  ): Promise<Map<string, StoredNames>> {
+    const slugs = [...titles.keys()];
+    const stored = await this.names.find(slugs);
+    const fresh = [...titles.values()].flatMap(({ slug, otherNames }) =>
+      otherNames?.length &&
+      !stored.has(slug) &&
+      (malRows.get(slug)?.status !== 'ok' ||
+        rows.get(slug)?.status !== 'matched')
+        ? [{ slug, otherNames }]
+        : [],
+    );
+    if (fresh.length === 0) return stored;
+    await Promise.all(
+      fresh.map((t) => this.names.saveIfAbsent(t.slug, t.otherNames, now)),
+    );
+    // Another lookup may have stored names first, and those are the ones kept.
+    return this.names.find(slugs);
+  }
+
   // The TMDB match, when there is one, knows the show by an English name MAL also lists.
   private aliasSource(row: { tmdbId: number | null } | undefined) {
     const { tmdb } = this;
     const id = row?.tmdbId ?? null;
     return tmdb && id !== null ? () => tmdbAliases(tmdb, id) : undefined;
   }
+}
+
+// Only stored names reach the fillers, so a listing lookup that carries none still uses them.
+function withNames(
+  title: TitleInput,
+  stored: StoredNames | undefined,
+): TitleInput {
+  if (stored) return { ...title, otherNames: stored.names };
+  const bare = { ...title };
+  delete bare.otherNames;
+  return bare;
 }

@@ -44,10 +44,15 @@ export class MalFiller {
     return this.inFlight.has(slug);
   }
 
-  fill(input: TitleInput, aliases?: AliasSource): Promise<void> {
+  // namesAt is when the title's other names were stored, so a miss tried before them is matched again.
+  fill(
+    input: TitleInput,
+    aliases?: AliasSource,
+    namesAt?: Date,
+  ): Promise<void> {
     const existing = this.inFlight.get(input.slug);
     if (existing) return existing;
-    const done = this.run(input, aliases)
+    const done = this.run(input, aliases, namesAt)
       .catch((error: unknown) => {
         this.logger.error(
           `mal ${input.slug} could not be saved: ${describeError(error)}`,
@@ -64,9 +69,13 @@ export class MalFiller {
     }
   }
 
-  private async run(input: TitleInput, aliases?: AliasSource): Promise<void> {
+  private async run(
+    input: TitleInput,
+    aliases?: AliasSource,
+    namesAt?: Date,
+  ): Promise<void> {
     const current = (await this.store.find([input.slug])).get(input.slug);
-    if (isMalSettled(current, this.now())) return;
+    if (isMalSettled(current, this.now(), namesAt)) return;
     try {
       if (current?.status === 'ok' && current.malId !== null) {
         await this.refresh(current);

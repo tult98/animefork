@@ -53,9 +53,10 @@ export class ArtFiller {
     return this.overviewsInFlight.has(slug);
   }
 
-  fill(input: TitleInput): Promise<void> {
+  // namesAt is when the title's other names were stored, so a miss tried before them is tried again.
+  fill(input: TitleInput, namesAt?: Date): Promise<void> {
     return this.schedule(this.inFlight, input.slug, 'fill', () =>
-      this.run(input),
+      this.run(input, namesAt),
     );
   }
 
@@ -116,10 +117,16 @@ export class ArtFiller {
     this.queue.shift()?.();
   }
 
-  private async run(input: TitleInput): Promise<void> {
+  private async run(input: TitleInput, namesAt?: Date): Promise<void> {
     const { store } = this;
     const current = (await store.find([input.slug])).get(input.slug);
-    if (current && isSettled(current, this.now()) && !isStale(current)) return;
+    if (
+      current &&
+      isSettled(current, this.now(), namesAt) &&
+      !isStale(current)
+    ) {
+      return;
+    }
 
     let outcome;
     try {

@@ -20,6 +20,10 @@ import { configureApp } from '../src/app.setup.ts';
 import { APP_CONFIG, ENV, type Env } from '../src/config/app.config.ts';
 import { MigrationRunner, PG_POOL } from '../src/database/migration-runner.ts';
 import { MAL_STORE, MemoryMalStore } from '../src/mal/mal.store.ts';
+import {
+  MemoryTitleNamesStore,
+  TITLE_NAMES_STORE,
+} from '../src/art/title-names.store.ts';
 import { RATINGS_STORE } from '../src/ratings/ratings.store.ts';
 import { setup, TONIKAWA } from './art/helpers.ts';
 import { DETAIL_100_VI } from './art/tmdb/fixtures.ts';
@@ -56,6 +60,8 @@ async function build(
     .useValue(ratings)
     .overrideProvider(MAL_STORE)
     .useValue(new MemoryMalStore())
+    .overrideProvider(TITLE_NAMES_STORE)
+    .useValue(new MemoryTitleNamesStore())
     .overrideProvider(ART_SYNC)
     .useValue(sync)
     .overrideProvider(AUTH_CLEANUP_EVERY_MS)
