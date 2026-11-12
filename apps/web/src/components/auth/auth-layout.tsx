@@ -17,7 +17,7 @@ const SCALES = [1, 1.06, 1.12, 1.18, 1.24, 1.3];
 
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="af-auth min-h-screen">
+    <div className="af-auth min-h-dvh min-[961px]:h-dvh min-[961px]:overflow-hidden">
       <div className="af-auth-top mx-auto w-full max-w-440 box-border">
         <Link
           to="/"
@@ -27,10 +27,12 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           <Logo />
         </Link>
       </div>
-      <div className="af-auth-main mx-auto w-full max-w-440 box-border">
-        <div className="af-auth-form">{children}</div>
+      <div className="af-auth-main mx-auto w-full max-w-440 box-border min-[961px]:min-h-0 min-[961px]:flex-nowrap">
+        <div className="af-auth-form min-[961px]:items-start min-[961px]:overflow-y-auto [&>*]:my-auto">
+          {children}
+        </div>
         <aside
-          className="af-auth-panel justify-center gap-[clamp(32px,3vw,56px)] p-[clamp(56px,4vw,96px)] [--cw:clamp(220px,15vw,290px)]"
+          className="af-auth-panel justify-center gap-[clamp(16px,min(3vw,4vh),56px)] p-[clamp(24px,min(4vw,6vh),96px)] [--cw:clamp(140px,min(15vw,24vh),290px)] min-[961px]:min-h-0"
           aria-label={authCopy.panel.label}
         >
           <div className="relative flex h-[calc(var(--cw)*1.4*1.3+8px)] items-end">
