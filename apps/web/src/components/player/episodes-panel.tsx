@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
+import { UNWATCHED, type EpisodeProgress } from '../../lib/progress/model.ts';
 import type { Episode, Season } from '../../lib/titles/watch.ts';
 import { ArrowLeft, AudioLines, Check, Play } from '../ui/icons.ts';
 import { IconButton } from './icon-button.tsx';
@@ -22,6 +23,7 @@ interface EpisodesPanelProps {
   playingSlug: string;
   playingEpisodeId: string;
   playingProgress: number;
+  progress: Map<string, EpisodeProgress>;
   onPickSeason: (slug: string) => void;
   onPickEpisode: (slug: string, episode: Episode) => void;
 }
@@ -37,20 +39,45 @@ export function EpisodesPanel(props: EpisodesPanelProps) {
   );
 }
 
-function ProgressLine({ percent }: { percent: number }) {
+function ProgressLine({ fraction }: { fraction: number }) {
   return (
     <span
       aria-hidden="true"
       className="relative h-0.5 w-28 flex-none bg-progress-track"
     >
-      {percent > 0 ? (
+      {fraction > 0 ? (
         <span
           className="absolute inset-y-0 left-0 bg-brand"
-          style={{ width: `${percent}%` }}
+          style={{ width: `${fraction * 100}%` }}
           data-testid="episode:progress"
         />
       ) : null}
     </span>
+  );
+}
+
+function EpisodeStatus({ n, state }: { n: number; state: EpisodeProgress }) {
+  if (state.kind === 'watched') {
+    // The check and the word carry the state, so it reads without the accent colour.
+    return (
+      <span
+        className="flex w-28 flex-none items-center justify-end gap-1 text-sm text-muted"
+        data-testid={`episode:${n}:watched`}
+      >
+        <Check aria-hidden="true" className="size-4" />
+        {PLAYER_COPY.watched}
+      </span>
+    );
+  }
+  return (
+    <>
+      {state.kind === 'inProgress' ? (
+        <span className="sr-only">{PLAYER_COPY.inProgress}</span>
+      ) : null}
+      <ProgressLine
+        fraction={state.kind === 'inProgress' ? state.fraction : 0}
+      />
+    </>
   );
 }
 
@@ -63,6 +90,7 @@ function EpisodesView({
   playingSlug,
   playingEpisodeId,
   playingProgress,
+  progress,
   onPickEpisode,
 }: EpisodesPanelProps) {
   const season = seasons.find((s) => s.slug === browseSlug);
@@ -103,12 +131,16 @@ function EpisodesView({
             const name = episode.name ?? episode.label;
             const expanded = episode.id === expandedId;
             const n = index + 1;
+            const state: EpisodeProgress = current
+              ? { kind: 'inProgress', fraction: playingProgress / 100 }
+              : (progress.get(episode.id) ?? UNWATCHED);
             return (
               <div
                 key={episode.id}
                 className={`pl-er ${expanded ? 'bg-canvas outline-2 -outline-offset-2 outline-ink' : ''}`}
                 data-current={current}
                 data-expanded={expanded}
+                data-progress={state.kind}
                 data-testid={`episode:${n}`}
               >
                 <button
@@ -125,7 +157,7 @@ function EpisodesView({
                   <span className="min-w-0 flex-1 text-title-sm font-medium">
                     {name}
                   </span>
-                  <ProgressLine percent={current ? playingProgress : 0} />
+                  <EpisodeStatus n={n} state={state} />
                 </button>
                 {expanded ? (
                   <div

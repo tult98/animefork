@@ -2,6 +2,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import type { WatchProgressEpisode } from '../../../../api/src/watch-progress/contract.ts';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
+import { progressByEpisode } from '../../lib/progress/model.ts';
 import { resumePoint, startPosition } from '../../lib/progress/resume.ts';
 import { useProgressRows } from '../../lib/progress/use-progress.ts';
 import { watchLink } from '../../lib/titles/link.ts';
@@ -44,15 +45,22 @@ export function WatchScreen({
   const browseSlug = browse ?? slug;
   const browsedQuery = useWatchPage(browseSlug);
 
-  const progress = useProgressRows(slug);
-  const latestRows = progress.status === 'ready' ? progress.rows : [];
+  const slugRows = useProgressRows(slug);
+  const browsedRows = useProgressRows(browseSlug);
+  const browsedRowList =
+    browsedRows.status === 'ready' ? browsedRows.rows : undefined;
+  const browsedStates = useMemo(
+    () => progressByEpisode(browsedRowList ?? []),
+    [browsedRowList],
+  );
+  const latestRows = slugRows.status === 'ready' ? slugRows.rows : [];
   // Where to resume is decided once per title, from the rows as they were on arrival. The saves made while
   // watching refresh the query, and a later answer must not move the viewer to another episode mid-playback.
   const [snapshot, setSnapshot] = useState<{
     slug: string;
     rows: WatchProgressEpisode[];
   }>();
-  if (progress.status !== 'pending' && snapshot?.slug !== slug) {
+  if (slugRows.status !== 'pending' && snapshot?.slug !== slug) {
     setSnapshot({ slug, rows: latestRows });
   }
   const basis = snapshot?.slug === slug ? snapshot.rows : undefined;
@@ -153,6 +161,7 @@ export function WatchScreen({
           playingSlug={slug}
           playingEpisodeId={page.currentEpisode.id}
           playingProgress={progress}
+          progress={browsedStates}
           onPickSeason={(picked) => {
             setBrowse(picked);
             setView('episodes');

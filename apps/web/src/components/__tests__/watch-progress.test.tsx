@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { advance, withFakeClock } from '../../test/clock.ts';
 import { jsonResponse, stubAuth, user } from '../../test/auth-stub.ts';
@@ -350,5 +350,75 @@ describe('resuming', () => {
     await waitFor(() => expect(t.reads.length).toBeGreaterThan(1));
     await advance(1_000);
     expect(label()).toBe('Tập 3');
+  });
+});
+
+describe('episode states in the episodes panel', () => {
+  withFakeClock();
+
+  const rows = [
+    row(EPISODES[0] ?? '', 1390, true),
+    row(EPISODES[1] ?? '', 350),
+    row(EPISODES[3] ?? '', 1000, true),
+  ];
+  const state = (n: number) =>
+    screen.getByTestId(`episode:${n}`).getAttribute('data-progress');
+
+  it('tells watched, in progress and unwatched episodes apart', async () => {
+    await openSignedIn(`/watch/${SLUG}/${EPISODES[4]}`, {
+      rows: { [SLUG]: rows },
+    });
+    await waitFor(() => expect(state(1)).toBe('watched'));
+    expect(state(2)).toBe('inProgress');
+    expect(state(3)).toBe('unwatched');
+    expect(state(4)).toBe('watched');
+  });
+
+  it('marks a watched episode with an icon and text, not colour alone', async () => {
+    await openSignedIn(`/watch/${SLUG}/${EPISODES[4]}`, {
+      rows: { [SLUG]: rows },
+    });
+    const watched = await screen.findByTestId('episode:1:watched');
+    expect(watched.textContent).toBe('Đã xem');
+    expect(watched.querySelector('svg')).not.toBeNull();
+    expect(screen.queryByTestId('episode:3:watched')).toBeNull();
+  });
+
+  it('draws the saved fraction as the progress line and says so to a screen reader', async () => {
+    await openSignedIn(`/watch/${SLUG}/${EPISODES[4]}`, {
+      rows: { [SLUG]: rows },
+    });
+    const line = await within(screen.getByTestId('episode:2')).findByTestId(
+      'episode:progress',
+    );
+    expect(line.style.width).toBe('25%');
+    expect(screen.getByTestId('episode:2').textContent).toContain(
+      'Đang xem dở',
+    );
+  });
+
+  it('shows every episode as unwatched for a signed-out viewer', async () => {
+    stubAuth();
+    stubProgress({ rows: { [SLUG]: rows } });
+    await renderApp(`/watch/${SLUG}`);
+    await screen.findByTestId('player');
+    expect(screen.queryByTestId('episode:1:watched')).toBeNull();
+    expect(state(2)).toBe('unwatched');
+  });
+
+  it('keeps the live progress for the playing episode', async () => {
+    const t = await openSignedIn(`/watch/${SLUG}/${EPISODES[4]}`, {
+      rows: { [SLUG]: rows },
+    });
+    await t.canplay();
+    await t.fire('durationchange');
+    t.tick(700);
+    expect(state(5)).toBe('inProgress');
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('episode:5')).getByTestId('episode:progress')
+          .style.width,
+      ).toBe('50%'),
+    );
   });
 });
