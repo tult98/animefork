@@ -27,6 +27,7 @@ import { SkipButton } from './skip-button.tsx';
 import { SpeedPanel } from './speed-panel.tsx';
 import { useFullscreen } from './use-fullscreen.ts';
 import { useIdle } from './use-idle.ts';
+import { usePlayerKeys } from './use-player-keys.ts';
 import { VolumeControl } from './volume-control.tsx';
 import './player.css';
 
@@ -84,6 +85,12 @@ export function Player({
   });
   const skipSegments = useSkipSegments(slug, episode.label);
   const fullscreen = useFullscreen(root);
+  usePlayerKeys({
+    controls,
+    duration: state.duration,
+    volume: state.volume,
+    toggleFullscreen: fullscreen.toggle,
+  });
 
   const playing = state.phase === 'playing';
   const idle = useIdle(root, playing);
@@ -183,6 +190,7 @@ export function Player({
               <IconButton
                 label={playLabel}
                 data-testid="player:play"
+                aria-keyshortcuts="k Space"
                 onClick={controls.toggle}
               >
                 {playing ? (
@@ -267,6 +275,7 @@ export function Player({
                     : PLAYER_COPY.fullscreen
                 }
                 data-testid="player:fullscreen"
+                aria-keyshortcuts="f"
                 data-active={fullscreen.active}
                 onClick={fullscreen.toggle}
               >

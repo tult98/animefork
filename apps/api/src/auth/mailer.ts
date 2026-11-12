@@ -36,6 +36,43 @@ export class FakeMailer implements Mailer {
   }
 }
 
+export const RESEND_API_URL = 'https://api.resend.com/emails';
+
+export class ResendMailer implements Mailer {
+  private readonly apiKey: string;
+  private readonly from: string;
+  private readonly fetchFn: typeof fetch;
+
+  constructor(apiKey: string, from: string, fetchFn: typeof fetch = fetch) {
+    this.apiKey = apiKey;
+    this.from = from;
+    this.fetchFn = fetchFn;
+  }
+
+  async send(message: MailMessage): Promise<void> {
+    const response = await this.fetchFn(RESEND_API_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: this.from,
+        to: [message.to],
+        subject: message.subject,
+        text: message.text,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) {
+      throw new Error(`Resend answered ${response.status}`);
+    }
+  }
+}
+
 export function createMailer(config: AuthConfig): Mailer {
+  if (config.resendApiKey) {
+    return new ResendMailer(config.resendApiKey, config.mailFrom);
+  }
   return new LogMailer(config.mailFrom);
 }

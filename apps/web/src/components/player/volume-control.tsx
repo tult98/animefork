@@ -22,6 +22,7 @@ export function VolumeControl({
       <IconButton
         label={silent ? PLAYER_COPY.unmute : PLAYER_COPY.mute}
         data-testid="player:mute"
+        aria-keyshortcuts="m"
         onClick={onToggleMute}
       >
         {silent ? (
