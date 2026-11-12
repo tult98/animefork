@@ -78,9 +78,18 @@ export function VerifyEmailStatus() {
           ? authCopy.verify.failedBody
           : authCopy.verify.retryBody}
       </ErrorAlert>
-      <Link to="/sign-up" className="af-link font-semibold">
-        {authCopy.verify.toSignUp}
-      </Link>
+      {status === 'invalid' ? (
+        <Link
+          to="/sign-up"
+          className={`${KIND_CLASS.rect} ${TONE_CLASS.rect.primary} af-btn--block mt-2`}
+        >
+          {authCopy.verify.toSignUp}
+        </Link>
+      ) : (
+        <Link to="/sign-up" className="af-link font-semibold">
+          {authCopy.verify.toSignUp}
+        </Link>
+      )}
     </StatusCard>
   );
 }
