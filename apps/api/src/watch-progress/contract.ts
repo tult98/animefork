@@ -5,7 +5,7 @@ export const WATCH_PROGRESS_SLUG_PATH = '/v1/watch-progress/:slug';
 
 export const WATCH_PROGRESS_SHELF_LIMIT = 20;
 
-export const MAX_SLUG_LENGTH = 200;
+export const MAX_SLUG_LENGTH = 400;
 export const MAX_EPISODE_ID_LENGTH = 20;
 export const MAX_TITLE_NAME_LENGTH = 300;
 export const MAX_IMAGE_LENGTH = 2048;
