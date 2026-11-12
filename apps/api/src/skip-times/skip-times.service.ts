@@ -7,7 +7,6 @@ import type { SkipSegment, SkipTimesResponse } from './contract.ts';
 export const ANISKIP_CLIENT = Symbol('AniskipClient');
 
 export const ANSWER_TTL_MS = 24 * 60 * 60_000;
-// A failed call is remembered only briefly, so a recovered AniSkip is used soon without every request hammering it.
 export const FAILURE_TTL_MS = 60_000;
 export const MAX_CACHED = 5000;
 

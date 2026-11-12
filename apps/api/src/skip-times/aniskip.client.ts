@@ -15,7 +15,6 @@ export class AniskipError extends Error {
 }
 
 export interface AniskipClient {
-  // An empty list means AniSkip has no times for the episode. A failure throws.
   skipTimes(malId: number, episode: number): Promise<SkipSegment[]>;
 }
 

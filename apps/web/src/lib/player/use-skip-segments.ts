@@ -8,7 +8,6 @@ import { episodeNumber } from './skip-segments.ts';
 const NONE: SkipSegment[] = [];
 const STALE_MS = 60 * 60_000;
 
-// Skipping is a courtesy: while the answer is pending, missing or failed there are simply no segments, and playback is never held up.
 export function useSkipSegments(
   slug: string,
   episodeLabel: string,
