@@ -1,11 +1,9 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import fetchMock from 'fetch-mock';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
-import { fixture } from '../../../test/fixture.ts';
+import { MOCK_WATCH_SLUG, mockWatchHtml } from '../__mockData__/index.ts';
 import {
   EpisodeNotFoundError,
   EpisodeSchema,
@@ -15,17 +13,13 @@ import {
   selectEpisode,
 } from '../watch.ts';
 
-const publicDir = resolve(import.meta.dirname, '../../../../public');
-const html = readFileSync(
-  `${publicDir}/fixtures/default/phim/tonikaku-kawaii-a3860/xem-phim.html`,
-  'utf8',
-);
-const SLUG = 'tonikaku-kawaii-a3860';
+const html = mockWatchHtml;
+const SLUG = MOCK_WATCH_SLUG;
 
 describe('parseWatchPage', () => {
   it('reads the poster when the page has one', () => {
     const page = parseWatchPage(html, SLUG);
-    expect(page.image).toBe('/fixtures/sample-poster.svg');
+    expect(page.image).toBe('/poster.svg');
     const bare = parseWatchPage(
       html.replace(/<div class="Image">.*?<\/div>/s, ''),
       SLUG,
@@ -33,19 +27,13 @@ describe('parseWatchPage', () => {
     expect(bare.image).toBeUndefined();
   });
 
-  it('reads the title and every episode with its player keys', () => {
+  it('lists the title and its 3 episodes with their player keys', () => {
     const page = parseWatchPage(html, SLUG);
     expect(page.title).toBe('Tonikaku Kawaii [BD]');
-    expect(page.episodes.map((e) => e.id)).toEqual([
-      '72839',
-      '73010',
-      '73386',
-      '73701',
-      '74002',
-    ]);
+    expect(page.episodes.map((e) => e.id)).toEqual(['72839', '73010', '73386']);
     expect(page.episodes[1]).toEqual({
       id: '73010',
-      hash: 'fixture-hash-73010',
+      hash: 'hash-73010',
       play: 'api',
       label: 'Tập 2',
     });
@@ -54,7 +42,7 @@ describe('parseWatchPage', () => {
   it('strips the leading Xem from the first episode label', () => {
     expect(parseWatchPage(html, SLUG).episodes[0]).toEqual({
       id: '72839',
-      hash: 'fixture-hash-72839',
+      hash: 'hash-72839',
       play: 'api',
       label: 'Tập 1_BD_Full',
     });
@@ -89,7 +77,6 @@ describe('parseWatchPage', () => {
     expect(page.seasons.map((s) => s.slug)).toEqual([
       'tonikaku-kawaii-a3860',
       'tonikaku-kawaii-sns-a4229',
-      'tonikaku-kawaii-2nd-season-a4476',
     ]);
     expect(page.currentSeason).toEqual({
       slug: SLUG,
@@ -112,7 +99,7 @@ describe('parseWatchPage', () => {
         '<li class="episode"><a data-id="72839" data-play="fb" data-hash="x">01</a></li></ul></div>',
     );
     const page = parseWatchPage(doubled, SLUG);
-    expect(page.episodes).toHaveLength(5);
+    expect(page.episodes).toHaveLength(3);
     expect(page.episodes[0]?.play).toBe('api');
   });
 
@@ -125,23 +112,11 @@ describe('parseWatchPage', () => {
     expect(parseWatchPage(html, SLUG).otherNames).toEqual([
       'TONIKAWA: Over the Moon For You',
     ]);
-    const second = readFileSync(
-      `${publicDir}/fixtures/default/phim/tonikaku-kawaii-2nd-season-a4476/xem-phim.html`,
-      'utf8',
-    );
-    expect(
-      parseWatchPage(second, 'tonikaku-kawaii-2nd-season-a4476').otherNames,
-    ).toEqual(['TONIKAWA: Over the Moon For You']);
   });
 
   it('leaves the other names out for a page without a subtitle', () => {
-    const kamui = readFileSync(
-      `${publicDir}/fixtures/default/phim/ushiro-no-shoumen-kamui-san-a6084/xem-phim.html`,
-      'utf8',
-    );
-    expect(
-      parseWatchPage(kamui, 'ushiro-no-shoumen-kamui-san-a6084'),
-    ).not.toHaveProperty('otherNames');
+    const none = html.replace(/<h2 class="SubTitle">.*?<\/h2>/, '');
+    expect(parseWatchPage(none, SLUG)).not.toHaveProperty('otherNames');
     const blank = html.replace(
       /<h2 class="SubTitle">.*?<\/h2>/,
       '<h2 class="SubTitle">  </h2>',
@@ -157,9 +132,8 @@ describe('parseWatchPage', () => {
 });
 
 describe('fetchWatchPage', () => {
-  it('reads /phim/<slug>/xem-phim.html through the transport', async () => {
-    const path = `/phim/${SLUG}/xem-phim.html`;
-    fetchMock.get(upstream(path), fixture(path));
+  it('shows the first episode of the watch page as the current one', async () => {
+    fetchMock.get(upstream(`/phim/${SLUG}/xem-phim.html`), mockWatchHtml);
     const page = await fetchWatchPage(new FetchTransport(), SLUG);
     expect(page.currentEpisode.label).toBe('Tập 1_BD_Full');
   });

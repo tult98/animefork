@@ -2,7 +2,11 @@
 import fetchMock from 'fetch-mock';
 import { describe, expect, it } from 'vitest';
 import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
-import { fixture } from '../../../test/fixture.ts';
+import {
+  mockSeasonHtml,
+  mockSeasonPage2Html,
+  mockSeasonPage3Html,
+} from '../__mockData__/index.ts';
 import {
   fetchSeasonFirstPage,
   fetchSeasonRest,
@@ -64,34 +68,34 @@ describe('the season pages', () => {
   const path = '/season/autumn/2026/';
   const page = (n: number) => seasonPagePath(path, n);
 
-  it('reads the first page with its page count', async () => {
-    fetchMock.get(upstream(path), fixture(path));
+  it('shows the 2 titles of the first page and a page count of 3', async () => {
+    fetchMock.get(upstream(path), mockSeasonHtml);
     const first = await fetchSeasonFirstPage(transport, path);
-    expect(first.titles).toHaveLength(22);
+    expect(first.titles).toHaveLength(2);
     expect(first.pageCount).toBe(3);
   });
 
-  it('fetches the rest in page order', async () => {
-    fetchMock.get(upstream(page(2)), fixture(page(2)));
-    fetchMock.get(upstream(page(3)), fixture(page(3)));
+  it('lists the later pages in page order', async () => {
+    fetchMock.get(upstream(page(2)), mockSeasonPage2Html);
+    fetchMock.get(upstream(page(3)), mockSeasonPage3Html);
     const rest = await fetchSeasonRest(transport, path, 3);
     expect(rest.complete).toBe(true);
-    expect(rest.titles).toHaveLength(8 + 3);
-    expect(rest.titles[0]?.name).toBe(
-      'Yasei no Last Boss ga Arawareta! 2nd Season',
-    );
-    expect(rest.titles.at(-1)?.name).toContain('Cửu Kiếp Phần Thiên');
+    expect(rest.titles.map((t) => t.name)).toEqual([
+      'Season Three',
+      'Season Four',
+      'Season Five',
+    ]);
   });
 
-  it('keeps the pages it has when one fails', async () => {
+  it('keeps the titles of the pages that loaded when one fails', async () => {
     fetchMock.get(upstream(page(2)), 500);
-    fetchMock.get(upstream(page(3)), fixture(page(3)));
+    fetchMock.get(upstream(page(3)), mockSeasonPage3Html);
     const rest = await fetchSeasonRest(transport, path, 3);
     expect(rest.complete).toBe(false);
-    expect(rest.titles).toHaveLength(3);
+    expect(rest.titles.map((t) => t.name)).toEqual(['Season Five']);
   });
 
-  it('asks for nothing more when the season is one page', async () => {
+  it('loads nothing more when the season is one page', async () => {
     expect(await fetchSeasonRest(transport, path, 1)).toEqual({
       titles: [],
       complete: true,
@@ -106,8 +110,8 @@ describe('the season pages', () => {
     ).rejects.toThrow(/404/);
   });
 
-  it('is one page without a pager', async () => {
-    const html = fixture(path).replace(
+  it('counts one page when the page has no pager', async () => {
+    const html = mockSeasonHtml.replace(
       /<div class="wp-pagenavi">.*<\/div>/s,
       '',
     );
