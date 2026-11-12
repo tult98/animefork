@@ -3,7 +3,6 @@ import { useState, type FormEvent } from 'react';
 import { signUp } from '../../lib/auth/client.ts';
 import {
   checkCredentials,
-  readCredentialFields,
   type CredentialIssues,
 } from '../../lib/auth/credentials.ts';
 import { authCopy } from '../../lib/auth/copy.ts';
@@ -23,14 +22,15 @@ function passwordMessage(issue: CredentialIssues['password']) {
 }
 
 export function SignUpForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [issues, setIssues] = useState<CredentialIssues>({});
   const [failure, setFailure] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const { pending, run } = useSubmitOnce();
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    const { email, password } = readCredentialFields(event.currentTarget);
     void run(async () => {
       setFailure(null);
       const checked = checkCredentials(email, password);
@@ -71,6 +71,8 @@ export function SignUpForm() {
         type="email"
         autoComplete="email"
         label={authCopy.fields.email}
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
         error={issues.email && authCopy.errors.invalidEmail}
       />
       <div>
@@ -80,6 +82,8 @@ export function SignUpForm() {
           autoComplete="new-password"
           aria-describedby={HINT_ID}
           label={authCopy.fields.newPassword}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
           error={passwordMessage(issues.password)}
         />
         <p id={HINT_ID} className="m-0 mt-1 text-[13px]/[1.4] text-muted">

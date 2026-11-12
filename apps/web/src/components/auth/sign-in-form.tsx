@@ -1,10 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { signIn } from '../../lib/auth/client.ts';
-import {
-  checkCredentials,
-  readCredentialFields,
-} from '../../lib/auth/credentials.ts';
+import { checkCredentials } from '../../lib/auth/credentials.ts';
 import { authCopy } from '../../lib/auth/copy.ts';
 import { authErrorMessage } from '../../lib/auth/messages.ts';
 import { useSessionActions } from '../../lib/auth/session.ts';
@@ -20,13 +17,14 @@ type Problem =
   | { kind: 'other'; message: string };
 
 export function SignInForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [problem, setProblem] = useState<Problem | null>(null);
   const { pending, run } = useSubmitOnce();
   const { setUser } = useSessionActions();
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: FormEvent) => {
     event.preventDefault();
-    const { email, password } = readCredentialFields(event.currentTarget);
     void run(async () => {
       const checked = checkCredentials(email, password);
       if (!checked.ok) {
@@ -60,6 +58,8 @@ export function SignInForm() {
         type="email"
         autoComplete="email"
         label={authCopy.fields.email}
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
         error={
           mismatch ||
           (problem?.kind === 'email' && authCopy.errors.invalidEmail)
@@ -70,6 +70,8 @@ export function SignInForm() {
         name="password"
         autoComplete="current-password"
         label={authCopy.fields.password}
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
         error={mismatch}
       />
       <Button
