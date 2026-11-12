@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import { formatClock } from '../../lib/player/format.ts';
+import { useSkipSegments } from '../../lib/player/use-skip-segments.ts';
 import { usePlayback } from '../../lib/player/use-playback.ts';
 import { useProgressSaving } from '../../lib/progress/use-progress-saving.ts';
 import type { Episode } from '../../lib/titles/watch.ts';
@@ -22,6 +23,7 @@ import { HoverPopup } from './hover-popup.tsx';
 import { IconButton } from './icon-button.tsx';
 import { NextEpisode, type NextEpisodeInfo } from './next-episode.tsx';
 import { Scrubber } from './scrubber.tsx';
+import { SkipButton } from './skip-button.tsx';
 import { SpeedPanel } from './speed-panel.tsx';
 import { useFullscreen } from './use-fullscreen.ts';
 import { useIdle } from './use-idle.ts';
@@ -81,6 +83,7 @@ export function Player({
     image,
     episodeLabel: episode.label,
   });
+  const skipSegments = useSkipSegments(slug, episode.label);
   const fullscreen = useFullscreen(root);
   usePlayerKeys({
     controls,
@@ -157,118 +160,133 @@ export function Player({
         <ArrowLeft aria-hidden="true" />
       </IconButton>
 
-      <div className="pl-bar pl-chrome pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-[linear-gradient(to_top,var(--hero-overlay),transparent),linear-gradient(to_top,var(--hero-overlay),transparent_70%)] px-gutter pt-24 pb-7 max-[720px]:px-4">
-        <div className="pl-timeline pointer-events-auto flex items-center gap-4">
-          <Scrubber
-            time={state.time}
-            duration={state.duration}
-            onSeek={controls.seek}
-          />
-          <span
-            data-testid="player:remaining"
-            className="min-w-14 text-right text-body-strong tabular-nums"
-          >
-            {formatClock(state.duration - state.time)}
-          </span>
-        </div>
-
-        <div className="pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-center gap-2">
-            <IconButton
-              label={playLabel}
-              data-testid="player:play"
-              aria-keyshortcuts="k Space"
-              onClick={controls.toggle}
-            >
-              {playing ? (
-                <Pause
-                  aria-hidden="true"
-                  className="fill-current stroke-none"
-                />
-              ) : (
-                <Play aria-hidden="true" className="fill-current stroke-none" />
-              )}
-            </IconButton>
-            <IconButton
-              label={PLAYER_COPY.back10}
-              data-testid="player:back10"
-              onClick={() => controls.skip(-SKIP_SECONDS)}
-            >
-              <SkipGlyph forward={false} />
-            </IconButton>
-            <IconButton
-              label={PLAYER_COPY.forward10}
-              data-testid="player:forward10"
-              onClick={() => controls.skip(SKIP_SECONDS)}
-            >
-              <SkipGlyph forward />
-            </IconButton>
-            <VolumeControl
-              volume={state.volume}
-              muted={state.muted}
-              onVolume={controls.setVolume}
-              onToggleMute={controls.toggleMute}
+      <div className="pl-bar pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-3 px-gutter pt-24 pb-7 max-[720px]:px-4">
+        <div
+          aria-hidden="true"
+          className="pl-chrome absolute inset-0 bg-[linear-gradient(to_top,var(--hero-overlay),transparent),linear-gradient(to_top,var(--hero-overlay),transparent_70%)]"
+        />
+        <SkipButton
+          segments={skipSegments}
+          time={state.time}
+          onSkip={controls.seek}
+          onNext={onNext}
+        />
+        <div className="pl-chrome relative flex flex-col gap-1">
+          <div className="pl-timeline pointer-events-auto flex items-center gap-4">
+            <Scrubber
+              time={state.time}
+              duration={state.duration}
+              onSeek={controls.seek}
             />
+            <span
+              data-testid="player:remaining"
+              className="min-w-14 text-right text-body-strong tabular-nums"
+            >
+              {formatClock(state.duration - state.time)}
+            </span>
           </div>
 
-          <div className="flex min-w-0 flex-[1_1_240px] items-baseline gap-4 px-2 text-lg leading-[1.4]">
-            <span
-              data-testid="player:title"
-              className="font-bold whitespace-nowrap"
-            >
-              {title}
-            </span>
-            <span
-              data-testid="player:episode-label"
-              className="whitespace-nowrap text-muted"
-            >
-              {episode.label}
-            </span>
-            {episode.name ? (
-              <span
-                data-testid="player:episode-name"
-                className="min-w-0 truncate font-medium"
+          <div className="pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex items-center gap-2">
+              <IconButton
+                label={playLabel}
+                data-testid="player:play"
+                aria-keyshortcuts="k Space"
+                onClick={controls.toggle}
               >
-                {episode.name}
-              </span>
-            ) : null}
-          </div>
+                {playing ? (
+                  <Pause
+                    aria-hidden="true"
+                    className="fill-current stroke-none"
+                  />
+                ) : (
+                  <Play
+                    aria-hidden="true"
+                    className="fill-current stroke-none"
+                  />
+                )}
+              </IconButton>
+              <IconButton
+                label={PLAYER_COPY.back10}
+                data-testid="player:back10"
+                onClick={() => controls.skip(-SKIP_SECONDS)}
+              >
+                <SkipGlyph forward={false} />
+              </IconButton>
+              <IconButton
+                label={PLAYER_COPY.forward10}
+                data-testid="player:forward10"
+                onClick={() => controls.skip(SKIP_SECONDS)}
+              >
+                <SkipGlyph forward />
+              </IconButton>
+              <VolumeControl
+                volume={state.volume}
+                muted={state.muted}
+                onVolume={controls.setVolume}
+                onToggleMute={controls.toggleMute}
+              />
+            </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            <NextEpisode next={nextEpisode} image={image} onNext={onNext} />
-            <HoverPopup
-              id="episodes"
-              label={PLAYER_COPY.episodes}
-              icon={<ListVideo aria-hidden="true" />}
-              width={440}
-            >
-              {episodesPanel(progress)}
-            </HoverPopup>
-            <HoverPopup
-              id="speed"
-              label={PLAYER_COPY.speed}
-              icon={<Gauge aria-hidden="true" />}
-              width={220}
-            >
-              <SpeedPanel rate={state.rate} onPick={controls.setRate} />
-            </HoverPopup>
-            <IconButton
-              label={
-                fullscreen.active
-                  ? PLAYER_COPY.exitFullscreen
-                  : PLAYER_COPY.fullscreen
-              }
-              data-testid="player:fullscreen"
-              aria-keyshortcuts="f"
-              data-active={fullscreen.active}
-              onClick={fullscreen.toggle}
-            >
-              {fullscreen.active ? (
-                <Minimize aria-hidden="true" />
-              ) : (
-                <Maximize aria-hidden="true" />
-              )}
-            </IconButton>
+            <div className="flex min-w-0 flex-[1_1_240px] items-baseline gap-4 px-2 text-lg leading-[1.4]">
+              <span
+                data-testid="player:title"
+                className="font-bold whitespace-nowrap"
+              >
+                {title}
+              </span>
+              <span
+                data-testid="player:episode-label"
+                className="whitespace-nowrap text-muted"
+              >
+                {episode.label}
+              </span>
+              {episode.name ? (
+                <span
+                  data-testid="player:episode-name"
+                  className="min-w-0 truncate font-medium"
+                >
+                  {episode.name}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="ml-auto flex items-center gap-2">
+              <NextEpisode next={nextEpisode} image={image} onNext={onNext} />
+              <HoverPopup
+                id="episodes"
+                label={PLAYER_COPY.episodes}
+                icon={<ListVideo aria-hidden="true" />}
+                width={440}
+              >
+                {episodesPanel(progress)}
+              </HoverPopup>
+              <HoverPopup
+                id="speed"
+                label={PLAYER_COPY.speed}
+                icon={<Gauge aria-hidden="true" />}
+                width={220}
+              >
+                <SpeedPanel rate={state.rate} onPick={controls.setRate} />
+              </HoverPopup>
+              <IconButton
+                label={
+                  fullscreen.active
+                    ? PLAYER_COPY.exitFullscreen
+                    : PLAYER_COPY.fullscreen
+                }
+                data-testid="player:fullscreen"
+                aria-keyshortcuts="f"
+                data-active={fullscreen.active}
+                onClick={fullscreen.toggle}
+              >
+                {fullscreen.active ? (
+                  <Minimize aria-hidden="true" />
+                ) : (
+                  <Maximize aria-hidden="true" />
+                )}
+              </IconButton>
+            </div>
           </div>
         </div>
       </div>
