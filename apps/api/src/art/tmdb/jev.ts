@@ -31,7 +31,7 @@ const MATCH_INSTRUCTIONS =
   "A candidate's firstAirDate and episodeCount describe the season with the source's season number. " +
   'A different season, a movie, a special, a recap or a spin-off is a different show.';
 
-const ANY_MATCH_INSTRUCTIONS =
+export const ANY_MATCH_INSTRUCTIONS =
   'At least one candidate is the same anime and the same season as the source.';
 
 const SHOW_MATCH_INSTRUCTIONS =
@@ -43,17 +43,19 @@ const SHOW_MATCH_INSTRUCTIONS =
 const ANY_SHOW_INSTRUCTIONS =
   'At least one candidate is the same anime franchise as the source, whichever season it is.';
 
-const ChoiceSchema = z.object({
+export const ChoiceSchema = z.object({
   choice: z.string(),
   confidence: z.number(),
   probabilities: z.record(z.string(), z.number()),
 });
 
+export const NoulSchema = z.object({ noul: z.number() });
+
 const AnswersSchema = z.object({
   match: ChoiceSchema,
-  any_match: z.object({ noul: z.number() }),
+  any_match: NoulSchema,
   show_match: ChoiceSchema,
-  any_show: z.object({ noul: z.number() }),
+  any_show: NoulSchema,
 });
 
 export interface JevVerdict {
@@ -101,7 +103,7 @@ function describeCandidate(c: Candidate): string {
   return `${names}, ${aired}, ${episodes}`;
 }
 
-const fmt = (n: number) => n.toFixed(2);
+export const fmt = (n: number) => n.toFixed(2);
 
 export function jevState(question: MatchQuestion): {
   [key: string]: ContentValue;
@@ -141,18 +143,34 @@ export function jevQuestions(question: MatchQuestion) {
   };
 }
 
-function candidateId(question: MatchQuestion, raw: string): number {
+export function candidateId(
+  candidates: readonly { id: number }[],
+  raw: string,
+): number {
   const id = Number(raw);
-  if (!question.candidates.some((c) => c.id === id)) {
+  if (!candidates.some((c) => c.id === id)) {
     throw new Error(`Jev chose ${raw}, which is not a candidate`);
   }
   return id;
 }
 
-const formatProbabilities = (probabilities: Record<string, number>) =>
+export const formatProbabilities = (probabilities: Record<string, number>) =>
   Object.entries(probabilities)
     .map(([id, p]) => `${id}:${fmt(p)}`)
     .join(',');
+
+export function acceptsChoice(
+  thresholds: JevThresholds,
+  noul: number,
+  probability: number,
+  confidence: number,
+): boolean {
+  return (
+    noul >= thresholds.minNoul &&
+    probability >= thresholds.minChoice &&
+    confidence >= thresholds.minConfidence
+  );
+}
 
 export class JevMatcher implements Matcher {
   private readonly logger = new Logger(JevMatcher.name);
@@ -181,8 +199,11 @@ export class JevMatcher implements Matcher {
       questions: jevQuestions(question),
     });
     const answers = AnswersSchema.parse(result.answers);
-    const choiceId = candidateId(question, answers.match.choice);
-    const showChoiceId = candidateId(question, answers.show_match.choice);
+    const choiceId = candidateId(question.candidates, answers.match.choice);
+    const showChoiceId = candidateId(
+      question.candidates,
+      answers.show_match.choice,
+    );
     const choiceProbability =
       answers.match.probabilities[answers.match.choice] ?? 0;
     const showChoiceProbability =
@@ -191,15 +212,18 @@ export class JevMatcher implements Matcher {
     const showConfidence = answers.show_match.confidence;
     const anyMatch = answers.any_match.noul;
     const anyShow = answers.any_show.noul;
-    const { minNoul, minChoice, minConfidence } = this.thresholds;
-    const seasonAccepted =
-      anyMatch >= minNoul &&
-      choiceProbability >= minChoice &&
-      confidence >= minConfidence;
-    const showAccepted =
-      anyShow >= minNoul &&
-      showChoiceProbability >= minChoice &&
-      showConfidence >= minConfidence;
+    const seasonAccepted = acceptsChoice(
+      this.thresholds,
+      anyMatch,
+      choiceProbability,
+      confidence,
+    );
+    const showAccepted = acceptsChoice(
+      this.thresholds,
+      anyShow,
+      showChoiceProbability,
+      showConfidence,
+    );
     const seasonProbability = Math.min(anyMatch, choiceProbability);
     const showProbability = Math.min(anyShow, showChoiceProbability);
     const verdict = seasonAccepted

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadArtConfig } from '../../src/art/art.config.ts';
+import { loadArtConfig, loadJevConfig } from '../../src/art/art.config.ts';
 
 const BASE = { TMDB_API_KEY: 'tmdb' };
 
@@ -105,5 +105,19 @@ describe('loadArtConfig DeepSeek', () => {
     expect(() =>
       loadArtConfig({ ...BASE, DEEPSEEK_API_BASE: 'not a url' }),
     ).toThrow('missing or invalid env: DEEPSEEK_API_BASE');
+  });
+});
+
+describe('loadJevConfig', () => {
+  it('reads the same Jev settings as the art config, without the TMDB key', () => {
+    const env = { TYPESAFE_API_KEY: 'ts', JEV_MIN_CHOICE: '0.7' };
+    expect(loadJevConfig(env)).toEqual(loadArtConfig({ ...BASE, ...env }).jev);
+    expect(loadJevConfig({})).toBeUndefined();
+  });
+
+  it('names a bad threshold', () => {
+    expect(() =>
+      loadJevConfig({ TYPESAFE_API_KEY: 'ts', JEV_MIN_NOUL: '2' }),
+    ).toThrow('missing or invalid env: JEV_MIN_NOUL');
   });
 });

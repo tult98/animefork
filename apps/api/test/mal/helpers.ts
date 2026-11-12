@@ -39,3 +39,37 @@ export function node(over: Record<string, unknown> = {}) {
     ...over,
   };
 }
+
+// The slug's "II" is not read as a season marker, so the score never clears the gate for this title.
+export const TENKEN_INPUT = {
+  slug: 'tensei-shitara-ken-deshita-II-a6066',
+  name: 'Chuyển Sinh Thành Thanh Kiếm II',
+  year: 2026,
+  episodeCount: 5,
+};
+
+export const TENKEN_2 = candidate({
+  id: 53913,
+  title: 'Tensei shitara Ken deshita II',
+  english: 'Reincarnated as a Sword Season 2',
+  synonyms: ['I became the sword by transmigrating 2nd Season', 'TenKen 2'],
+  year: 2026,
+  episodes: 12,
+  mediaType: 'tv',
+  airing: 'currently_airing',
+  startDate: null,
+  startSeason: { year: 2026, season: 'winter' },
+});
+
+export const TENKEN_1 = candidate({
+  id: 52347,
+  title: 'Tensei shitara Ken deshita',
+  english: 'Reincarnated as a Sword',
+  synonyms: ['I became the sword by transmigrating', 'TenKen'],
+  year: 2022,
+  episodes: 12,
+  mediaType: 'tv',
+  airing: 'finished_airing',
+  startDate: '2022-10-05',
+  startSeason: { year: 2022, season: 'fall' },
+});

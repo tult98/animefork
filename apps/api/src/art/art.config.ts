@@ -39,36 +39,49 @@ const optionalFraction = z.preprocess(
   z.coerce.number().min(0).max(1).optional(),
 );
 
-const ArtEnvSchema = z.object({
-  TMDB_API_KEY: z.string().min(1),
-  TMDB_API_BASE: z.url().optional().or(z.literal('')),
+const JevEnvSchema = z.object({
   TYPESAFE_API_KEY: optionalText,
   JEV_MODEL: optionalText,
   JEV_MIN_NOUL: optionalFraction,
   JEV_MIN_CHOICE: optionalFraction,
   JEV_MIN_CONFIDENCE: optionalFraction,
+});
+
+const ArtEnvSchema = JevEnvSchema.extend({
+  TMDB_API_KEY: z.string().min(1),
+  TMDB_API_BASE: z.url().optional().or(z.literal('')),
   DEEPSEEK_API_KEY: optionalText,
   DEEPSEEK_API_BASE: z.preprocess(blankIsUnset, z.url().optional()),
   DEEPSEEK_MODEL: optionalText,
 });
 
+function toJevConfig(
+  values: z.infer<typeof JevEnvSchema>,
+): JevConfig | undefined {
+  const apiKey = values.TYPESAFE_API_KEY?.trim();
+  return apiKey
+    ? {
+        apiKey,
+        model: values.JEV_MODEL ?? DEFAULT_JEV_MODEL,
+        minNoul: values.JEV_MIN_NOUL ?? DEFAULT_JEV_MIN_NOUL,
+        minChoice: values.JEV_MIN_CHOICE ?? DEFAULT_JEV_MIN_CHOICE,
+        minConfidence: values.JEV_MIN_CONFIDENCE ?? DEFAULT_JEV_MIN_CONFIDENCE,
+      }
+    : undefined;
+}
+
+// Read on its own by the MAL module, which does not need the TMDB key.
+export function loadJevConfig(env: Env): JevConfig | undefined {
+  return toJevConfig(parseEnv(JevEnvSchema, env));
+}
+
 export function loadArtConfig(env: Env): ArtConfig {
   const values = parseEnv(ArtEnvSchema, env);
-  const jevKey = values.TYPESAFE_API_KEY?.trim();
   const deepseekKey = values.DEEPSEEK_API_KEY?.trim();
   return {
     tmdbApiKey: values.TMDB_API_KEY,
     tmdbApiBase: values.TMDB_API_BASE || undefined,
-    jev: jevKey
-      ? {
-          apiKey: jevKey,
-          model: values.JEV_MODEL ?? DEFAULT_JEV_MODEL,
-          minNoul: values.JEV_MIN_NOUL ?? DEFAULT_JEV_MIN_NOUL,
-          minChoice: values.JEV_MIN_CHOICE ?? DEFAULT_JEV_MIN_CHOICE,
-          minConfidence:
-            values.JEV_MIN_CONFIDENCE ?? DEFAULT_JEV_MIN_CONFIDENCE,
-        }
-      : undefined,
+    jev: toJevConfig(values),
     deepseek: deepseekKey
       ? {
           apiKey: deepseekKey,
