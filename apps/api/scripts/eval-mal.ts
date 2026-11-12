@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { parseArgs } from 'node:util';
 import pg from 'pg';
 import { loadJevConfig } from '../src/art/art.config.ts';
+import type { TitleInput } from '../src/art/contract.ts';
 import { createJevClient, fmt } from '../src/art/tmdb/jev.ts';
 import { seasonMarker } from '../src/art/tmdb/titles.ts';
 import { EnvError } from '../src/config/app.config.ts';
@@ -20,13 +21,29 @@ type StatusFilter = (typeof STATUSES)[number];
 const DEFAULT_LIMIT = 50;
 const REQUIRED_ENV = ['DATABASE_URL', 'MAL_CLIENT_ID', 'TYPESAFE_API_KEY'];
 
-interface SourceRow {
+export interface SourceRow {
   source_slug: string;
   status: string;
   mal_id: number | null;
   source_name: string;
   source_year: number | null;
   source_episode_count: number | null;
+  other_names: string[] | null;
+}
+
+// The other names are the ones the API stored for the slug, used the way the filler uses them.
+export function evalInput(
+  row: Omit<SourceRow, 'status' | 'mal_id'>,
+): TitleInput {
+  return {
+    slug: row.source_slug,
+    name: row.source_name,
+    seasonName: seasonMarker(row.source_name),
+    year: row.source_year ?? undefined,
+    episodeCount: row.source_episode_count ?? undefined,
+    ...(row.other_names !== null &&
+      row.other_names.length > 0 && { otherNames: row.other_names }),
+  };
 }
 
 export interface EvalOutcome {
@@ -142,9 +159,11 @@ async function main(): Promise<void> {
   try {
     const { rows } = await pool.query<SourceRow>(
       `select m.source_slug, m.status, m.mal_id,
-              a.source_name, a.source_year, a.source_episode_count
+              a.source_name, a.source_year, a.source_episode_count,
+              n.names as other_names
          from title_mal m
          join title_art a on a.source_slug = m.source_slug
+         left join title_names n on n.source_slug = m.source_slug
         where a.source_name is not null and ($1 = 'all' or m.status = $1)
         order by m.attempted_at desc
         limit $2`,
@@ -158,13 +177,7 @@ async function main(): Promise<void> {
     console.log(formatRow(COLUMNS.map(([name]) => name)));
 
     for (const row of rows) {
-      const input = {
-        slug: row.source_slug,
-        name: row.source_name,
-        seasonName: seasonMarker(row.source_name),
-        year: row.source_year ?? undefined,
-        episodeCount: row.source_episode_count ?? undefined,
-      };
+      const input = evalInput(row);
       const stored = { status: row.status, malId: row.mal_id };
       const pages: MalCandidate[][] = [];
       let scored: MalMatch | null = null;
@@ -172,7 +185,7 @@ async function main(): Promise<void> {
         for (const query of sourceQueries(input)) {
           const results = await client.search(query);
           pages.push(results);
-          scored = matchMal(input, results);
+          scored = matchMal(input, results, input.otherNames);
           if (scored) break;
         }
       } catch (error) {

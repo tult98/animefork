@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evalCells, formatRow } from '../../scripts/eval-mal.ts';
+import { evalCells, evalInput, formatRow } from '../../scripts/eval-mal.ts';
 import type { MalJevVerdict } from '../../src/mal/mal.jev.ts';
 import { TENKEN_1, TENKEN_2 } from './helpers.ts';
 
@@ -78,5 +78,34 @@ describe('formatRow', () => {
   it('pads each cell to its column and clips long ones', () => {
     const line = formatRow(['a'.repeat(45), 'none', 'reject']);
     expect(line).toBe(`${'a'.repeat(39)}~ ${'none'.padEnd(14)} reject`);
+  });
+});
+
+describe('evalInput', () => {
+  const row = {
+    source_slug: 'dau-la-dai-luc-a1234',
+    source_name: 'Đấu La Đại Lục Phần 2',
+    source_year: 2018,
+    source_episode_count: null,
+    other_names: null,
+  };
+
+  it('builds the input the filler would get, with the stored other names', () => {
+    expect(
+      evalInput({ ...row, other_names: ['Douluo Dalu', 'Soul Land'] }),
+    ).toEqual({
+      slug: 'dau-la-dai-luc-a1234',
+      name: 'Đấu La Đại Lục Phần 2',
+      seasonName: 'Phần 2',
+      year: 2018,
+      otherNames: ['Douluo Dalu', 'Soul Land'],
+    });
+  });
+
+  it('leaves other names out for a slug with none stored', () => {
+    expect(evalInput(row)).not.toHaveProperty('otherNames');
+    expect(evalInput({ ...row, other_names: [] })).not.toHaveProperty(
+      'otherNames',
+    );
   });
 });
