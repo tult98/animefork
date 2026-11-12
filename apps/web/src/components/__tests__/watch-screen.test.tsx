@@ -194,7 +194,13 @@ describe('the watch screen', () => {
         ),
       );
       expect(bodies[0]).toEqual({
-        titles: [{ slug: SLUG, name: 'Tonikaku Kawaii' }],
+        titles: [
+          {
+            slug: SLUG,
+            name: 'Tonikaku Kawaii',
+            otherNames: ['TONIKAWA: Over the Moon For You'],
+          },
+        ],
         episodes: true,
       });
     });
