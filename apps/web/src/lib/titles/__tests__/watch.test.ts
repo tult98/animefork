@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import fetchMock from 'fetch-mock';
+import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
@@ -135,9 +135,7 @@ describe('fetchWatchPage', () => {
   it('shows the first episode of the watch page as the current one', async () => {
     fetchMock.get(upstream(`/phim/${SLUG}/xem-phim.html`), mockWatchHtml);
     const page = await fetchWatchPage(new FetchTransport(), SLUG);
-    expect(
-      fetchMock.callHistory.called(upstream(`/phim/${SLUG}/xem-phim.html`)),
-    ).toBe(true);
+    expect(fetchMock).toHaveFetched(upstream(`/phim/${SLUG}/xem-phim.html`));
     expect(page.currentEpisode.label).toBe('Tập 1_BD_Full');
   });
 });

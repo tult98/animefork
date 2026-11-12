@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import fetchMock from 'fetch-mock';
+import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
@@ -75,11 +75,11 @@ describe('fetching the home page', () => {
       .get(upstream('/'), mockHomeHtml)
       .get(upstream(MOCK_SEASON_PATH), mockSeasonHtml);
     const home = await fetchHome(transport);
-    expect(fetchMock.callHistory.called(upstream('/'))).toBe(true);
+    expect(fetchMock).toHaveFetched(upstream('/'));
     expect(home.hero).toHaveLength(2);
 
     const season = await fetchSeason(transport, home.seasonPath!);
-    expect(fetchMock.callHistory.called(upstream(MOCK_SEASON_PATH))).toBe(true);
+    expect(fetchMock).toHaveFetched(upstream(MOCK_SEASON_PATH));
     expect(season.map((t) => t.name)).toEqual(['Season One', 'Season Two']);
   });
 
@@ -108,9 +108,7 @@ describe('the new episodes list', () => {
   it('shows the titles newest first, with what each card says about its episode', async () => {
     fetchMock.get(upstream(NEW_EPISODES_PATH), mockNewEpisodesHtml);
     const titles = await fetchNewEpisodes(transport);
-    expect(fetchMock.callHistory.called(upstream(NEW_EPISODES_PATH))).toBe(
-      true,
-    );
+    expect(fetchMock).toHaveFetched(upstream(NEW_EPISODES_PATH));
     expect(titles.map((t) => t.name)).toEqual([
       'Ushiro no Shoumen Kamui-san',
       'Psyren',

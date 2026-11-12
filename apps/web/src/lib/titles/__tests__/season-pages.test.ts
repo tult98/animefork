@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import fetchMock from 'fetch-mock';
+import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it } from 'vitest';
 import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
 import {
@@ -79,11 +79,9 @@ describe('the season pages', () => {
     expect(first.pageCount).toBe(3);
 
     const rest = await fetchSeasonRest(transport, path, first.pageCount);
-    expect(fetchMock.callHistory.calls().map((call) => call.url)).toEqual([
-      upstream(path),
-      upstream(page(2)),
-      upstream(page(3)),
-    ]);
+    expect(fetchMock).toHaveNthFetched(1, upstream(path));
+    expect(fetchMock).toHaveNthFetched(2, upstream(page(2)));
+    expect(fetchMock).toHaveNthFetched(3, upstream(page(3)));
     expect(rest.complete).toBe(true);
     expect(rest.titles.map((t) => t.name)).toEqual([
       'Season Three',
