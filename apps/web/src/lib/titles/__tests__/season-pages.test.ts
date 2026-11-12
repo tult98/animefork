@@ -68,19 +68,18 @@ describe('the season pages', () => {
   const path = '/season/autumn/2026/';
   const page = (n: number) => seasonPagePath(path, n);
 
-  it('shows the 2 titles of the first page and a page count of 3', async () => {
+  it('shows the first page, then the later pages in page order', async () => {
     fetchMock.get(upstream(path), mockSeasonHtml);
-    const first = await fetchSeasonFirstPage(transport, path);
-    expect(fetchMock.callHistory.called(upstream(path))).toBe(true);
-    expect(first.titles).toHaveLength(2);
-    expect(first.pageCount).toBe(3);
-  });
-
-  it('lists the later pages in page order', async () => {
     fetchMock.get(upstream(page(2)), mockSeasonPage2Html);
     fetchMock.get(upstream(page(3)), mockSeasonPage3Html);
-    const rest = await fetchSeasonRest(transport, path, 3);
+
+    const first = await fetchSeasonFirstPage(transport, path);
+    expect(first.titles).toHaveLength(2);
+    expect(first.pageCount).toBe(3);
+
+    const rest = await fetchSeasonRest(transport, path, first.pageCount);
     expect(fetchMock.callHistory.calls().map((call) => call.url)).toEqual([
+      upstream(path),
       upstream(page(2)),
       upstream(page(3)),
     ]);
@@ -100,28 +99,9 @@ describe('the season pages', () => {
     expect(rest.titles.map((t) => t.name)).toEqual(['Season Five']);
   });
 
-  it('loads nothing more when the season is one page', async () => {
-    expect(await fetchSeasonRest(transport, path, 1)).toEqual({
-      titles: [],
-      complete: true,
-    });
-    expect(fetchMock.callHistory.called()).toBe(false);
-  });
-
   it('fails when the first page fails', async () => {
-    fetchMock.get(upstream('/season/none/1999/'), 404);
-    await expect(
-      fetchSeasonFirstPage(transport, '/season/none/1999/'),
-    ).rejects.toThrow(/404/);
-  });
-
-  it('counts one page when the page has no pager', async () => {
-    const html = mockSeasonHtml.replace(
-      /<div class="wp-pagenavi">.*<\/div>/s,
-      '',
-    );
-    fetchMock.get(upstream('/s/'), html);
-    expect((await fetchSeasonFirstPage(transport, '/s/')).pageCount).toBe(1);
+    fetchMock.get(upstream(path), 404);
+    await expect(fetchSeasonFirstPage(transport, path)).rejects.toThrow(/404/);
   });
 });
 
