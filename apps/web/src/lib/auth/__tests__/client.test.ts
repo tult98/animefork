@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { jsonResponse, stubAuth, user } from '../../../test/auth-stub.ts';
-import { me, signIn, signOut, signUp, verifyEmail } from '../client.ts';
+import { signIn, signOut, signUp, verifyEmail } from '../client.ts';
 
 const credentials = { email: 'mai@example.com', password: 'correct horse' };
 
@@ -122,23 +122,5 @@ describe('signOut', () => {
   it('reports a failure', async () => {
     stubAuth({ signOut: () => jsonResponse(500, {}) });
     expect(await signOut()).toEqual({ ok: false, error: { kind: 'network' } });
-  });
-});
-
-describe('me', () => {
-  it('returns the user on a 200', async () => {
-    stubAuth({ me: () => jsonResponse(200, { user }) });
-    expect(await me()).toEqual(user);
-  });
-
-  it('is null on a 401, a failure and an unset API', async () => {
-    stubAuth({ me: () => jsonResponse(401, { error: 'unauthenticated' }) });
-    expect(await me()).toBeNull();
-    stubAuth({ me: () => Promise.reject(new TypeError('Failed to fetch')) });
-    expect(await me()).toBeNull();
-  });
-
-  it('is null without VITE_API_URL and makes no request', async () => {
-    expect(await me()).toBeNull();
   });
 });

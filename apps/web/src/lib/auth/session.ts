@@ -1,6 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AuthUser } from '../../../../api/src/auth/contract.ts';
-import { me, signOut } from './client.ts';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type {
+  AuthUser,
+  UserResponse,
+} from '../../../../api/src/auth/contract.ts';
+import { useApiQuery } from '../api/use-api-query.ts';
+import { signOut } from './client.ts';
 
 export const SESSION_KEY = ['session'] as const;
 
@@ -10,16 +14,17 @@ export type Session =
   | { state: 'signedIn'; user: AuthUser };
 
 export function useSession(): Session {
-  const query = useQuery({
-    queryKey: SESSION_KEY,
-    queryFn: ({ signal }) => me(signal),
+  const query = useApiQuery<UserResponse, AuthUser | null>({
+    key: SESSION_KEY,
+    endpoint: '/v1/auth/me',
+    map: (body) => body.user,
     // Sign-in and sign-out write the answer themselves, so a refetch would only race them.
     staleTime: Infinity,
+    retryOnMount: false,
   });
   if (query.isPending) return { state: 'loading' };
-  return query.data
-    ? { state: 'signedIn', user: query.data }
-    : { state: 'signedOut' };
+  if (query.isError || !query.data) return { state: 'signedOut' };
+  return { state: 'signedIn', user: query.data };
 }
 
 export function useSessionActions() {
