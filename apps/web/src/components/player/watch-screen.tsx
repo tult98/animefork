@@ -103,6 +103,8 @@ export function WatchScreen({
 
   return (
     <Player
+      slug={slug}
+      seasonSlug={page.currentSeason.slug}
       title={page.title}
       episode={page.currentEpisode}
       image={page.image}
