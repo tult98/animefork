@@ -42,7 +42,10 @@ export function installAppHook(deps: {
     shelves: () =>
       rendered.map((shelf) => ({
         id: shelf.id,
-        paths: shelf.items.map((title) => title.path),
+        paths:
+          shelf.kind === 'continue'
+            ? shelf.items.map((item) => `/phim/${item.slug}/`)
+            : shelf.items.map((title) => title.path),
       })),
     transport: deps.transport,
   };

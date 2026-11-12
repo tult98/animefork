@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useMemo } from 'react';
+import { Fragment, useEffect, useMemo } from 'react';
 import { ErrorScreen } from '../components/error-screen.tsx';
 import { Hero, HeroSkeleton } from '../components/hero.tsx';
 import { Shelf, ShelfSkeleton } from '../components/shelf.tsx';
@@ -27,6 +27,7 @@ import {
 } from '../lib/titles/home.ts';
 import { lookupTitles } from '../lib/titles/lookup.ts';
 import { buildHome } from '../lib/titles/shelves.ts';
+import { useContinueRows } from '../lib/watch-progress/use-continue-rows.ts';
 import { useTransport } from '../lib/transport/index.ts';
 
 export const Route = createFileRoute('/')({ component: Home });
@@ -53,6 +54,8 @@ function Home() {
       : skipToken,
   });
 
+  const continueRows = useContinueRows();
+
   const seasonLoading = seasonPath !== null && season.isPending;
   const built = useMemo(() => {
     if (!home.data) return [];
@@ -63,8 +66,15 @@ function Home() {
       upcoming,
       newEpisodes: newEpisodes.data ?? [],
       season: season.data,
+      continueRows: continueRows.rows,
     });
-  }, [home.data, newEpisodes.data, season.data, seasonLoading]);
+  }, [
+    home.data,
+    newEpisodes.data,
+    season.data,
+    seasonLoading,
+    continueRows.rows,
+  ]);
   const titles = useMemo(() => lookupTitles(built), [built]);
   const queryClient = useQueryClient();
   const artKey = ['home-art', titles];
@@ -123,7 +133,12 @@ function Home() {
     <div className="pt-4">
       {shelves.map((shelf) =>
         shelf.kind === 'hero' ? (
-          <Hero key={shelf.id} items={shelf.items} />
+          <Fragment key={shelf.id}>
+            <Hero items={shelf.items} />
+            {continueRows.loading ? (
+              <ShelfSkeleton id="continue-watching" />
+            ) : null}
+          </Fragment>
         ) : (
           <Shelf key={shelf.id} shelf={shelf} />
         ),

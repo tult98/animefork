@@ -13,11 +13,7 @@ import {
   type TitleRatings,
 } from '../../../../api/src/art/contract.ts';
 import { titleWatchLink } from './link.ts';
-import {
-  arrangeUpcoming,
-  UPCOMING_MIN_TITLES,
-  type HomeShelves,
-} from './shelves.ts';
+import { arrangeUpcoming, UPCOMING_MIN_TITLES, type Shelf } from './shelves.ts';
 import type { Title } from './title.ts';
 import type { Episode, WatchPage } from './watch.ts';
 
@@ -243,10 +239,10 @@ function slugOf(title: Pick<Title, 'path'>): string {
   return titleWatchLink(title).params.slug;
 }
 
-export function applyHomeArt(
-  shelves: HomeShelves,
+export function applyHomeArt<S extends Shelf>(
+  shelves: S[],
   art: Map<string, HomeArtPaths>,
-): HomeShelves {
+): S[] {
   if (art.size === 0) return shelves;
   // The card's own description is cut short with "...", so the stored overview replaces it.
   const withOverview = <T extends Title>(title: T): T => {
@@ -260,6 +256,7 @@ export function applyHomeArt(
     );
   };
   return shelves.map((shelf) => {
+    if (shelf.kind === 'continue') return shelf;
     if (shelf.kind === 'hero') {
       return {
         ...shelf,
@@ -287,7 +284,7 @@ export function applyHomeArt(
         };
       }),
     };
-  });
+  }) as S[];
 }
 
 export interface ArtWait {
@@ -308,19 +305,20 @@ export function isWaitingForArt(slug: string, wait: ArtWait): boolean {
   return wait.art.pendingSlugs.has(slug) && wait.pollsLeft;
 }
 
-export function markArtPending(
-  shelves: HomeShelves,
+export function markArtPending<S extends Shelf>(
+  shelves: S[],
   wait: ArtWait,
-): HomeShelves {
+): S[] {
   if (!wait.apiOn || wait.failed) return shelves;
   const mark = <T extends Title>(title: T): T =>
     isWaitingForArt(slugOf(title), wait)
       ? { ...title, artPending: true }
       : title;
-  return shelves.map((shelf) => ({
-    ...shelf,
-    items: shelf.items.map(mark),
-  })) as HomeShelves;
+  return shelves.map((shelf) =>
+    shelf.kind === 'continue'
+      ? shelf
+      : { ...shelf, items: shelf.items.map(mark) },
+  ) as S[];
 }
 
 function withRatings(title: Title, ratings: Map<string, TitleRatings>): Title {
@@ -339,18 +337,19 @@ function withRatings(title: Title, ratings: Map<string, TitleRatings>): Title {
 }
 
 // MyAnimeList can date a title that the page only gave a year, so the upcoming shelf is arranged again.
-export function applyRatings(
-  shelves: HomeShelves,
+export function applyRatings<S extends Shelf>(
+  shelves: S[],
   ratings: Map<string, TitleRatings>,
   now: number = Date.now(),
-): HomeShelves {
+): S[] {
   if (ratings.size === 0) return shelves;
   return shelves.flatMap((shelf) => {
+    if (shelf.kind === 'continue') return [shelf];
     const items = shelf.items.map((t) => withRatings(t, ratings));
     if (shelf.id !== 'upcoming') return [{ ...shelf, items }];
     const upcoming = arrangeUpcoming(items, now);
     return upcoming.length >= UPCOMING_MIN_TITLES
       ? [{ ...shelf, items: upcoming }]
       : [];
-  }) as HomeShelves;
+  }) as S[];
 }

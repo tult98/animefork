@@ -21,7 +21,7 @@ import {
   NO_ART,
   type TitleArt,
 } from '../art.ts';
-import type { HomeShelves } from '../shelves.ts';
+import type { TitleShelf } from '../shelves.ts';
 import type { Title } from '../title.ts';
 import { parseWatchPage } from '../watch.ts';
 
@@ -176,7 +176,7 @@ describe('applyArt', () => {
   });
 });
 
-const home = (): HomeShelves => {
+const home = (): TitleShelf[] => {
   const t = (name: string, slug: string): Title => ({
     path: `/phim/${slug}/`,
     name,
@@ -424,14 +424,14 @@ describe('applyHomeArt', () => {
   });
 
   describe('overview', () => {
-    const withExcerpts = (): HomeShelves =>
+    const withExcerpts = (): TitleShelf[] =>
       home().map((shelf) => ({
         ...shelf,
         items: shelf.items.map((t) => ({
           ...t,
           description: `Trích đoạn ${t.name}...`,
         })),
-      })) as HomeShelves;
+      })) as TitleShelf[];
     const overviews = new Map<string, HomeArtPaths>([
       ['a-1', { backdropPath: null, posterPath: null, overview: 'Tóm tắt A.' }],
       ['b-2', { backdropPath: '/b.jpg', posterPath: null, overview: null }],
@@ -568,7 +568,7 @@ describe('MAL ratings in a lookup', () => {
     };
     const shelves = [
       { kind: 'default', id: 'x', items: [title] },
-    ] as unknown as HomeShelves;
+    ] as unknown as TitleShelf[];
     const out = applyRatings(shelves, new Map([['a-1', { mal }]]));
     expect(out[0]!.items[0]).toMatchObject({ mal });
   });
@@ -590,8 +590,8 @@ describe('applyRatings', () => {
       id: 'x',
       items: [card('/phim/a-1/'), card('/phim/b-2/', 'FHD')],
     },
-  ] as unknown as HomeShelves;
-  const items = (s: HomeShelves) => s[0]!.items;
+  ] as unknown as TitleShelf[];
+  const items = (s: TitleShelf[]) => s[0]!.items;
 
   it('adds the voter count and a missing quality, never replacing a card quality', () => {
     const out = applyRatings(
@@ -609,7 +609,7 @@ describe('applyRatings', () => {
   it('keeps the count read from the card over the API one', () => {
     const withCount = [
       { ...shelves[0]!, items: [{ ...card('/phim/a-1/'), avsVoters: 1300 }] },
-    ] as unknown as HomeShelves;
+    ] as unknown as TitleShelf[];
     const out = applyRatings(
       withCount,
       new Map([['a-1', { avs: { score: 7, voters: 10 } }]]),
@@ -651,14 +651,14 @@ describe('applyRatings on the upcoming shelf', () => {
   const shelf = (items: Title[]) =>
     [
       { kind: 'default', id: 'upcoming', title: 'Sắp ra mắt', items },
-    ] as HomeShelves;
+    ] as TitleShelf[];
   const built = shelf([
     upcoming(1, 2027),
     upcoming(2, 2027),
     upcoming(3, 2027),
     upcoming(4, 2027),
   ]);
-  const order = (out: HomeShelves) => out[0]?.items.map((t) => t.name);
+  const order = (out: TitleShelf[]) => out[0]?.items.map((t) => t.name);
 
   it('sorts by the earliest instant MAL allows, and keeps page order on a tie', () => {
     const out = applyRatings(
@@ -705,7 +705,7 @@ describe('applyRatings on the upcoming shelf', () => {
         title: 'x',
         items: [upcoming(2, 2027), upcoming(1, 2027)],
       },
-    ] as unknown as HomeShelves;
+    ] as unknown as TitleShelf[];
     const out = applyRatings(
       other,
       new Map([['u1-a1', malOf({ startDate: '2026-12-25' })]]),

@@ -1,7 +1,12 @@
 import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DefaultShelf, Top10Shelf } from '../lib/titles/shelves.ts';
+import type {
+  ContinueShelf,
+  DefaultShelf,
+  Top10Shelf,
+} from '../lib/titles/shelves.ts';
 import { scrollDistance, scrollEdges } from '../lib/ui/scroll-edges.ts';
+import { ContinueCard } from './continue-card.tsx';
 import { PosterCard } from './poster-card.tsx';
 import { ChevronLeft, ChevronRight } from './ui/icons.ts';
 import { SHIMMER } from './ui/shimmer.ts';
@@ -24,7 +29,11 @@ function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
+export function Shelf({
+  shelf,
+}: {
+  shelf: DefaultShelf | Top10Shelf | ContinueShelf;
+}) {
   const scroller = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ atStart: true, atEnd: false });
   const top = shelf.kind === 'top10';
@@ -127,20 +136,26 @@ export function Shelf({ shelf }: { shelf: DefaultShelf | Top10Shelf }) {
           onScroll={measure}
           onKeyDown={onKeyDown}
         >
-          {shelf.items.map((title) => (
-            <div
-              key={title.path}
-              role="listitem"
-              className={top ? 'shelf-item shelf-item--rank' : 'shelf-item'}
-            >
-              <PosterCard
-                title={title}
-                rank={'rank' in title ? title.rank : undefined}
-                newEpisode={shelf.id === 'new-episodes'}
-                upcoming={shelf.id === 'upcoming'}
-              />
-            </div>
-          ))}
+          {shelf.kind === 'continue'
+            ? shelf.items.map((item) => (
+                <div key={item.slug} role="listitem" className="shelf-item">
+                  <ContinueCard item={item} />
+                </div>
+              ))
+            : shelf.items.map((title) => (
+                <div
+                  key={title.path}
+                  role="listitem"
+                  className={top ? 'shelf-item shelf-item--rank' : 'shelf-item'}
+                >
+                  <PosterCard
+                    title={title}
+                    rank={'rank' in title ? title.rank : undefined}
+                    newEpisode={shelf.id === 'new-episodes'}
+                    upcoming={shelf.id === 'upcoming'}
+                  />
+                </div>
+              ))}
         </div>
       </div>
     </section>
