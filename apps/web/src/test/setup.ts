@@ -1,4 +1,4 @@
-import fetchMock from 'fetch-mock';
+import fetchMock from '@fetch-mock/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 // A developer's .env points VITE_API_URL at a local service, which no test may reach.
@@ -11,9 +11,7 @@ beforeEach(() => {
   fetchMock.mockGlobal();
 });
 afterEach(() => {
-  fetchMock.removeRoutes();
-  fetchMock.clearHistory();
-  fetchMock.unmockGlobal();
+  fetchMock.mockRestore();
 });
 
 if (typeof document !== 'undefined') {

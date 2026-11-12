@@ -94,6 +94,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@fetch-mock/vitest": "0.2.18",
     "@playwright/test": "1.64.1",
     "@tailwindcss/vite": "4.3.5",
     "@tanstack/router-plugin": "1.168.48",
@@ -105,7 +106,6 @@
     "@vitejs/plugin-react": "6.3.0",
     "eslint": "10.14.0",
     "eslint-plugin-react-hooks": "7.1.1",
-    "fetch-mock": "12.6.0",
     "globals": "17.13.0",
     "jsdom": "22.1.0",
     "tailwindcss": "4.3.5",

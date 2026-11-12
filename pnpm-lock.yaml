@@ -524,6 +524,9 @@ importers:
       '@eslint/js':
         specifier: 10.0.1
         version: 10.0.1(eslint@10.14.0(jiti@2.7.0))
+      '@fetch-mock/vitest':
+        specifier: 0.2.18
+        version: 0.2.18(vitest@4.1.12(@types/node@24.19.2)(happy-dom@13.10.1)(jsdom@22.1.0)(vite@8.3.7(@types/node@24.19.2)(jiti@2.7.0)(sass@1.77.8)(terser@5.51.2)(yaml@2.9.1)))
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
@@ -557,9 +560,6 @@ importers:
       eslint-plugin-react-hooks:
         specifier: 7.1.1
         version: 7.1.1(eslint@10.14.0(jiti@2.7.0))
-      fetch-mock:
-        specifier: 12.6.0
-        version: 12.6.0
       globals:
         specifier: 17.13.0
         version: 17.13.0
@@ -1767,6 +1767,12 @@ packages:
   '@eslint/plugin-kit@0.7.3':
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
+
+  '@fetch-mock/vitest@0.2.18':
+    resolution: {integrity: sha512-s2bG7/MSwVFun5gTzrkZzJSmcdSurTmxt5B+JA/4ALyx0Pfo1al0/MlZPBtZ358Kkjv9CpRlhpyLf6bt4OrtLQ==}
+    engines: {node: '>=18.11.0'}
+    peerDependencies:
+      vitest: '*'
 
   '@ffmpeg/core@0.12.6':
     resolution: {integrity: sha512-PrjWBTfGn2WVn9T7wGnzfFwChbqWeZc7tM9vvJZVRadYFUDakfzy7W0LpYC0cvvK0xT82qlBsk38lQhJ/Hps5A==}
@@ -11663,6 +11669,11 @@ snapshots:
     dependencies:
       '@eslint/core': 1.2.1
       levn: 0.4.1
+
+  '@fetch-mock/vitest@0.2.18(vitest@4.1.12(@types/node@24.19.2)(happy-dom@13.10.1)(jsdom@22.1.0)(vite@8.3.7(@types/node@24.19.2)(jiti@2.7.0)(sass@1.77.8)(terser@5.51.2)(yaml@2.9.1)))':
+    dependencies:
+      fetch-mock: 12.6.0
+      vitest: 4.1.12(@types/node@24.19.2)(happy-dom@13.10.1)(jsdom@22.1.0)(vite@8.3.7(@types/node@24.19.2)(jiti@2.7.0)(sass@1.77.8)(terser@5.51.2)(yaml@2.9.1))
 
   '@ffmpeg/core@0.12.6': {}
 
