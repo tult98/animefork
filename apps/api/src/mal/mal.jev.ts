@@ -22,8 +22,9 @@ import {
 } from '../art/tmdb/jev.ts';
 import { distinctRomaji } from '../art/tmdb/titles.ts';
 import type { MalCandidate } from './mal.client.ts';
-import { wantedSeason } from './mal.matcher.ts';
+import { isShow, wantedSeason } from './mal.matcher.ts';
 
+export const MAX_JEV_CANDIDATES = 20;
 const SYNONYM_CAP = 10;
 
 const MATCH_INSTRUCTIONS =
@@ -50,6 +51,15 @@ export interface MalJevVerdict {
 
 export interface MalJudge {
   ask(input: TitleInput, candidates: MalCandidate[]): Promise<MalJevVerdict>;
+}
+
+// What Jev sees: every show any search returned, first search first, each id once.
+export function jevCandidates(pages: MalCandidate[][]): MalCandidate[] {
+  const seen = new Map<number, MalCandidate>();
+  for (const c of pages.flat()) {
+    if (isShow(c) && !seen.has(c.id)) seen.set(c.id, c);
+  }
+  return [...seen.values()].slice(0, MAX_JEV_CANDIDATES);
 }
 
 function describeCandidate(c: MalCandidate): string {

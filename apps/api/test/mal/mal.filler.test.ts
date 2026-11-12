@@ -4,13 +4,14 @@ import {
   type MalCandidate,
   type MalClient,
 } from '../../src/mal/mal.client.ts';
+import { MalFiller } from '../../src/mal/mal.filler.ts';
 import {
   MAX_JEV_CANDIDATES,
-  MAX_QUERIES,
-  MalFiller,
-} from '../../src/mal/mal.filler.ts';
-import { MalJevJudge, type MalJudge } from '../../src/mal/mal.jev.ts';
+  MalJevJudge,
+  type MalJudge,
+} from '../../src/mal/mal.jev.ts';
 import { matchMal } from '../../src/mal/mal.matcher.ts';
+import { MAX_QUERIES } from '../../src/mal/mal.queries.ts';
 import {
   MAL_REFRESH_AFTER_MS,
   MAL_RETRY_AFTER_MS,

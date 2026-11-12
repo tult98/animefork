@@ -3,14 +3,10 @@ import type { TitleInput } from '../art/contract.ts';
 import { describeError } from '../art/art.filler.ts';
 import { fmt } from '../art/tmdb/jev.ts';
 import type { Clock } from '../common/clock.ts';
-import {
-  MIN_QUERY_LENGTH,
-  type MalCandidate,
-  type MalClient,
-} from './mal.client.ts';
-import type { MalJudge } from './mal.jev.ts';
-import { isShow, matchMal, type MalMatch } from './mal.matcher.ts';
-import { malQueries } from './mal.queries.ts';
+import type { MalCandidate, MalClient } from './mal.client.ts';
+import { jevCandidates, type MalJudge } from './mal.jev.ts';
+import { matchMal, type MalMatch } from './mal.matcher.ts';
+import { sourceQueries } from './mal.queries.ts';
 import {
   MAL_MATCHER_VERSION,
   isMalSettled,
@@ -18,10 +14,7 @@ import {
 } from './mal.retry.ts';
 import type { MalMatchedBy, MalStore, StoredMal } from './mal.store.ts';
 
-// Each query is one call to MAL, so a title that matches nothing costs at most this many.
-export const MAX_QUERIES = 4;
 export const MAX_ALIAS_QUERIES = 2;
-export const MAX_JEV_CANDIDATES = 20;
 
 // Looks up other names for a title; only asked when the source's own name found nothing.
 export type AliasSource = () => Promise<string[]>;
@@ -115,19 +108,14 @@ export class MalFiller {
   }
 
   private async match(input: TitleInput, aliases?: AliasSource): Promise<void> {
-    const queries = malQueries(input)
-      .filter((q) => q.length >= MIN_QUERY_LENGTH)
-      .slice(0, MAX_QUERIES);
-    const seen = new Map<number, MalCandidate>();
+    const pages: MalCandidate[][] = [];
     const search = async (query: string) => {
       const results = await this.client.search(query);
-      for (const c of results) {
-        if (isShow(c) && !seen.has(c.id)) seen.set(c.id, c);
-      }
+      pages.push(results);
       return results;
     };
     let found: MalMatch | null = null;
-    for (const query of queries) {
+    for (const query of sourceQueries(input)) {
       found = matchMal(input, await search(query));
       if (found) break;
     }
@@ -148,14 +136,12 @@ export class MalFiller {
       await this.saveMatch(input.slug, found, 'score');
       return;
     }
-    if (!this.judge || seen.size === 0) {
+    const candidates = jevCandidates(pages);
+    if (!this.judge || candidates.length === 0) {
       await this.saveMiss(input.slug, 'none', 'no candidate cleared the match');
       return;
     }
-    const verdict = await this.judge.ask(
-      input,
-      [...seen.values()].slice(0, MAX_JEV_CANDIDATES),
-    );
+    const verdict = await this.judge.ask(input, candidates);
     if (verdict.accepted) {
       await this.saveMatch(
         input.slug,
