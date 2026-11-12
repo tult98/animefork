@@ -2,8 +2,8 @@ export const authCopy = {
   brandHome: 'AnimeFork, trang chủ',
   panel: {
     label: 'Giới thiệu',
-    headline: 'Anime. Không giới hạn.',
-    subline: 'Xem anime với phụ đề tiếng Việt.',
+    headline: 'Xem anime. Không quảng cáo.',
+    subline: 'Trải nghiệm xem liền mạch, không bị làm phiền.',
   },
   fields: {
     email: 'Địa chỉ email',
@@ -22,7 +22,7 @@ export const authCopy = {
   },
   signUp: {
     title: 'Tạo tài khoản',
-    subtitle: 'Xem anime với phụ đề tiếng Việt.',
+    subtitle: 'Xem anime liền mạch, không quảng cáo.',
     passwordHint: 'Dùng ít nhất 8 ký tự.',
     submit: 'Tạo tài khoản',
     submitting: 'Đang tạo tài khoản...',
