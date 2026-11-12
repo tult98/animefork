@@ -1,3 +1,5 @@
+import type { WatchProgressShelfItem } from '../../../../api/src/watch-progress/contract.ts';
+import { titleWatchLink, watchLink } from './link.ts';
 import { releaseInfo } from './release.ts';
 import type { Title } from './title.ts';
 
@@ -28,7 +30,35 @@ export interface Top10Shelf {
   items: (Title & { rank: number })[];
 }
 
-export type Shelf = HeroShelf | DefaultShelf | Top10Shelf;
+export type ContinueState =
+  | {
+      kind: 'inProgress';
+      fraction: number;
+      positionS: number;
+      durationS: number;
+    }
+  | { kind: 'finished' };
+
+export interface ContinueItem {
+  slug: string;
+  titleName: string;
+  image: string;
+  episodeLabel: string;
+  episodeId: string;
+  state: ContinueState;
+  link: ReturnType<typeof watchLink>;
+}
+
+export interface ContinueShelf {
+  kind: 'continue';
+  id: 'continue-watching';
+  title: string;
+  items: ContinueItem[];
+}
+
+// The shelves whose items are catalog titles, as opposed to the viewer's own history.
+export type TitleShelf = HeroShelf | DefaultShelf | Top10Shelf;
+export type Shelf = TitleShelf | ContinueShelf;
 export type HomeShelves = Shelf[];
 
 export interface HomeInput {
@@ -37,6 +67,32 @@ export interface HomeInput {
   top: Title[];
   upcoming: Title[];
   season: Title[] | undefined;
+  // The viewer's watch history, newest first. Absent or empty means no continue shelf.
+  continueRows?: WatchProgressShelfItem[];
+}
+
+export function toContinueItem(row: WatchProgressShelfItem): ContinueItem {
+  const finished = row.completed;
+  return {
+    slug: row.slug,
+    titleName: row.titleName,
+    image: row.image,
+    episodeLabel: row.episodeLabel,
+    episodeId: row.episodeId,
+    state: finished
+      ? { kind: 'finished' }
+      : {
+          kind: 'inProgress',
+          fraction:
+            row.durationS > 0
+              ? Math.min(1, Math.max(0, row.positionS / row.durationS))
+              : 0,
+          positionS: row.positionS,
+          durationS: row.durationS,
+        },
+    // A finished episode links to the title alone so the player picks the next one.
+    link: finished ? watchLink(row.slug) : watchLink(row.slug, row.episodeId),
+  };
 }
 
 // A title is kept until the period its release falls in is over, and the nearest come first.
@@ -52,12 +108,35 @@ export function arrangeUpcoming(titles: Title[], now: number): Title[] {
 }
 
 export function buildHome(
-  { hero, newEpisodes, top, upcoming, season }: HomeInput,
+  { hero, newEpisodes, top, upcoming, season, continueRows = [] }: HomeInput,
   now: number = Date.now(),
 ): HomeShelves {
   const shelves: HomeShelves = [];
 
+  // A title already in the continue row is not offered again further down the page.
+  const watching = new Set(continueRows.map((row) => row.slug));
+  const unwatched = (titles: Title[]) =>
+    watching.size === 0
+      ? titles
+      : titles.filter(
+          (title) => !watching.has(titleWatchLink(title).params.slug),
+        );
+  hero = unwatched(hero);
+  newEpisodes = unwatched(newEpisodes);
+  top = unwatched(top);
+  upcoming = unwatched(upcoming);
+  season = season && unwatched(season);
+
   if (hero.length > 0) shelves.push({ kind: 'hero', id: 'hero', items: hero });
+
+  if (continueRows.length > 0) {
+    shelves.push({
+      kind: 'continue',
+      id: 'continue-watching',
+      title: 'Tiếp tục xem',
+      items: continueRows.map(toContinueItem),
+    });
+  }
 
   const keepNewEpisodes = newEpisodes.length >= MIN_SHELF_TITLES;
   const shownNewEpisodes = keepNewEpisodes

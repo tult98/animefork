@@ -6,7 +6,7 @@ import { avsSubmissions, submitAvs } from '../avs-submit.ts';
 import { parseCard } from '../card-parser.ts';
 import { parseHome, parseNewEpisodes, parseSeason } from '../home.ts';
 import { titleWatchLink } from '../link.ts';
-import { buildHome } from '../shelves.ts';
+import { buildHome, type TitleShelf } from '../shelves.ts';
 
 const fixture = (name: string) =>
   readFileSync(
@@ -51,7 +51,11 @@ describe('voter count on a card', () => {
 
 describe('avsSubmissions', () => {
   const home = parseHome(fixture('index.html'));
-  const shelves = buildHome({ ...home, newEpisodes, season: undefined });
+  const shelves = buildHome({
+    ...home,
+    newEpisodes,
+    season: undefined,
+  }).filter((s): s is TitleShelf => s.kind !== 'continue');
   const slugOf = (t: Parameters<typeof titleWatchLink>[0]) =>
     titleWatchLink(t).params.slug;
 

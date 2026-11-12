@@ -8,9 +8,17 @@ import {
   UPCOMING_SHELF_LIMIT,
   buildHome,
   type HomeInput,
+  type ContinueShelf,
+  type TitleShelf,
 } from '../shelves.ts';
+import type { WatchProgressShelfItem } from '../../../../../api/src/watch-progress/contract.ts';
+import { watchLink } from '../link.ts';
 import type { Title } from '../title.ts';
 
+const buildTitles = (...args: Parameters<typeof buildHome>) =>
+  buildHome(...args).filter(
+    (shelf): shelf is TitleShelf => shelf.kind !== 'continue',
+  );
 const t = (n: number): Title => ({
   path: `/phim/t${n}/`,
   name: `T${n}`,
@@ -21,7 +29,7 @@ const t = (n: number): Title => ({
 });
 const range = (from: number, to: number) =>
   Array.from({ length: to - from }, (_, i) => t(from + i));
-const ids = (input: HomeInput) => buildHome(input).map((s) => s.id);
+const ids = (input: HomeInput) => buildTitles(input).map((s) => s.id);
 const paths = (items: Title[]) => items.map((i) => i.path);
 
 const base: HomeInput = {
@@ -43,7 +51,7 @@ describe('buildHome', () => {
   });
 
   it('titles the shelves in Vietnamese and leaves the hero untitled', () => {
-    const [hero, news, top, airing] = buildHome(base);
+    const [hero, news, top, airing] = buildTitles(base);
     expect('title' in hero!).toBe(false);
     expect(news).toMatchObject({ kind: 'default', title: 'Mới cập nhật' });
     expect(top).toMatchObject({ kind: 'top10', title: 'Top 10 hôm nay' });
@@ -55,7 +63,7 @@ describe('buildHome', () => {
 
   it('keeps a title in both hero and top 10', () => {
     const shared = t(500);
-    const shelves = buildHome({
+    const shelves = buildTitles({
       ...base,
       hero: [shared, ...base.hero],
       top: [shared, ...base.top.slice(1)],
@@ -68,7 +76,7 @@ describe('buildHome', () => {
 
   it('keeps a title in top 10 and new episodes', () => {
     const shared = t(500);
-    const shelves = buildHome({
+    const shelves = buildTitles({
       ...base,
       newEpisodes: [shared, ...base.newEpisodes.slice(1)],
       top: [shared, ...base.top.slice(1)],
@@ -81,13 +89,13 @@ describe('buildHome', () => {
 
   it('removes from airing the titles new episodes already shows', () => {
     const season = [...base.newEpisodes.slice(0, 3), ...range(300, 320)];
-    const airing = buildHome({ ...base, season }).find(
+    const airing = buildTitles({ ...base, season }).find(
       (s) => s.id === 'airing-this-season',
     )!;
     const newPaths = new Set(paths(base.newEpisodes));
     expect(airing.items.some((i) => newPaths.has(i.path))).toBe(false);
     expect(paths(airing.items)[0]).toBe('/phim/t300/');
-    const news = buildHome({ ...base, season }).find(
+    const news = buildTitles({ ...base, season }).find(
       (s) => s.id === 'new-episodes',
     )!;
     expect(news.items).toEqual(base.newEpisodes);
@@ -95,7 +103,7 @@ describe('buildHome', () => {
 
   it('caps new episodes at NEW_EPISODES_SHELF_LIMIT, keeping the first in order', () => {
     const newEpisodes = range(100, 130);
-    const news = buildHome({ ...base, newEpisodes }).find(
+    const news = buildTitles({ ...base, newEpisodes }).find(
       (s) => s.id === 'new-episodes',
     )!;
     expect(news.items).toHaveLength(NEW_EPISODES_SHELF_LIMIT);
@@ -109,7 +117,7 @@ describe('buildHome', () => {
     const cutOff = newEpisodes[NEW_EPISODES_SHELF_LIMIT]!;
     const shown = newEpisodes[0]!;
     const season = [shown, cutOff, ...range(300, 320)];
-    const airing = buildHome({ ...base, newEpisodes, season }).find(
+    const airing = buildTitles({ ...base, newEpisodes, season }).find(
       (s) => s.id === 'airing-this-season',
     )!;
     expect(paths(airing.items)).toContain(cutOff.path);
@@ -117,7 +125,9 @@ describe('buildHome', () => {
   });
 
   it('caps airing at SEASON_SHELF_LIMIT after dedupe', () => {
-    const airing = buildHome(base).find((s) => s.id === 'airing-this-season')!;
+    const airing = buildTitles(base).find(
+      (s) => s.id === 'airing-this-season',
+    )!;
     expect(airing.items).toHaveLength(SEASON_SHELF_LIMIT);
     expect(paths(airing.items)).toEqual(paths(base.season!.slice(0, 12)));
   });
@@ -147,7 +157,7 @@ describe('buildHome', () => {
   it('does not dedupe airing against a new-episodes shelf that was dropped', () => {
     const newEpisodes = range(100, 103);
     const season = [...newEpisodes, ...range(300, 300 + MIN_SHELF_TITLES - 1)];
-    const airing = buildHome({ ...base, newEpisodes, season }).find(
+    const airing = buildTitles({ ...base, newEpisodes, season }).find(
       (s) => s.id === 'airing-this-season',
     )!;
     expect(airing.items).toHaveLength(season.length);
@@ -162,7 +172,7 @@ describe('buildHome', () => {
   });
 
   it('ranks top 10 by position from 1', () => {
-    const top = buildHome(base).find((s) => s.kind === 'top10')!;
+    const top = buildTitles(base).find((s) => s.kind === 'top10')!;
     expect(top.items.map((i) => ('rank' in i ? i.rank : 0))).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
     ]);
@@ -170,7 +180,7 @@ describe('buildHome', () => {
   });
 
   it('keeps top 10 with 8 or 9 titles and drops it below 8', () => {
-    const nine = buildHome({ ...base, top: range(200, 209) }).find(
+    const nine = buildTitles({ ...base, top: range(200, 209) }).find(
       (s) => s.kind === 'top10',
     )!;
     expect(nine.items).toHaveLength(9);
@@ -192,10 +202,10 @@ describe('buildHome upcoming shelf', () => {
     releasesAt,
   });
   const upcomingShelf = (upcoming: Title[], input = base) =>
-    buildHome({ ...input, upcoming }, NOW).find((s) => s.id === 'upcoming');
+    buildTitles({ ...input, upcoming }, NOW).find((s) => s.id === 'upcoming');
 
   it('comes last and is titled Sắp ra mắt', () => {
-    const shelves = buildHome(
+    const shelves = buildTitles(
       {
         ...base,
         upcoming: [soon(1, NOW + 1), soon(2, NOW + 2), soon(3, NOW + 3)],
@@ -259,7 +269,7 @@ describe('buildHome upcoming shelf', () => {
     expect(paths(shelf!.items)).toContain(shared.path);
     expect(
       paths(
-        buildHome({ ...base, upcoming: [shared] }, NOW).find(
+        buildTitles({ ...base, upcoming: [shared] }, NOW).find(
           (s) => s.id === 'new-episodes',
         )!.items,
       ),
@@ -336,7 +346,7 @@ describe('buildHome upcoming shelf with MyAnimeList dates', () => {
   });
 
   it('puts an exact moment, a month, a season and a year in order of earliest instant', () => {
-    const shelf = buildHome(
+    const shelf = buildTitles(
       {
         ...base,
         upcoming: [
@@ -353,7 +363,7 @@ describe('buildHome upcoming shelf with MyAnimeList dates', () => {
   });
 
   it('keeps page order between titles that share a sort key', () => {
-    const shelf = buildHome(
+    const shelf = buildTitles(
       {
         ...base,
         upcoming: [
@@ -368,5 +378,170 @@ describe('buildHome upcoming shelf with MyAnimeList dates', () => {
       NOW,
     ).find((s) => s.id === 'upcoming')!;
     expect(paths(shelf.items)).toEqual([1, 2, 3, 4].map((n) => t(n).path));
+  });
+});
+
+describe('buildHome continue shelf', () => {
+  const row = (
+    slug: string,
+    over: Partial<WatchProgressShelfItem> = {},
+  ): WatchProgressShelfItem => ({
+    slug,
+    episodeId: '12',
+    episodeLabel: 'Tập 12',
+    titleName: `Name ${slug}`,
+    image: `/${slug}.jpg`,
+    seasonSlug: null,
+    positionS: 600,
+    durationS: 1440,
+    completed: false,
+    updatedAt: '2026-11-10T10:00:00.000Z',
+    ...over,
+  });
+  const find = (input: HomeInput, id: string) =>
+    buildHome(input).find((s) => s.id === id);
+
+  it('sits directly after the hero and titles itself in Vietnamese', () => {
+    const shelves = buildHome({ ...base, continueRows: [row('a')] });
+    expect(shelves.map((s) => s.id).slice(0, 3)).toEqual([
+      'hero',
+      'continue-watching',
+      'new-episodes',
+    ]);
+    expect(shelves[1]).toMatchObject({
+      kind: 'continue',
+      title: 'Tiếp tục xem',
+    });
+  });
+
+  it('shows with a single row, below the catalog minimum', () => {
+    expect(MIN_SHELF_TITLES).toBeGreaterThan(1);
+    expect(
+      find({ ...base, continueRows: [row('a')] }, 'continue-watching'),
+    ).toBeDefined();
+  });
+
+  it('is absent without rows or with an empty list', () => {
+    expect(find(base, 'continue-watching')).toBeUndefined();
+    expect(
+      find({ ...base, continueRows: [] }, 'continue-watching'),
+    ).toBeUndefined();
+    expect(ids({ ...base, continueRows: [] })).toEqual(ids(base));
+  });
+
+  it('keeps the rows in the order given', () => {
+    const shelf = find(
+      { ...base, continueRows: [row('b'), row('a'), row('c')] },
+      'continue-watching',
+    ) as ContinueShelf;
+    expect(shelf.items.map((i) => i.slug)).toEqual(['b', 'a', 'c']);
+  });
+
+  it('opens an unfinished row at its episode with the fraction watched', () => {
+    const shelf = find(
+      {
+        ...base,
+        continueRows: [row('a', { positionS: 360, durationS: 1440 })],
+      },
+      'continue-watching',
+    ) as ContinueShelf;
+    expect(shelf.items[0]).toEqual({
+      slug: 'a',
+      titleName: 'Name a',
+      image: '/a.jpg',
+      episodeLabel: 'Tập 12',
+      episodeId: '12',
+      state: {
+        kind: 'inProgress',
+        fraction: 0.25,
+        positionS: 360,
+        durationS: 1440,
+      },
+      link: watchLink('a', '12'),
+    });
+  });
+
+  it('opens a finished row at the title alone, so the player resumes at the next episode', () => {
+    const shelf = find(
+      {
+        ...base,
+        continueRows: [row('a', { completed: true, positionS: 1440 })],
+      },
+      'continue-watching',
+    ) as ContinueShelf;
+    expect(shelf.items[0]).toMatchObject({
+      state: { kind: 'finished' },
+      link: { to: '/watch/$slug/{-$episode}', params: { slug: 'a' } },
+    });
+    expect(shelf.items[0]!.link.params.episode).toBeUndefined();
+  });
+
+  it('clamps a position past the end and a zero duration', () => {
+    const shelf = find(
+      {
+        ...base,
+        continueRows: [
+          row('a', { positionS: 2000, durationS: 1440 }),
+          row('b', { positionS: 10, durationS: 0 }),
+        ],
+      },
+      'continue-watching',
+    ) as ContinueShelf;
+    expect(shelf.items.map((i) => i.state)).toMatchObject([
+      { kind: 'inProgress', fraction: 1 },
+      { kind: 'inProgress', fraction: 0 },
+    ]);
+  });
+
+  it('removes a title in the row from every other shelf, matching its slug against the path', () => {
+    const watched = [
+      base.hero[0]!,
+      base.newEpisodes[0]!,
+      base.top[0]!,
+      base.season![0]!,
+    ];
+    const shelves = buildHome({
+      ...base,
+      continueRows: watched.map((title) =>
+        row(title.path.replace(/^\/phim\/|\/$/g, '')),
+      ),
+    });
+    const seen = new Set(watched.map((title) => title.path));
+    const others = shelves.filter((s) => s.kind !== 'continue');
+    expect(others.map((s) => s.id)).toContain('airing-this-season');
+    for (const shelf of others) {
+      expect(shelf.items.filter((i) => seen.has(i.path))).toEqual([]);
+    }
+  });
+
+  it('refills the top 10 and the season shelf after a removal', () => {
+    const top = range(200, 220);
+    const shelves = buildHome({
+      ...base,
+      top,
+      continueRows: [row('t200')],
+    });
+    const topShelf = shelves.find((s) => s.kind === 'top10')!;
+    expect(topShelf.items).toHaveLength(10);
+    expect(topShelf.items[0]).toMatchObject({ path: '/phim/t201/', rank: 1 });
+  });
+
+  it('applies the catalog minimum to the other shelves after the removal', () => {
+    const newEpisodes = range(100, 108);
+    expect(find({ ...base, newEpisodes }, 'new-episodes')).toBeDefined();
+    expect(
+      find(
+        { ...base, newEpisodes, continueRows: [row('t100')] },
+        'new-episodes',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('ignores a slug that matches no title', () => {
+    expect(
+      buildHome({ ...base, continueRows: [row('nobody')] })
+        .filter((s) => s.kind !== 'continue')
+        .map((s) => s.items.length),
+    ).toEqual(buildHome(base).map((s) => s.items.length));
   });
 });

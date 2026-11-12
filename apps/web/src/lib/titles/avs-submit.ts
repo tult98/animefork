@@ -14,6 +14,7 @@ export function avsSubmissions(
   const wanted = new Set(stale);
   const bySlug = new Map<string, AvsSubmission>();
   for (const shelf of shelves) {
+    if (shelf.kind === 'continue') continue;
     for (const title of shelf.items) {
       const slug = titleWatchLink(title).params.slug;
       if (!wanted.has(slug) || bySlug.has(slug)) continue;

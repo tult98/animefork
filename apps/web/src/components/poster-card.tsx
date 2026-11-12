@@ -1,24 +1,13 @@
 import { Link } from '@tanstack/react-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { episodeProgress } from '../lib/titles/episode-progress.ts';
 import { titleWatchLink } from '../lib/titles/link.ts';
 import { releaseInfo } from '../lib/titles/release.ts';
 import type { Title } from '../lib/titles/title.ts';
-import {
-  HOVER_WIDTH,
-  hoverPosition,
-  type Anchor,
-} from '../lib/ui/hover-position.ts';
 import { useDetails } from './details/details-context.tsx';
+import { useHoverPreview } from './use-hover-preview.ts';
 import { Play, ChevronDown, Star } from './ui/icons.ts';
 import { SHIMMER } from './ui/shimmer.ts';
-
-const OPEN_DELAY_MS = 250;
-const NO_HOVER_QUERY = '(hover: none), (pointer: coarse)';
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-const CLOSE_FALLBACK_MS = 300;
-
-type Opening = Anchor & { height: number };
 
 function formatVoters(n: number): string {
   return n >= 1000
@@ -90,97 +79,8 @@ export function PosterCard({
   const isRank = rank !== undefined;
   const [shownAt] = useState(Date.now);
   const details = useDetails();
-  const coverRef = useRef<HTMLButtonElement>(null);
-  const timer = useRef<number | undefined>(undefined);
-  const closeTimer = useRef<number | undefined>(undefined);
-  const [anchor, setAnchor] = useState<Opening | null>(null);
-  const [closing, setClosing] = useState(false);
-
-  useEffect(
-    () => () => {
-      window.clearTimeout(timer.current);
-      window.clearTimeout(closeTimer.current);
-    },
-    [],
-  );
-
-  const closeRef = useRef<() => void>(() => undefined);
-
-  const unmount = () => {
-    window.clearTimeout(closeTimer.current);
-    setClosing(false);
-    setAnchor(null);
-  };
-
-  const close = () => {
-    window.clearTimeout(timer.current);
-    if (!anchor || closing) return;
-    if (window.matchMedia(REDUCED_MOTION_QUERY).matches) {
-      unmount();
-      return;
-    }
-    setClosing(true);
-    closeTimer.current = window.setTimeout(unmount, CLOSE_FALLBACK_MS);
-  };
-
-  useEffect(() => {
-    closeRef.current = close;
-  });
-
-  const isOpen = anchor !== null && !closing;
-  useEffect(() => {
-    if (!isOpen) return;
-    const onScroll = () => closeRef.current();
-    window.addEventListener('scroll', onScroll, {
-      capture: true,
-      passive: true,
-    });
-    return () =>
-      window.removeEventListener('scroll', onScroll, { capture: true });
-  }, [isOpen]);
-
-  const scheduleOpen = () => {
-    if (window.matchMedia(NO_HOVER_QUERY).matches) return;
-    window.clearTimeout(timer.current);
-    if (anchor) {
-      window.clearTimeout(closeTimer.current);
-      setClosing(false);
-      return;
-    }
-    timer.current = window.setTimeout(() => {
-      const rect = coverRef.current?.getBoundingClientRect();
-      if (rect)
-        setAnchor({
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height,
-        });
-    }, OPEN_DELAY_MS);
-  };
-
-  const place = useCallback(
-    (el: HTMLDivElement | null) => {
-      if (!el || !anchor) return;
-      el.style.setProperty('--grow-scale', String(anchor.width / HOVER_WIDTH));
-      const { left, top } = hoverPosition(
-        anchor,
-        { width: window.innerWidth, height: window.innerHeight },
-        el.offsetHeight,
-      );
-      el.style.left = `${left}px`;
-      el.style.top = `${top}px`;
-      const scale = anchor.width / HOVER_WIDTH;
-      const art = el.firstElementChild as HTMLElement;
-      const coverX = anchor.left + anchor.width / 2 - left;
-      const coverY = anchor.top + anchor.height / 2 - top;
-      const originOf = (cover: number, artMid: number) =>
-        scale >= 0.99 ? cover : (cover - scale * artMid) / (1 - scale);
-      el.style.transformOrigin = `${originOf(coverX, HOVER_WIDTH / 2)}px ${originOf(coverY, art.offsetHeight / 2)}px`;
-      el.style.visibility = 'visible';
-    },
-    [anchor],
-  );
+  const { coverRef, open, unmount, wrapperProps, previewProps } =
+    useHoverPreview<HTMLButtonElement>();
 
   const openDetails = () => {
     unmount();
@@ -200,16 +100,7 @@ export function PosterCard({
       className={
         isRank ? 'relative flex w-(--rkslot) justify-end' : 'relative w-full'
       }
-      onMouseEnter={scheduleOpen}
-      onMouseLeave={close}
-      onFocus={scheduleOpen}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
-          close();
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') close();
-      }}
+      {...wrapperProps}
     >
       {isRank ? (
         <span
@@ -265,20 +156,10 @@ export function PosterCard({
           </div>
         </button>
       </div>
-      {anchor ? (
+      {open ? (
         <div
-          ref={place}
+          {...previewProps}
           data-testid={`card:${title.path}:preview`}
-          data-state={closing ? 'closing' : 'open'}
-          style={{ visibility: 'hidden' }}
-          onTransitionEnd={(event) => {
-            if (
-              closing &&
-              event.target === event.currentTarget &&
-              event.propertyName === 'opacity'
-            )
-              unmount();
-          }}
           className="af-hover card-preview fixed top-0 left-0 z-100 w-[340px]"
         >
           <Link
