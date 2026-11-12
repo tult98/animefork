@@ -19,7 +19,10 @@ export default tseslint.config(
   tseslint.configs.recommended,
   reactHooks.configs.flat.recommended,
   {
-    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
+    },
     linterOptions: { reportUnusedDisableDirectives: 'error' },
   },
 );
