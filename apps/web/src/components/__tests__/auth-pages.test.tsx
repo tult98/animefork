@@ -69,6 +69,33 @@ describe('sign in', () => {
     await screen.findByRole('button', { name: 'Tài khoản' });
   });
 
+  it('sends values a password manager wrote straight into the fields', async () => {
+    const stub = stubAuth({ signIn: () => jsonResponse(200, { user }) });
+    await renderApp('/sign-in');
+    await screen.findByRole('heading', { name: 'Đăng nhập' });
+    (emailField() as HTMLInputElement).value = 'mai@example.com';
+    (passwordField() as HTMLInputElement).value = 'correct horse';
+    await submit('Đăng nhập');
+    await waitFor(() => expect(stub.to('signIn')).toHaveLength(1));
+    expect(stub.to('signIn')[0]?.body).toEqual({
+      email: 'mai@example.com',
+      password: 'correct horse',
+    });
+  });
+
+  it('keeps what was typed after a failed attempt', async () => {
+    stubAuth({
+      signIn: () => jsonResponse(401, { error: 'invalid_credentials' }),
+    });
+    await renderApp('/sign-in');
+    await screen.findByRole('heading', { name: 'Đăng nhập' });
+    await fill('mai@example.com', 'wrong horse');
+    await submit('Đăng nhập');
+    await screen.findByRole('alert');
+    expect((emailField() as HTMLInputElement).value).toBe('mai@example.com');
+    expect((passwordField() as HTMLInputElement).value).toBe('wrong horse');
+  });
+
   it('shows the alert and marks both fields when the credentials do not match', async () => {
     stubAuth({
       signIn: () => jsonResponse(401, { error: 'invalid_credentials' }),

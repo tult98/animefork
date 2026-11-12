@@ -26,3 +26,13 @@ export function checkCredentials(
   }
   return { ok: false, issues };
 }
+
+// The fields are uncontrolled so a password manager that fills them without a React-visible input event is not undone by a re-render.
+export function readCredentialFields(form: HTMLFormElement) {
+  const data = new FormData(form);
+  const text = (name: string) => {
+    const value = data.get(name);
+    return typeof value === 'string' ? value : '';
+  };
+  return { email: text('email'), password: text('password') };
+}
