@@ -32,7 +32,7 @@ export const authCopy = {
       title: 'Kiểm tra email của bạn',
       lead: 'Chúng tôi đã gửi liên kết xác nhận tới',
       body: 'Mở email và chọn liên kết để hoàn tất tạo tài khoản. Không thấy? Hãy kiểm tra thư mục spam.',
-      resent: (email: string) => `Chúng tôi đã gửi liên kết mới tới ${email}.`,
+      resent: 'Chúng tôi đã gửi liên kết mới.',
       didntGet: 'Không nhận được?',
       resend: 'Gửi lại email',
       resending: 'Đang gửi lại...',

@@ -221,7 +221,7 @@ describe('sign up', () => {
     await signUpAndWait(stub);
     await submit('Gửi lại email');
     const status = await screen.findByRole('status');
-    expect(status.textContent).toContain('mai@example.com');
+    expect(status.textContent).toContain('liên kết mới');
     expect(stub.to('signUp')).toHaveLength(2);
     expect(stub.to('signUp')[1]?.body).toEqual({
       email: 'mai@example.com',

@@ -32,15 +32,9 @@ export function SignUpSent({
       </div>
       <p className="m-0 text-base/normal text-muted">{copy.body}</p>
       {resent && (
-        <SuccessAlert className="self-stretch justify-center text-center">
-          {copy.resent(email)}
-        </SuccessAlert>
+        <SuccessAlert className="text-left">{copy.resent}</SuccessAlert>
       )}
-      {failure && (
-        <ErrorAlert className="self-stretch justify-center text-center">
-          {failure}
-        </ErrorAlert>
-      )}
+      {failure && <ErrorAlert className="text-left">{failure}</ErrorAlert>}
       <p className="m-0 text-sm text-muted">
         {copy.didntGet}{' '}
         <button
