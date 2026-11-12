@@ -4,8 +4,9 @@ AnimeFork design tokens, vendored from the design system artifact.
 
 - Artifact: https://claude.ai/artifact/Hgi6Qcs23Mafs9iG5dRzgc
 - Version: 1794284548-9ec9
+- `bundle.css` source: the AnimeFork sign in canvas, https://claude.ai/artifact/WoeB9bfGjCgjqao4Y9hrC8, version 1794474279-11b4
 - `tokens.json` sha256: `df89ab041b4546122ba95b84a90dcee089edc30ac4ddf8120b6158fb4afff445`
-- `bundle.css` sha256: `ca2aae8362738774a01d650ea0bf7927fc7d0c0ad3676d2fd5d421f106273614`
+- `bundle.css` sha256: `e54577646c6e9577bfc03d1d6546d20465f23e8c984c1700812fd70a1ed8ed9b`
 
 ## Rules
 
