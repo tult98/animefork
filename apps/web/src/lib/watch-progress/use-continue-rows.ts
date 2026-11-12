@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
-import type { WatchProgressShelfItem } from '../../../../api/src/watch-progress/contract.ts';
+import type {
+  WatchProgressShelfItem,
+  WatchProgressShelfResponse,
+} from '../../../../api/src/watch-progress/contract.ts';
+import { useApiQuery } from '../api/use-api-query.ts';
 import { useSession } from '../auth/session.ts';
-import { fetchContinueRows } from './client.ts';
 
 export const CONTINUE_ROWS_KEY = ['continue-rows'] as const;
 
@@ -14,11 +16,14 @@ export interface ContinueRows {
 export function useContinueRows(): ContinueRows {
   const session = useSession();
   const signedIn = session.state === 'signedIn';
-  const query = useQuery({
-    queryKey: [...CONTINUE_ROWS_KEY, signedIn && session.user.id],
-    queryFn: ({ signal }) => fetchContinueRows(signal),
+  const query = useApiQuery<
+    WatchProgressShelfResponse,
+    WatchProgressShelfItem[]
+  >({
+    key: [...CONTINUE_ROWS_KEY, signedIn && session.user.id],
+    endpoint: '/v1/watch-progress',
+    map: (body) => body.items,
     enabled: signedIn,
-    retry: false,
   });
   return {
     loading: signedIn && query.isLoading,

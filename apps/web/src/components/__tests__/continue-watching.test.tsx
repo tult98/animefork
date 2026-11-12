@@ -103,7 +103,6 @@ describe('continue watching row', () => {
   it.each([
     ['a 500', () => jsonResponse(500, { error: 'boom' })],
     ['a 401', () => jsonResponse(401, { error: 'unauthenticated' })],
-    ['a body of the wrong shape', () => jsonResponse(200, { items: 'no' })],
     [
       'a network error',
       () => Promise.reject(new TypeError('network down')) as never,

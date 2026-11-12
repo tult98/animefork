@@ -10,6 +10,7 @@ import {
   type Credentials,
 } from '../../../../api/src/auth/contract.ts';
 import { z } from 'zod';
+import { apiFetch } from '../api/request.ts';
 
 export type AuthError =
   | { kind: 'invalid_credentials' }
@@ -27,19 +28,12 @@ const OkSchema = z.object({ ok: z.literal(true) });
 
 const NETWORK: AuthError = { kind: 'network' };
 
-function apiUrl(path: string): string | undefined {
-  const base = import.meta.env.VITE_API_URL?.replace(/\/+$/, '');
-  return base ? `${base}${path}` : undefined;
-}
-
 async function send(
   path: string,
   init: RequestInit,
 ): Promise<Response | undefined> {
-  const url = apiUrl(path);
-  if (!url) return undefined;
   try {
-    return await fetch(url, { ...init, credentials: 'include' });
+    return await apiFetch(path, init);
   } catch {
     return undefined;
   }
