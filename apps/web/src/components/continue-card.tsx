@@ -32,7 +32,7 @@ function ProgressBar({
       aria-valuenow={percent}
       aria-valuetext={watchedText(item)}
       data-testid={testId}
-      className={`h-1 overflow-hidden rounded-full bg-progress-track ${className}`}
+      className={`overflow-hidden rounded-full bg-progress-track ${className}`}
     >
       <div
         className="h-full rounded-full bg-brand"
@@ -66,10 +66,11 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
             className="size-full object-cover"
           />
         </Link>
-        <ProgressBar item={item} testId={`${id}:progress`} className="mt-2" />
-        <p className="m-0 mt-1 truncate text-sm/[1.3] text-muted">
-          {item.episodeLabel}
-        </p>
+        <ProgressBar
+          item={item}
+          testId={`${id}:progress`}
+          className="mx-auto mt-2 h-[3px] w-3/5"
+        />
       </div>
       {open ? (
         <div
@@ -109,7 +110,7 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
             <ProgressBar
               item={item}
               testId={`${id}:preview:progress`}
-              className="mb-2"
+              className="mb-2 h-1"
             />
             <p className="m-0 text-sm/[1.3] text-muted">{watchedText(item)}</p>
           </div>

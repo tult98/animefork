@@ -127,7 +127,7 @@ describe('continue watching row', () => {
     expect(screen.queryByTestId(`card:/phim/${KAMUI}/`)).toBeNull();
   });
 
-  it('links an unfinished card straight to its episode, with a bar and the label', async () => {
+  it('links an unfinished card straight to its episode, with a bar and no label under it', async () => {
     await openHome({
       items: [progressRow('alpha', { positionS: 360, durationS: 1440 })],
     });
@@ -137,7 +137,7 @@ describe('continue watching row', () => {
     expect(link.getAttribute('aria-label')).toBe(
       'Phim alpha, Tập 7, 6 / 24 phút',
     );
-    expect(one.textContent).toContain('Tập 7');
+    expect(one.textContent).not.toContain('Tập 7');
     const bar = within(one).getByRole('progressbar');
     expect(bar.getAttribute('aria-valuenow')).toBe('25');
     expect(bar.getAttribute('aria-valuemin')).toBe('0');
@@ -163,7 +163,7 @@ describe('continue watching row', () => {
     const bar = within(one).getByRole('progressbar');
     expect(bar.getAttribute('aria-valuenow')).toBe('100');
     expect(bar.getAttribute('aria-valuetext')).toBe('Đã xem xong');
-    expect(one.textContent).toContain('Tập 7');
+    expect(one.textContent).not.toContain('Tập 7');
   });
 
   it('opens the popover on hover with the title, episode, bar, time and a play link', async () => {
