@@ -4,7 +4,8 @@ import { verifyEmail, type AuthResult } from '../../lib/auth/client.ts';
 import { authCopy } from '../../lib/auth/copy.ts';
 import { ErrorAlert } from '../ui/alert.tsx';
 import { KIND_CLASS, TONE_CLASS } from '../ui/button.tsx';
-import { LoaderCircle } from '../ui/icons.ts';
+import { CircleAlert, CircleCheck, LoaderCircle } from '../ui/icons.ts';
+import { StatusCard } from './status-card.tsx';
 
 type Status = 'verifying' | 'success' | 'invalid' | 'unavailable';
 
@@ -44,32 +45,35 @@ export function VerifyEmailStatus() {
 
   if (status === 'verifying') {
     return (
-      <div className="af-auth-card" role="status">
-        <LoaderCircle aria-hidden="true" className="size-8 animate-spin" />
-        <p className="af-auth-sub">{authCopy.verify.verifying}</p>
-      </div>
+      <StatusCard icon={LoaderCircle} tone="brand" spin role="status">
+        <p className="m-0 text-base/normal text-muted">
+          {authCopy.verify.verifying}
+        </p>
+      </StatusCard>
     );
   }
 
   if (status === 'success') {
     return (
-      <div className="af-auth-card">
+      <StatusCard icon={CircleCheck} tone="success">
         <h1 className="af-auth-title">{authCopy.verify.successTitle}</h1>
-        <p className="af-auth-sub">{authCopy.verify.successBody}</p>
+        <p className="m-0 text-base/normal text-muted">
+          {authCopy.verify.successBody}
+        </p>
         <Link
           to="/sign-in"
-          className={`${KIND_CLASS.rect} ${TONE_CLASS.rect.primary} af-btn--block`}
+          className={`${KIND_CLASS.rect} ${TONE_CLASS.rect.primary} af-btn--block mt-2`}
         >
           {authCopy.verify.toSignIn}
         </Link>
-      </div>
+      </StatusCard>
     );
   }
 
   return (
-    <div className="af-auth-card">
+    <StatusCard icon={CircleAlert} tone="error">
       <h1 className="af-auth-title">{authCopy.verify.failedTitle}</h1>
-      <ErrorAlert>
+      <ErrorAlert className="self-stretch text-left">
         {status === 'invalid'
           ? authCopy.verify.failedBody
           : authCopy.verify.retryBody}
@@ -77,6 +81,6 @@ export function VerifyEmailStatus() {
       <Link to="/sign-up" className="af-link font-semibold">
         {authCopy.verify.toSignUp}
       </Link>
-    </div>
+    </StatusCard>
   );
 }

@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
+import type { Credentials } from '../../../../api/src/auth/contract.ts';
 import { signUp } from '../../lib/auth/client.ts';
 import {
   checkCredentials,
@@ -11,6 +12,7 @@ import { ErrorAlert } from '../ui/alert.tsx';
 import { Button } from '../ui/button.tsx';
 import { Input } from '../ui/input.tsx';
 import { PasswordInput } from '../ui/password-input.tsx';
+import { SignUpSent } from './sign-up-sent.tsx';
 import { useSubmitOnce } from './use-submit-once.ts';
 
 const HINT_ID = 'password-hint';
@@ -26,7 +28,8 @@ export function SignUpForm() {
   const [password, setPassword] = useState('');
   const [issues, setIssues] = useState<CredentialIssues>({});
   const [failure, setFailure] = useState<string | null>(null);
-  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [sent, setSent] = useState<Credentials | null>(null);
+  const [resent, setResent] = useState(false);
   const { pending, run } = useSubmitOnce();
 
   const onSubmit = (event: FormEvent) => {
@@ -40,23 +43,39 @@ export function SignUpForm() {
       }
       setIssues({});
       const result = await signUp(checked.credentials);
-      if (result.ok) setSentTo(checked.credentials.email);
+      if (result.ok) setSent(checked.credentials);
       else setFailure(authErrorMessage(result.error));
     });
   };
 
-  if (sentTo !== null) {
+  // The API has no resend route, so a new link comes from signing up again with the same credentials.
+  const onResend = () => {
+    if (!sent) return;
+    void run(async () => {
+      setFailure(null);
+      setResent(false);
+      const result = await signUp(sent);
+      if (result.ok) setResent(true);
+      else setFailure(authErrorMessage(result.error));
+    });
+  };
+
+  const onChangeEmail = () => {
+    setSent(null);
+    setResent(false);
+    setFailure(null);
+  };
+
+  if (sent !== null) {
     return (
-      <div className="af-auth-card">
-        <h1 className="af-auth-title">{authCopy.signUp.sent.title}</h1>
-        <p className="af-auth-sub">{authCopy.signUp.sent.body(sentTo)}</p>
-        <p className="m-0 text-base/normal text-muted">
-          {authCopy.signUp.sent.noMail}
-        </p>
-        <Link to="/sign-in" className="af-link font-semibold">
-          {authCopy.signUp.sent.toSignIn}
-        </Link>
-      </div>
+      <SignUpSent
+        email={sent.email}
+        resent={resent}
+        failure={failure}
+        resending={pending}
+        onResend={onResend}
+        onChangeEmail={onChangeEmail}
+      />
     );
   }
 

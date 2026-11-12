@@ -30,10 +30,13 @@ export const authCopy = {
     toSignIn: 'Đăng nhập',
     sent: {
       title: 'Kiểm tra email của bạn',
-      body: (email: string) =>
-        `Chúng tôi đã gửi liên kết xác nhận tới ${email}. Mở thư và bấm vào liên kết để hoàn tất đăng ký.`,
-      noMail:
-        'Chưa thấy thư? Hãy kiểm tra thư mục spam, hoặc đăng ký lại để nhận liên kết mới.',
+      lead: 'Chúng tôi đã gửi liên kết xác nhận tới',
+      body: 'Mở email và chọn liên kết để hoàn tất tạo tài khoản. Không thấy? Hãy kiểm tra thư mục spam.',
+      resent: (email: string) => `Chúng tôi đã gửi liên kết mới tới ${email}.`,
+      didntGet: 'Không nhận được?',
+      resend: 'Gửi lại email',
+      resending: 'Đang gửi lại...',
+      differentEmail: 'Dùng email khác',
       toSignIn: 'Về trang đăng nhập',
     },
   },

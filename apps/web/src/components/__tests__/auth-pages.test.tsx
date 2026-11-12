@@ -197,7 +197,7 @@ describe('sign up', () => {
     });
     expect(title.parentElement?.textContent).toContain('mai@example.com');
     expect(screen.queryByLabelText('Mật khẩu mới')).toBeNull();
-    expect(screen.getByText(/đăng ký lại/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Gửi lại email' })).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Về trang đăng nhập' }),
     ).toHaveProperty('pathname', '/sign-in');
@@ -205,6 +205,52 @@ describe('sign up', () => {
       email: 'mai@example.com',
       password: 'correct horse',
     });
+  });
+
+  async function signUpAndWait(stub: ReturnType<typeof stubAuth>) {
+    await renderApp('/sign-up');
+    await screen.findByRole('heading', { name: 'Tạo tài khoản' });
+    await fill('Mai@Example.com', 'correct horse', 'Mật khẩu mới');
+    await submit('Tạo tài khoản');
+    await screen.findByRole('heading', { name: 'Kiểm tra email của bạn' });
+    expect(stub.to('signUp')).toHaveLength(1);
+  }
+
+  it('resends the link by signing up again with the same credentials', async () => {
+    const stub = stubAuth({ signUp: () => jsonResponse(202, { ok: true }) });
+    await signUpAndWait(stub);
+    await submit('Gửi lại email');
+    const status = await screen.findByRole('status');
+    expect(status.textContent).toContain('mai@example.com');
+    expect(stub.to('signUp')).toHaveLength(2);
+    expect(stub.to('signUp')[1]?.body).toEqual({
+      email: 'mai@example.com',
+      password: 'correct horse',
+    });
+  });
+
+  it('shows the failure when a resend is rate limited', async () => {
+    let calls = 0;
+    const stub = stubAuth({
+      signUp: () =>
+        ++calls === 1
+          ? jsonResponse(202, { ok: true })
+          : jsonResponse(429, { error: 'rate_limited' }),
+    });
+    await signUpAndWait(stub);
+    await submit('Gửi lại email');
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'quá nhiều',
+    );
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('goes back to the form with the email kept to use a different one', async () => {
+    const stub = stubAuth({ signUp: () => jsonResponse(202, { ok: true }) });
+    await signUpAndWait(stub);
+    await submit('Dùng email khác');
+    await screen.findByRole('heading', { name: 'Tạo tài khoản' });
+    expect((emailField() as HTMLInputElement).value).toBe('Mai@Example.com');
   });
 
   it('flags a short password on the field without a request', async () => {
