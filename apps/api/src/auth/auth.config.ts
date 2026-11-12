@@ -11,6 +11,7 @@ export interface AuthConfig {
   cookieSecure: boolean;
   webBaseUrl: string | undefined;
   mailFrom: string;
+  resendApiKey: string | undefined;
 }
 
 const blankIsUnset = (value: unknown) => (value === '' ? undefined : value);
@@ -24,6 +25,7 @@ const AuthEnvSchema = z.object({
   WEB_BASE_URL: z.preprocess(blankIsUnset, z.url().optional()),
   ALLOWED_ORIGINS: z.string().optional(),
   MAIL_FROM: z.preprocess(blankIsUnset, z.string().default(DEFAULT_MAIL_FROM)),
+  RESEND_API_KEY: z.preprocess(blankIsUnset, z.string().optional()),
 });
 
 export function loadAuthConfig(env: Env): AuthConfig {
@@ -33,5 +35,6 @@ export function loadAuthConfig(env: Env): AuthConfig {
     cookieSecure: values.COOKIE_SECURE !== '0',
     webBaseUrl: values.WEB_BASE_URL ?? parseOrigins(values.ALLOWED_ORIGINS)[0],
     mailFrom: values.MAIL_FROM,
+    resendApiKey: values.RESEND_API_KEY,
   };
 }

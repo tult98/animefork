@@ -38,6 +38,7 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-1}
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
       MAIL_FROM: ${MAIL_FROM:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
 
   edge:
     build:

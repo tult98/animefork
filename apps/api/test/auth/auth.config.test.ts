@@ -3,7 +3,7 @@ import {
   DEFAULT_MAIL_FROM,
   loadAuthConfig,
 } from '../../src/auth/auth.config.ts';
-import { createMailer, LogMailer } from '../../src/auth/mailer.ts';
+import { createMailer, LogMailer, ResendMailer } from '../../src/auth/mailer.ts';
 
 describe('loadAuthConfig', () => {
   it('defaults to a 30 day session, a Secure cookie and the first allowed origin', () => {
@@ -14,6 +14,7 @@ describe('loadAuthConfig', () => {
       cookieSecure: true,
       webBaseUrl: 'https://a.test',
       mailFrom: DEFAULT_MAIL_FROM,
+      resendApiKey: undefined,
     });
   });
 
@@ -25,12 +26,14 @@ describe('loadAuthConfig', () => {
         SESSION_TTL_DAYS: '7',
         COOKIE_SECURE: '0',
         MAIL_FROM: 'Me <me@web.test>',
+        RESEND_API_KEY: 're_test',
       }),
     ).toEqual({
       sessionTtlDays: 7,
       cookieSecure: false,
       webBaseUrl: 'https://web.test',
       mailFrom: 'Me <me@web.test>',
+      resendApiKey: 're_test',
     });
   });
 
@@ -41,12 +44,14 @@ describe('loadAuthConfig', () => {
         COOKIE_SECURE: '',
         WEB_BASE_URL: '',
         MAIL_FROM: '',
+        RESEND_API_KEY: '',
       }),
     ).toEqual({
       sessionTtlDays: 30,
       cookieSecure: true,
       webBaseUrl: undefined,
       mailFrom: DEFAULT_MAIL_FROM,
+      resendApiKey: undefined,
     });
   });
 
@@ -61,5 +66,11 @@ describe('loadAuthConfig', () => {
 
   it('logs mail by default', () => {
     expect(createMailer(loadAuthConfig({}))).toBeInstanceOf(LogMailer);
+  });
+
+  it('sends through Resend when a key is set', () => {
+    expect(
+      createMailer(loadAuthConfig({ RESEND_API_KEY: 're_test' })),
+    ).toBeInstanceOf(ResendMailer);
   });
 });
