@@ -41,6 +41,10 @@ describe('resumePoint', () => {
     });
   });
 
+  it('has nothing to resume on a page without episodes', () => {
+    expect(resumePoint([], [row('1', 5)])).toBeUndefined();
+  });
+
   it('ignores rows for episodes that are not on the page', () => {
     expect(resumePoint(episodes, [row('2', 100), row('99', 500)])).toEqual({
       episodeId: '2',

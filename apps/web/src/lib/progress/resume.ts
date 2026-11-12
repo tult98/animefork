@@ -25,17 +25,17 @@ export function startPosition(
 export function resumePoint(
   episodes: { id: string }[],
   rows: WatchProgressEpisode[],
-): ResumePoint {
+): ResumePoint | undefined {
+  const first = episodes[0];
+  if (!first) return undefined;
   const byEpisode = new Map(rows.map((row) => [row.episodeId, row]));
-  let last = -1;
-  episodes.forEach((episode, index) => {
-    if (byEpisode.has(episode.id)) last = index;
-  });
-  const row = last >= 0 ? byEpisode.get(episodes[last].id) : undefined;
-  if (!row) return { episodeId: episodes[0].id, positionS: 0 };
-  if (!row.completed) {
-    return { episodeId: row.episodeId, positionS: row.positionS };
+  for (let index = episodes.length - 1; index >= 0; index--) {
+    const row = byEpisode.get(episodes[index]?.id ?? '');
+    if (!row) continue;
+    if (!row.completed) {
+      return { episodeId: row.episodeId, positionS: row.positionS };
+    }
+    return { episodeId: (episodes[index + 1] ?? first).id, positionS: 0 };
   }
-  const next = episodes[last + 1] ?? episodes[0];
-  return { episodeId: next.id, positionS: 0 };
+  return { episodeId: first.id, positionS: 0 };
 }
