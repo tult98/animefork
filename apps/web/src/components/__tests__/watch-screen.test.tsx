@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ArtEntry } from '../../../../api/src/art/contract.ts';
 import type { FixtureOverride } from '../../test/fixture-fetch.ts';
 import { advance, withFakeClock } from '../../test/clock.ts';
@@ -216,6 +216,73 @@ describe('the watch screen', () => {
         expect(img(3)!.getAttribute('src')).toBe(`${TMDB}/w300/e3.jpg`),
       );
       expect(bodies).toHaveLength(2);
+    });
+  });
+
+  describe('keyboard shortcuts', () => {
+    // jsdom has no media engine, so the element reports what the test says and the test reads what it was asked.
+    async function openPlayer() {
+      await openWatch();
+      const video = screen.getByTestId('player:video') as HTMLVideoElement;
+      const media = { paused: true, time: 100 };
+      Object.defineProperties(video, {
+        paused: { get: () => media.paused, configurable: true },
+        currentTime: {
+          get: () => media.time,
+          set: (value: number) => (media.time = value),
+          configurable: true,
+        },
+      });
+      const play = vi.fn(() => Promise.resolve());
+      const pause = vi.fn();
+      video.play = play;
+      video.pause = pause;
+      return { media, play, pause };
+    }
+
+    it('toggles playback on Space', async () => {
+      const { media, play, pause } = await openPlayer();
+      await userEvent.keyboard(' ');
+      expect(play).toHaveBeenCalledTimes(1);
+      media.paused = false;
+      await userEvent.keyboard(' ');
+      expect(pause).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips five seconds on ArrowRight', async () => {
+      const { media } = await openPlayer();
+      await userEvent.keyboard('{ArrowRight}');
+      expect(media.time).toBe(105);
+      await userEvent.keyboard('{ArrowLeft}{ArrowLeft}');
+      expect(media.time).toBe(95);
+    });
+
+    it('leaves a range input its own arrow and Space keys', async () => {
+      const { media, play } = await openPlayer();
+      screen.getByTestId('player:volume').focus();
+      await userEvent.keyboard('{ArrowRight} ');
+      expect(media.time).toBe(100);
+      expect(play).not.toHaveBeenCalled();
+    });
+
+    it('toggles once when Space activates a focused button', async () => {
+      const { play } = await openPlayer();
+      const button = screen.getByTestId('player:play');
+      button.focus();
+      // userEvent drops the click when keydown is prevented, so an untouched keydown is what shows the
+      // shortcut stood aside for the button's own activation.
+      expect(fireEvent.keyDown(button, { key: ' ' })).toBe(true);
+      expect(play).not.toHaveBeenCalled();
+      await userEvent.keyboard(' ');
+      expect(play).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops listening once the player is gone', async () => {
+      const { play } = await openPlayer();
+      await userEvent.click(screen.getByTestId('player:back'));
+      await waitFor(() => expect(screen.queryByTestId('player')).toBeNull());
+      await userEvent.keyboard(' ');
+      expect(play).not.toHaveBeenCalled();
     });
   });
 });

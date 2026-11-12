@@ -1,7 +1,7 @@
 import { useEffect, useState, type RefObject } from 'react';
 
 const IDLE_MS = 3000;
-const WAKE_EVENTS = ['pointermove', 'pointerdown', 'keydown'] as const;
+const WAKE_EVENTS = ['pointermove', 'pointerdown'] as const;
 const HOLD_SELECTOR =
   '.pl-bar:hover, .pl-pw[data-open="true"], .pl-bar :focus-visible';
 
@@ -32,9 +32,12 @@ export function useIdle(
 
     arm();
     for (const name of WAKE_EVENTS) root.addEventListener(name, wake);
+    // On the document, so a shortcut pressed while focus is on the body still wakes the controls.
+    document.addEventListener('keydown', wake);
     return () => {
       window.clearTimeout(timer);
       for (const name of WAKE_EVENTS) root.removeEventListener(name, wake);
+      document.removeEventListener('keydown', wake);
       setIdle(false);
     };
   }, [target, enabled]);
