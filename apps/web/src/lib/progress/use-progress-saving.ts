@@ -4,11 +4,21 @@ import {
   MAX_EPISODE_LABEL_LENGTH,
   MAX_IMAGE_LENGTH,
   MAX_TITLE_NAME_LENGTH,
+  type WatchProgressEpisode,
 } from '../../../../api/src/watch-progress/contract.ts';
 import { SESSION_KEY, useSession } from '../auth/session.ts';
 import { saveProgress } from './client.ts';
 import { createSaver, type Snapshot } from './saver.ts';
 import { progressKey } from './use-progress.ts';
+
+function mergeRow(
+  rows: WatchProgressEpisode[],
+  row: WatchProgressEpisode,
+): WatchProgressEpisode[] {
+  return rows.some((r) => r.episodeId === row.episodeId)
+    ? rows.map((r) => (r.episodeId === row.episodeId ? row : r))
+    : [...rows, row];
+}
 
 export interface ProgressTarget {
   slug: string;
@@ -53,8 +63,12 @@ export function useProgressSaving(
       },
       read: () => (ready ? snapshot : null),
       send: saveProgress,
-      onSaved: () =>
-        void queryClient.invalidateQueries({ queryKey: progressKey(slug) }),
+      // The save answers with the stored row, so the cache takes it as is and nothing is refetched.
+      onSaved: (row) =>
+        queryClient.setQueryData<WatchProgressEpisode[]>(
+          progressKey(slug),
+          (rows) => rows && mergeRow(rows, row),
+        ),
       // A 401 means the session is gone: the session query decides what every other consumer shows.
       onUnauthorized: () =>
         void queryClient.invalidateQueries({ queryKey: SESSION_KEY }),

@@ -1,4 +1,7 @@
-import type { SaveWatchProgressRequest } from '../../../../api/src/watch-progress/contract.ts';
+import type {
+  SaveWatchProgressRequest,
+  WatchProgressEpisode,
+} from '../../../../api/src/watch-progress/contract.ts';
 import type { SaveOutcome } from './client.ts';
 
 export const SAVE_INTERVAL_MS = 15_000;
@@ -21,7 +24,7 @@ interface SaverOptions {
     body: SaveWatchProgressRequest,
     options: { keepalive: boolean },
   ) => Promise<SaveOutcome>;
-  onSaved?: () => void;
+  onSaved?: (row: WatchProgressEpisode) => void;
   onUnauthorized?: () => void;
   intervalMs?: number;
 }
@@ -43,13 +46,13 @@ export function createSaver(options: SaverOptions) {
       const { body, keepalive } = pending;
       pending = null;
       const outcome = await send(body, { keepalive });
-      if (outcome === 'unauthorized') {
+      if (outcome.kind === 'unauthorized') {
         stopped = true;
         pending = null;
         stopTimer();
         options.onUnauthorized?.();
-      } else if (outcome === 'saved') {
-        options.onSaved?.();
+      } else if (outcome.kind === 'saved') {
+        options.onSaved?.(outcome.row);
       }
     }
     inFlight = false;

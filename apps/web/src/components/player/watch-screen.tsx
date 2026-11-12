@@ -55,7 +55,7 @@ export function WatchScreen({
   );
   const latestRows = slugRows.status === 'ready' ? slugRows.rows : [];
   // Where to resume is decided once per title, from the rows as they were on arrival. The saves made while
-  // watching refresh the query, and a later answer must not move the viewer to another episode mid-playback.
+  // watching update the cached rows, and a later answer must not move the viewer to another episode mid-playback.
   const [snapshot, setSnapshot] = useState<{
     slug: string;
     rows: WatchProgressEpisode[];

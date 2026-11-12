@@ -16,6 +16,12 @@ function setup(initial: Snapshot | null = { positionS: 10, durationS: 1400 }) {
   let snapshot = initial;
   const sent: { body: SaveWatchProgressRequest; keepalive: boolean }[] = [];
   const gates: ((outcome: SaveOutcome) => void)[] = [];
+  const row = {
+    episodeId: '12',
+    positionS: 10,
+    durationS: 1400,
+    completed: false,
+  };
   const send = vi.fn(
     (body: SaveWatchProgressRequest, options: { keepalive: boolean }) => {
       sent.push({ body, keepalive: options.keepalive });
@@ -23,10 +29,12 @@ function setup(initial: Snapshot | null = { positionS: 10, durationS: 1400 }) {
     },
   );
   const onUnauthorized = vi.fn();
+  const onSaved = vi.fn();
   const saver = createSaver({
     meta,
     read: () => snapshot,
     send,
+    onSaved,
     onUnauthorized,
   });
   return {
@@ -34,7 +42,10 @@ function setup(initial: Snapshot | null = { positionS: 10, durationS: 1400 }) {
     sent,
     send,
     onUnauthorized,
-    settle: (outcome: SaveOutcome = 'saved') => gates.shift()?.(outcome),
+    onSaved,
+    row,
+    settle: (kind: SaveOutcome['kind'] = 'saved') =>
+      gates.shift()?.(kind === 'saved' ? { kind, row } : { kind }),
     at: (next: Snapshot | null) => (snapshot = next),
   };
 }
@@ -89,6 +100,20 @@ describe('the progress saver', () => {
     t.settle();
     await flush();
     expect(t.sent).toHaveLength(2);
+  });
+
+  it('hands the stored row to onSaved only for a saved outcome', async () => {
+    const t = setup();
+    t.saver.save();
+    await flush();
+    t.settle('failed');
+    await flush();
+    expect(t.onSaved).not.toHaveBeenCalled();
+    t.saver.save();
+    await flush();
+    t.settle();
+    await flush();
+    expect(t.onSaved).toHaveBeenCalledExactlyOnceWith(t.row);
   });
 
   it('never sends an older position after a newer one', async () => {

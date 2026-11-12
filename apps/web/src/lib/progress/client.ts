@@ -1,4 +1,5 @@
 import {
+  SaveWatchProgressResponseSchema,
   WatchProgressEpisodesResponseSchema,
   watchProgressSlugPath,
   WATCH_PROGRESS_PATH,
@@ -6,7 +7,12 @@ import {
   type WatchProgressEpisode,
 } from '../../../../api/src/watch-progress/contract.ts';
 
-export type SaveOutcome = 'saved' | 'unauthorized' | 'failed';
+export type SaveOutcome =
+  | { kind: 'saved'; row: WatchProgressEpisode }
+  | { kind: 'unauthorized' }
+  | { kind: 'failed' };
+
+const FAILED: SaveOutcome = { kind: 'failed' };
 
 function apiUrl(path: string): string | undefined {
   const base = import.meta.env.VITE_API_URL?.replace(/\/+$/, '');
@@ -18,7 +24,7 @@ export async function saveProgress(
   { keepalive = false }: { keepalive?: boolean } = {},
 ): Promise<SaveOutcome> {
   const url = apiUrl(WATCH_PROGRESS_PATH);
-  if (!url) return 'failed';
+  if (!url) return FAILED;
   try {
     const response = await fetch(url, {
       method: 'PUT',
@@ -27,10 +33,14 @@ export async function saveProgress(
       body: JSON.stringify(body),
       keepalive,
     });
-    if (response.status === 401) return 'unauthorized';
-    return response.status === 204 ? 'saved' : 'failed';
+    if (response.status === 401) return { kind: 'unauthorized' };
+    if (response.status !== 200) return FAILED;
+    const parsed = SaveWatchProgressResponseSchema.safeParse(
+      await response.json(),
+    );
+    return parsed.success ? { kind: 'saved', row: parsed.data } : FAILED;
   } catch {
-    return 'failed';
+    return FAILED;
   }
 }
 

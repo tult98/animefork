@@ -2,8 +2,13 @@ import { vi } from 'vitest';
 import {
   WATCH_PROGRESS_PATH,
   type SaveWatchProgressRequest,
+  type SaveWatchProgressResponse,
   type WatchProgressEpisode,
 } from '../../../api/src/watch-progress/contract.ts';
+import {
+  clampPosition,
+  isCompleted,
+} from '../../../api/src/watch-progress/watch-progress.ts';
 import { API, jsonResponse } from './auth-stub.ts';
 
 export interface ProgressStubOptions {
@@ -13,11 +18,23 @@ export interface ProgressStubOptions {
   rowsStatus?: number;
   /** Row reads answer only once this settles. */
   gate?: Promise<void>;
-  /** Answers a save; the default is 204. */
+  /** Answers a save; the default is 200 with the row the real API would store. */
   put?: (
     body: SaveWatchProgressRequest,
     call: number,
   ) => Response | Promise<Response>;
+}
+
+export function storedRow(
+  body: SaveWatchProgressRequest,
+): SaveWatchProgressResponse {
+  const positionS = clampPosition(body.positionS, body.durationS);
+  return {
+    episodeId: body.episodeId,
+    positionS,
+    durationS: body.durationS,
+    completed: isCompleted(positionS, body.durationS),
+  };
 }
 
 // Call after stubAuth(): it answers the watch-progress routes and hands every other request to the fetch it replaces.
@@ -25,7 +42,7 @@ export function stubProgress({
   rows = {},
   rowsStatus,
   gate,
-  put = () => new Response(null, { status: 204 }),
+  put = (body) => jsonResponse(200, storedRow(body)),
 }: ProgressStubOptions = {}) {
   const previous = globalThis.fetch;
   const saves: { body: SaveWatchProgressRequest; init: RequestInit }[] = [];

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { advance, withFakeClock } from '../../test/clock.ts';
 import { jsonResponse, stubAuth, user } from '../../test/auth-stub.ts';
 import {
+  storedRow,
   stubProgress,
   type ProgressStubOptions,
 } from '../../test/progress-stub.ts';
@@ -170,9 +171,9 @@ describe('saving watch progress from the player', () => {
     let release: () => void = () => undefined;
     const gate = new Promise<void>((resolve) => (release = resolve));
     const t = await openSignedIn(`/watch/${SLUG}`, {
-      put: async (_body, call) => {
+      put: async (body, call) => {
         if (call === 1) await gate;
-        return new Response(null, { status: 204 });
+        return jsonResponse(200, storedRow(body));
       },
     });
     await t.canplay();
@@ -339,15 +340,19 @@ describe('resuming', () => {
   });
 
   it('does not move to another episode when the rows change while watching', async () => {
-    const rows = { [SLUG]: [row(EPISODES[2] ?? '', 300)] };
-    const t = await openSignedIn(`/watch/${SLUG}`, { rows });
+    const t = await openSignedIn(`/watch/${SLUG}`, {
+      rows: { [SLUG]: [row(EPISODES[2] ?? '', 300)] },
+    });
     await waitFor(() => expect(label()).toBe('Tập 3'));
     await t.canplay();
     t.play();
-    t.tick(400);
-    rows[SLUG] = [row(EPISODES[2] ?? '', 1390, true)];
+    t.tick(1390);
     t.pause();
-    await waitFor(() => expect(t.reads.length).toBeGreaterThan(1));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('episode:3').getAttribute('data-progress'),
+      ).toBe('watched'),
+    );
     await advance(1_000);
     expect(label()).toBe('Tập 3');
   });
@@ -421,5 +426,71 @@ describe('episode states in the episodes panel', () => {
           .style.width,
       ).toBe('50%'),
     );
+  });
+});
+
+describe('the rows after a save', () => {
+  withFakeClock();
+
+  const state = (n: number) =>
+    screen.getByTestId(`episode:${n}`).getAttribute('data-progress');
+
+  it('shows the saved state in the panel without reading the rows again', async () => {
+    const t = await openSignedIn(`/watch/${SLUG}/${EPISODES[1]}`, {
+      rows: { [SLUG]: [row(EPISODES[0] ?? '', 1390, true)] },
+    });
+    await waitFor(() => expect(state(1)).toBe('watched'));
+    expect(state(2)).toBe('unwatched');
+    expect(t.reads).toEqual([SLUG]);
+
+    await t.canplay();
+    t.play();
+    t.tick(350);
+    t.pause();
+    await waitFor(() => expect(state(2)).toBe('inProgress'));
+    t.tick(1390);
+    t.pause();
+    await waitFor(() => expect(state(2)).toBe('watched'));
+    expect(state(1)).toBe('watched');
+    expect(t.reads).toEqual([SLUG]);
+  });
+
+  it('leaves the cache alone when the rows never loaded', async () => {
+    const t = await openSignedIn(`/watch/${SLUG}`, { rowsStatus: 500 });
+    await t.canplay();
+    t.play();
+    t.tick(100);
+    t.pause();
+    await waitFor(() => expect(t.saves).toHaveLength(1));
+    await advance(1_000);
+    expect(state(1)).toBe('unwatched');
+    expect(t.reads).toEqual([SLUG]);
+  });
+
+  const pick = (n: number) => {
+    act(() => screen.getByTestId(`episode:${n}:toggle`).click());
+    act(() => screen.getByTestId(`episode:${n}:play`).click());
+  };
+
+  it('resumes a re-picked episode from the cached save, not the first answer', async () => {
+    const t = await openSignedIn(`/watch/${SLUG}`, {
+      rows: { [SLUG]: [row(EPISODES[0] ?? '', 50)] },
+    });
+    await t.canplay();
+    t.play();
+    t.tick(600);
+    t.pause();
+    await waitFor(() => expect(state(1)).toBe('inProgress'));
+    pick(2);
+    await waitFor(() => expect(label()).toBe('Tập 2'));
+    pick(1);
+    await waitFor(() => expect(label()).toBe('Tập 1_BD_Full'));
+    const video = (await screen.findByTestId(
+      'player:video',
+    )) as HTMLVideoElement;
+    const next = drive(video, { duration: 1400, time: 0, paused: true });
+    await next.canplay();
+    expect(next.media.time).toBe(595);
+    expect(t.reads).toEqual([SLUG]);
   });
 });

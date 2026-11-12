@@ -22,10 +22,20 @@ const respond = (status: number, json?: unknown) =>
 describe('watch progress client', () => {
   beforeEach(() => void vi.stubEnv('VITE_API_URL', 'https://api.test/'));
 
-  it('PUTs the body with the session cookie', async () => {
-    const fetchMock = respond(204);
+  const stored = {
+    episodeId: '12',
+    positionS: 10,
+    durationS: 1400,
+    completed: false,
+  };
+
+  it('PUTs the body with the session cookie and returns the stored row', async () => {
+    const fetchMock = respond(200, stored);
     vi.stubGlobal('fetch', fetchMock);
-    expect(await saveProgress(body, { keepalive: true })).toBe('saved');
+    expect(await saveProgress(body, { keepalive: true })).toEqual({
+      kind: 'saved',
+      row: stored,
+    });
     const [url, init] = fetchMock.mock.calls[0] as unknown as [
       string,
       RequestInit,
@@ -41,20 +51,29 @@ describe('watch progress client', () => {
 
   it('tells a 401 apart from other failures', async () => {
     vi.stubGlobal('fetch', respond(401));
-    expect(await saveProgress(body)).toBe('unauthorized');
+    expect(await saveProgress(body)).toEqual({ kind: 'unauthorized' });
     vi.stubGlobal('fetch', respond(500));
-    expect(await saveProgress(body)).toBe('failed');
+    expect(await saveProgress(body)).toEqual({ kind: 'failed' });
     vi.stubGlobal('fetch', async () =>
       Promise.reject(new TypeError('offline')),
     );
-    expect(await saveProgress(body)).toBe('failed');
+    expect(await saveProgress(body)).toEqual({ kind: 'failed' });
+  });
+
+  it('fails on a 200 whose body is not a stored row', async () => {
+    vi.stubGlobal('fetch', respond(200, { episodeId: 12 }));
+    expect(await saveProgress(body)).toEqual({ kind: 'failed' });
+    vi.stubGlobal('fetch', respond(200));
+    expect(await saveProgress(body)).toEqual({ kind: 'failed' });
+    vi.stubGlobal('fetch', respond(204));
+    expect(await saveProgress(body)).toEqual({ kind: 'failed' });
   });
 
   it('does not call out without VITE_API_URL', async () => {
     vi.stubEnv('VITE_API_URL', '');
-    const fetchMock = respond(204);
+    const fetchMock = respond(200, stored);
     vi.stubGlobal('fetch', fetchMock);
-    expect(await saveProgress(body)).toBe('failed');
+    expect(await saveProgress(body)).toEqual({ kind: 'failed' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
