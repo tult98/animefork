@@ -5,6 +5,7 @@ import {
   createRouter,
 } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
+import { Fragment, StrictMode } from 'react';
 import { ReplayPlayerSource } from '../lib/player/replay-player-source.ts';
 import { PlayerSourceProvider } from '../lib/player/context.tsx';
 import { routeTree } from '../routeTree.gen.ts';
@@ -21,7 +22,12 @@ export async function renderApp(
   {
     overrides = [],
     fixtures = 'default',
-  }: { overrides?: FixtureOverride[]; fixtures?: string } = {},
+    strict = false,
+  }: {
+    overrides?: FixtureOverride[];
+    fixtures?: string;
+    strict?: boolean;
+  } = {},
 ): Promise<RenderedApp> {
   const transport = new ReplayTransport({
     baseUrl: `/fixtures/${fixtures}`,
@@ -34,14 +40,17 @@ export async function renderApp(
     routeTree,
     history: createMemoryHistory({ initialEntries: [path] }),
   });
+  const Wrapper = strict ? StrictMode : Fragment;
   render(
-    <TransportProvider transport={transport}>
-      <PlayerSourceProvider source={new ReplayPlayerSource('mp4')}>
-        <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-        </QueryClientProvider>
-      </PlayerSourceProvider>
-    </TransportProvider>,
+    <Wrapper>
+      <TransportProvider transport={transport}>
+        <PlayerSourceProvider source={new ReplayPlayerSource('mp4')}>
+          <QueryClientProvider client={queryClient}>
+            <RouterProvider router={router} />
+          </QueryClientProvider>
+        </PlayerSourceProvider>
+      </TransportProvider>
+    </Wrapper>,
   );
   return { router };
 }
