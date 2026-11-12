@@ -1,6 +1,5 @@
 import {
   AuthErrorCodeSchema,
-  ME_PATH,
   SIGN_IN_PATH,
   SIGN_OUT_PATH,
   SIGN_UP_PATH,
@@ -147,14 +146,4 @@ export async function signOut(): Promise<AuthResult<null>> {
   return response.status === 204
     ? { ok: true, data: null }
     : { ok: false, error: await failure(response, []) };
-}
-
-// A 401, an unreachable API and an unset VITE_API_URL all mean there is no session to show.
-export async function me(signal?: AbortSignal): Promise<AuthUser | null> {
-  const response = await send(ME_PATH, { signal });
-  if (response?.status !== 200) return null;
-  const body = UserResponseSchema.safeParse(
-    await response.json().catch(() => null),
-  );
-  return body.success ? body.data.user : null;
 }

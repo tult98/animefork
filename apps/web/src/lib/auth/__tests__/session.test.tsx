@@ -6,13 +6,18 @@ import { describe, expect, it } from 'vitest';
 import { jsonResponse, stubAuth, user } from '../../../test/auth-stub.ts';
 import { useSession, useSessionActions } from '../session.ts';
 
-function setup() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  const wrapper = ({ children }: { children: ReactNode }) => (
+function wrapperFor(queryClient: QueryClient) {
+  return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
+}
+
+function newClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false } } });
+}
+
+function setup() {
+  const wrapper = wrapperFor(newClient());
   return renderHook(
     () => ({ session: useSession(), actions: useSessionActions() }),
     { wrapper },
@@ -42,6 +47,17 @@ describe('useSession', () => {
     await waitFor(() =>
       expect(result.current.session).toEqual({ state: 'signedOut' }),
     );
+  });
+
+  it('does not ask /me again when a reader mounts after a 401', async () => {
+    const stub = stubAuth();
+    const wrapper = wrapperFor(newClient());
+    const first = renderHook(() => useSession(), { wrapper });
+    await waitFor(() => expect(first.result.current.state).toBe('signedOut'));
+    first.unmount();
+    const second = renderHook(() => useSession(), { wrapper });
+    await waitFor(() => expect(second.result.current.state).toBe('signedOut'));
+    expect(stub.to('me')).toHaveLength(1);
   });
 
   it('takes the user from setUser and drops it on sign-out', async () => {
