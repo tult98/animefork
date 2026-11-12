@@ -1,13 +1,13 @@
 # api
 
-Backend for the web app, built on NestJS. Its first feature is TMDB art and a Vietnamese synopsis for AnimeVsub titles. The browser sends the titles it shows. The service answers from Postgres when it already has a row. On a miss it answers `pending` at once, matches the title against TMDB in the background and stores the result, so the next lookup answers `ready`. The browser never sees the TMDB key or the database.
+Backend for the web app, built on NestJS. Its first feature is TMDB art and a Vietnamese synopsis for AnimeVsub titles. The browser sends the titles it shows. The service answers from Postgres when it already has a row. On a miss it answers `pending` at once, matches the title against TMDB in the background and stores the result, so the next lookup answers `ready`. The browser never sees the TMDB key or the database. The service also holds the web app's accounts, with email and password sign-up, email verification and cookie sessions (see **Accounts**).
 
 ## Layout
 
 ```
 src/
   main.ts          bootstrap: config, CORS, body limit, shutdown hooks, listen
-  app.module.ts    ConfigModule, DatabaseModule, ThrottlerModule, HealthModule, ArtModule
+  app.module.ts    ConfigModule, DatabaseModule, ThrottlerModule, HealthModule, ArtModule, AuthModule
   app.setup.ts     HTTP setup shared by main.ts and the app tests
   config/          zod-validated env, provided as APP_CONFIG and the raw ENV
   database/        global pg.Pool (PG_POOL) and MigrationRunner
@@ -15,6 +15,7 @@ src/
   common/          zod validation pipe, error filter, clock token
   art/             the art feature: controller, service, filler, store, retry table, contract, translator
     tmdb/          TMDB client, matchers (baseline, Jev, cascade), backdrop pick, title parsing, syncTitle, fetchOverview
+  auth/            accounts: contract, controller, service, store, session guard, password, tokens, cookie, mailer, limits
 db/migrations/     numbered SQL files applied at boot
 scripts/           eval-matcher.ts, a read-only matcher comparison
 ```
@@ -40,6 +41,22 @@ Errors answer JSON with an `error` code:
 | 503    | `{ error: 'unavailable' }`                 | Anything unexpected, such as a database failure          |
 
 `GET /healthz` answers `{ ok: true }` and is not rate limited.
+
+### Account endpoints
+
+Every route takes and answers JSON. The paths and zod schemas are in `src/auth/contract.ts`.
+
+| Route                        | Body                  | Success                                         | Failure                                       |
+| ---------------------------- | --------------------- | ----------------------------------------------- | --------------------------------------------- |
+| `POST /v1/auth/sign-up`      | `{ email, password }` | 202 `{ ok: true }`, no session, mail sent       | 400 `invalid_request`                         |
+| `POST /v1/auth/verify-email` | `{ token }`           | 200 `{ ok: true }`, account created, no session | 400 `invalid_token`                           |
+| `POST /v1/auth/sign-in`      | `{ email, password }` | 200 `{ user }`, session cookie                  | 401 `invalid_credentials`, 429 `rate_limited` |
+| `POST /v1/auth/sign-out`     | none                  | 204, session deleted, cookie cleared            | none                                          |
+| `GET /v1/auth/me`            | none                  | 200 `{ user }`                                  | 401 `unauthenticated`, cookie cleared         |
+
+The email is trimmed, lowercased and at most 254 characters. The password is 8 to 128 characters. An unknown email, an email whose sign-up is not confirmed yet and a wrong password get the same 401 and the same body. Every token failure gets the same 400 `{ error: 'invalid_token' }`, whether the token is unknown, used, expired or malformed, or its email already has an account.
+
+Other modules protect a route with `@UseGuards(SessionGuard)` and read the user with `@CurrentUser()`. `AuthModule` exports `SessionGuard`, `AuthService` and `AUTH_STORE`.
 
 The zod schemas in `src/art/contract.ts` are the single source of truth, and `apps/web` imports them. Keep that file free of Nest imports and decorators, because the web build compiles it.
 
@@ -106,7 +123,20 @@ The web hero showed the source site's card excerpt, which the site cuts at about
 
 - **Schema.** `005_overview.sql` adds `overview`, `overview_lang` (`vi` or `en`, the language TMDB wrote it in), `overview_translated`, `overview_status` and `overview_attempted_at` to `title_art`. The check `title_art_overview_ok` makes an `ok` row carry text and a language, and makes `overview_translated` true exactly when `overview_lang` is `en`, so untranslated English cannot be stored as `ok`. A refill that matches a different TMDB id clears the overview columns.
 
-**Run a single replica.** The single-flight map and the rate limit counters live in process memory. Two replicas would each call TMDB for the same new slug, and each would allow the full rate.
+## Accounts
+
+- **Rows.** `db/migrations/010_auth.sql` creates `users`, `sessions` and `pending_signups`. Every `users` row is a confirmed account. An email is unique among users whatever its case. Deleting a user deletes its sessions. A `pending_signups` row is a sign-up waiting for its link: the token's SHA-256, the email and the password hash that sign-up chose.
+- **Passwords.** `src/auth/password.ts` hashes with scrypt at N = 2^17, r = 8, p = 1 into a 64-byte key with a 16-byte random salt. The stored string is `scrypt$N$r$p$salt$hash` in base64url, and verify reads N, r and p from it, so `SCRYPT_PARAMS` can change without breaking old hashes. A sign-in for an unknown email verifies against `DUMMY_PASSWORD_HASH`, so it takes as long as a wrong password. A test fails when `SCRYPT_PARAMS` moves away from the dummy hash's parameters.
+- **Sign-up.** Nothing is a user until its email is confirmed. Sign-up always answers the same 202 and hashes the password on every path, so every path costs the same. An email that already has an account gets a notice that someone tried to sign up with it, and nothing is stored. Any other email gets a new `pending_signups` row with this sign-up's own hash and a link. Earlier pending rows for the email stay, each with its own hash, so a second sign-up never changes what the first one's link creates. An email keeps at most its 5 newest pending rows. There is no resend endpoint. To get a new link, sign up again. Sign-up answers 503 when neither `WEB_BASE_URL` nor `ALLOWED_ORIGINS` is set, because no link can be built.
+- **Confirming.** A token is 32 random bytes in base64url, and only its SHA-256 is stored. It lives 24 hours. The mailed link is `{WEB_BASE_URL}/verify-email#token=...`. The token rides in the fragment, so it never reaches a server log or a `Referer` header. The web page posts it to `/v1/auth/verify-email`. One statement deletes the live pending row for the token, inserts the user with that row's email and hash (`on conflict do nothing`), and deletes every other pending row for the email. So two requests with one token cannot both win, and two links for one email create one account. It answers 400 `invalid_token` when no row was deleted or the email already had an account.
+- **No session on confirm.** Confirming opens no session and sets no cookie. The user signs in afterwards with the password they chose. Two people can sign up the same address, and both links reach its owner. An owner who clicks the link from someone else's sign-up creates an account with that person's password but does not land inside it, so they never use an account someone else can open. Their own password then fails, and until a password reset exists they cannot take that account back.
+- **Sessions.** The `session` cookie holds another 32-byte random token, and only its SHA-256 is stored. The cookie is `HttpOnly; SameSite=Lax; Path=/` and `Secure` unless `COOKIE_SECURE=0`. Its `Max-Age` is the session's remaining life. A session lives `SESSION_TTL_DAYS` (30) from its last refresh. An authenticated request more than a day after the last refresh moves `last_seen_at` to now and `expires_at` to the earlier of now plus the TTL and 90 days after sign-in, and sends the cookie again. A request within the day changes nothing. A missing or expired session answers 401 and clears the cookie, and is never extended.
+- **Limits.** `src/auth/auth.limits.ts` holds them. Sign-up, verify-email and sign-in allow 10 requests a minute per client each, on top of the global limit. After 5 failed sign-ins for one email in 15 minutes, that email answers 429 `rate_limited` with `Retry-After` until the oldest failure is 15 minutes old. Unknown emails are counted the same way. A successful sign-in clears the count. Sign-up mails one email at most 3 times an hour, the notice included, and still answers 202 past that, sending nothing and changing nothing. The per-email counters live in process memory, like the route throttler.
+- **Cleanup.** `AuthService.cleanup()` runs every hour on an `unref()`'d timer. It deletes expired pending sign-ups and expired sessions, and prunes the per-email counters. The app tests turn the timer off by overriding `AUTH_CLEANUP_EVERY_MS` with null.
+- **Mail.** `Mailer` in `src/auth/mailer.ts` has one method, `send({ to, subject, text })`. `createMailer` picks the implementation and is where a real provider goes. Today it returns `LogMailer`, which logs the sender, recipient and subject and never the body, because the body holds the link. So until a provider is added, nobody receives a link and no account can be created. Tokens, passwords and hashes are never logged.
+- **Time.** Every time the module compares or stores comes from the `CLOCK` token, so tests move time by hand.
+
+**Run a single replica.** The single-flight map, the rate limit counters and the auth limits live in process memory. Two replicas would each call TMDB for the same new slug, and each would allow the full rate.
 
 ## Migrations
 
@@ -133,6 +163,10 @@ The web hero showed the source site's card excerpt, which the site cuts at about
 | `DEEPSEEK_MODEL`        | no       | DeepSeek chat model, `deepseek-flash` by default                    |
 | `MAL_CLIENT_ID`         | no       | MyAnimeList API client id. Unset turns the MAL numbers off          |
 | `MAL_API_BASE`          | no       | MyAnimeList API root, `https://api.myanimelist.net/v2` by default   |
+| `WEB_BASE_URL`          | no       | Web app root for mailed links. First `ALLOWED_ORIGINS` if unset     |
+| `SESSION_TTL_DAYS`      | no       | Session life after its last refresh in days, 30 by default          |
+| `COOKIE_SECURE`         | no       | `0` drops `Secure` from the session cookie. `1` by default          |
+| `MAIL_FROM`             | no       | Sender of account mail, `Animefork <no-reply@localhost>` by default |
 
 A missing or invalid variable stops the boot with `missing or invalid env:` and its name.
 
@@ -170,4 +204,4 @@ VITE_API_URL=http://localhost:3100 pnpm nx dev web
 
 `pnpm nx run-many -t typecheck lint test build -p api`
 
-`test/app.test.ts` boots `AppModule` through `@nestjs/testing` and sends requests with supertest. It swaps the env, the pool, the store and the TMDB client for in-memory ones, so it needs neither Postgres nor the network. The `*.pg.test.ts` files run against a real Postgres only when `DATABASE_URL` is set, for example the compose database above. The TMDB fixtures in `test/art/tmdb/fixtures.ts` are hand-written from the API's documented response shapes. The Jev tests run the real SDK against a fake `fetch` (`test/art/tmdb/jev-mock.ts`), so they check the request body on the wire without calling TypeSafe. The DeepSeek tests run `DeepSeekTranslator` against a fake `fetch` the same way.
+`test/app.test.ts` boots `AppModule` through `@nestjs/testing` and sends requests with supertest. `test/auth/auth.app.test.ts` does the same for accounts with `MemoryAuthStore`, `FakeMailer` and a clock it moves by hand. `test/auth.store.pg.test.ts` checks `PostgresAuthStore` against a real database. It swaps the env, the pool, the store and the TMDB client for in-memory ones, so it needs neither Postgres nor the network. The `*.pg.test.ts` files run against a real Postgres only when `DATABASE_URL` is set, for example the compose database above. The TMDB fixtures in `test/art/tmdb/fixtures.ts` are hand-written from the API's documented response shapes. The Jev tests run the real SDK against a fake `fetch` (`test/art/tmdb/jev-mock.ts`), so they check the request body on the wire without calling TypeSafe. The DeepSeek tests run `DeepSeekTranslator` against a fake `fetch` the same way.
