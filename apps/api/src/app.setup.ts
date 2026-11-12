@@ -14,7 +14,7 @@ export function configureApp(
   app.use(bodyParserErrors);
   app.enableCors({
     origin: config.allowedOrigins.length > 0 ? config.allowedOrigins : false,
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PUT'],
     allowedHeaders: ['content-type'],
     credentials: true,
     maxAge: 600,
