@@ -2,6 +2,7 @@ import { useRef, type ReactNode } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import { formatClock } from '../../lib/player/format.ts';
 import { usePlayback } from '../../lib/player/use-playback.ts';
+import { useProgressSaving } from '../../lib/progress/use-progress-saving.ts';
 import type { Episode } from '../../lib/titles/watch.ts';
 import {
   ArrowLeft,
@@ -30,9 +31,12 @@ import './player.css';
 const SKIP_SECONDS = 10;
 
 interface PlayerProps {
+  slug: string;
+  seasonSlug: string;
   title: string;
   episode: Episode;
   image?: string;
+  startS: number;
   nextEpisode?: NextEpisodeInfo;
   onNext?: () => void;
   onBack: () => void;
@@ -55,16 +59,27 @@ function SkipGlyph({ forward }: { forward: boolean }) {
 }
 
 export function Player({
+  slug,
+  seasonSlug,
   title,
   episode,
   image,
+  startS,
   nextEpisode,
   onNext,
   onBack,
   episodesPanel,
 }: PlayerProps) {
   const root = useRef<HTMLDivElement>(null);
-  const { videoRef, state, controls } = usePlayback(episode);
+  const { videoRef, state, controls } = usePlayback(episode, startS);
+  useProgressSaving(videoRef, {
+    slug,
+    seasonSlug,
+    episodeId: episode.id,
+    titleName: title,
+    image,
+    episodeLabel: episode.label,
+  });
   const fullscreen = useFullscreen(root);
 
   const playing = state.phase === 'playing';

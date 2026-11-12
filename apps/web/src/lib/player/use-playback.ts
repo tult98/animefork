@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { attachStream } from './attach-stream.ts';
 import { usePlayerSource } from './context.tsx';
+import { seekTarget } from '../progress/resume.ts';
 import { initialPlayerState, playerReducer } from './state.ts';
 import type { StreamRequest } from './source.ts';
 
@@ -14,11 +15,17 @@ export interface PlaybackControls {
   retry(): void;
 }
 
-export function usePlayback(episode: StreamRequest | undefined) {
+// `startAtS` is where the viewer left this episode. It is read when the stream loads, so a change to it
+// alone neither reloads the stream nor seeks.
+export function usePlayback(episode: StreamRequest | undefined, startAtS = 0) {
   const source = usePlayerSource();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [state, dispatch] = useReducer(playerReducer, initialPlayerState);
   const [attempt, retry] = useReducer((n: number) => n + 1, 0);
+  const startAt = useRef(startAtS);
+  useEffect(() => {
+    startAt.current = startAtS;
+  }, [startAtS]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -74,6 +81,12 @@ export function usePlayback(episode: StreamRequest | undefined) {
     const abort = new AbortController();
     let teardown: (() => void) | undefined;
     dispatch({ type: 'load' });
+    // A seek before the video can play may be ignored, so it waits for canplay. This listener is added after
+    // the state listener above, so the state has already settled when the position jumps.
+    const resume = () => {
+      if (startAt.current > 0) video.currentTime = seekTarget(startAt.current);
+    };
+    video.addEventListener('canplay', resume, { once: true });
     void (async () => {
       try {
         const stream = await source.resolve({ id, play, hash }, abort.signal);
@@ -96,6 +109,7 @@ export function usePlayback(episode: StreamRequest | undefined) {
       }
     })();
     return () => {
+      video.removeEventListener('canplay', resume);
       abort.abort();
       teardown?.();
     };
