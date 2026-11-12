@@ -83,6 +83,16 @@ describe('signUp', () => {
   });
 });
 
+describe('signUp on a taken email', () => {
+  it('maps a 409 to email_taken', async () => {
+    stubAuth({ signUp: () => jsonResponse(409, { error: 'email_taken' }) });
+    expect(await signUp(credentials)).toEqual({
+      ok: false,
+      error: { kind: 'email_taken' },
+    });
+  });
+});
+
 describe('verifyEmail', () => {
   it('posts the token and accepts a 200', async () => {
     const stub = stubAuth({

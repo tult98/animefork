@@ -15,6 +15,7 @@ export type AuthError =
   | { kind: 'invalid_credentials' }
   | { kind: 'invalid_token' }
   | { kind: 'invalid_request' }
+  | { kind: 'email_taken' }
   | { kind: 'rate_limited'; retryAfterSeconds?: number }
   // Also covers an unset VITE_API_URL, a 5xx and a body of an unexpected shape: the user can only retry.
   | { kind: 'network' };
@@ -121,7 +122,10 @@ export async function signUp(
   const response = await post(SIGN_UP_PATH, credentials, signal);
   if (!response) return { ok: false, error: NETWORK };
   if (response.status !== 202) {
-    return { ok: false, error: await failure(response, ['invalid_request']) };
+    return {
+      ok: false,
+      error: await failure(response, ['invalid_request', 'email_taken']),
+    };
   }
   const result = await parsed(response, OkSchema);
   return result.ok ? { ok: true, data: null } : result;

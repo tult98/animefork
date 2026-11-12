@@ -276,6 +276,34 @@ describe('sign up', () => {
     expect(screen.getByLabelText('Mật khẩu mới')).toBeTruthy();
   });
 
+  it('tells the visitor the email already has an account and keeps the form', async () => {
+    stubAuth({ signUp: () => jsonResponse(409, { error: 'email_taken' }) });
+    await renderApp('/sign-up');
+    await screen.findByRole('heading', { name: 'Tạo tài khoản' });
+    await fill('mai@example.com', 'correct horse', 'Mật khẩu mới');
+    await submit('Tạo tài khoản');
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'đã có tài khoản',
+    );
+    expect(screen.getByLabelText('Mật khẩu mới')).toBeTruthy();
+  });
+
+  it('shows the same message when a resend finds the email taken', async () => {
+    let calls = 0;
+    const stub = stubAuth({
+      signUp: () =>
+        ++calls === 1
+          ? jsonResponse(202, { ok: true })
+          : jsonResponse(409, { error: 'email_taken' }),
+    });
+    await signUpAndWait(stub);
+    await submit('Gửi lại email');
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'đã có tài khoản',
+    );
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('shows a generic message on a server error', async () => {
     stubAuth({ signUp: () => jsonResponse(500, {}) });
     await renderApp('/sign-up');

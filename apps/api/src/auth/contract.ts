@@ -52,6 +52,7 @@ export const AuthErrorCodeSchema = z.enum([
   'invalid_request',
   'invalid_token',
   'invalid_credentials',
+  'email_taken',
   'unauthenticated',
   'rate_limited',
 ]);

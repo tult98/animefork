@@ -54,6 +54,8 @@ export const authCopy = {
   errors: {
     invalidCredentials:
       'Email hoặc mật khẩu không đúng. Hãy kiểm tra lại và thử lại.',
+    emailTaken:
+      'Email này đã có tài khoản. Hãy đăng nhập hoặc dùng email khác.',
     invalidEmail: 'Nhập một địa chỉ email hợp lệ.',
     passwordTooShort: 'Mật khẩu cần có ít nhất 8 ký tự.',
     passwordTooLong: 'Mật khẩu chỉ được tối đa 128 ký tự.',
