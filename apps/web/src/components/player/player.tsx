@@ -169,6 +169,7 @@ export function Player({
           segments={skipSegments}
           time={state.time}
           onSkip={controls.seek}
+          onNext={onNext}
         />
         <div className="pl-chrome relative flex flex-col gap-1">
           <div className="pl-timeline pointer-events-auto flex items-center gap-4">

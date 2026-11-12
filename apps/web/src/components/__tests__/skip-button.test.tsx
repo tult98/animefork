@@ -46,6 +46,41 @@ describe('SkipButton', () => {
     expect(onSkip).toHaveBeenCalledExactlyOnceWith(1400);
   });
 
+  it('offers the next episode during an outro instead of seeking', async () => {
+    const onSkip = vi.fn();
+    const onNext = vi.fn();
+    render(
+      <SkipButton
+        segments={SEGMENTS}
+        time={1350}
+        onSkip={onSkip}
+        onNext={onNext}
+      />,
+    );
+    expect(button()?.getAttribute('data-kind')).toBe('outro');
+    expect(button()?.textContent).toBe('Tập tiếp theo');
+    await userEvent.click(screen.getByTestId('player:skip'));
+    expect(onNext).toHaveBeenCalledOnce();
+    expect(onSkip).not.toHaveBeenCalled();
+  });
+
+  it('keeps the intro skip when a next episode exists', async () => {
+    const onSkip = vi.fn();
+    const onNext = vi.fn();
+    render(
+      <SkipButton
+        segments={SEGMENTS}
+        time={60}
+        onSkip={onSkip}
+        onNext={onNext}
+      />,
+    );
+    expect(button()?.textContent).toBe('Bỏ qua phần mở đầu');
+    await userEvent.click(screen.getByTestId('player:skip'));
+    expect(onSkip).toHaveBeenCalledExactlyOnceWith(120);
+    expect(onNext).not.toHaveBeenCalled();
+  });
+
   it('renders nothing without segments', () => {
     render(<SkipButton segments={[]} time={60} onSkip={() => {}} />);
     expect(button()).toBeNull();
