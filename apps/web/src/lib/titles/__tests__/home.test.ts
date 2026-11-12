@@ -71,8 +71,9 @@ describe('the home page', () => {
 
 describe('fetching the home page', () => {
   it('shows 2 hero titles and the season path, then the season titles', async () => {
-    fetchMock.get(upstream('/'), mockHomeHtml);
-    fetchMock.get(upstream(MOCK_SEASON_PATH), mockSeasonHtml);
+    fetchMock
+      .get(upstream('/'), mockHomeHtml)
+      .get(upstream(MOCK_SEASON_PATH), mockSeasonHtml);
     const home = await fetchHome(transport);
     expect(fetchMock.callHistory.called(upstream('/'))).toBe(true);
     expect(home.hero).toHaveLength(2);

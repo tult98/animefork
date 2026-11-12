@@ -69,9 +69,10 @@ describe('the season pages', () => {
   const page = (n: number) => seasonPagePath(path, n);
 
   it('shows the first page, then the later pages in page order', async () => {
-    fetchMock.get(upstream(path), mockSeasonHtml);
-    fetchMock.get(upstream(page(2)), mockSeasonPage2Html);
-    fetchMock.get(upstream(page(3)), mockSeasonPage3Html);
+    fetchMock
+      .get(upstream(path), mockSeasonHtml)
+      .get(upstream(page(2)), mockSeasonPage2Html)
+      .get(upstream(page(3)), mockSeasonPage3Html);
 
     const first = await fetchSeasonFirstPage(transport, path);
     expect(first.titles).toHaveLength(2);
@@ -92,8 +93,9 @@ describe('the season pages', () => {
   });
 
   it('keeps the titles of the pages that loaded when one fails', async () => {
-    fetchMock.get(upstream(page(2)), 500);
-    fetchMock.get(upstream(page(3)), mockSeasonPage3Html);
+    fetchMock
+      .get(upstream(page(2)), 500)
+      .get(upstream(page(3)), mockSeasonPage3Html);
     const rest = await fetchSeasonRest(transport, path, 3);
     expect(rest.complete).toBe(false);
     expect(rest.titles.map((t) => t.name)).toEqual(['Season Five']);
