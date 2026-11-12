@@ -30,4 +30,4 @@ The art lookup in `apps/web/src/lib/titles/art.ts` is a POST used as a `queryFn`
 
 ## Tests
 
-Stub the API with `apps/web/src/test/auth-stub.ts`, which also sets `VITE_API_URL`. `apps/web/src/test/setup.ts` clears `VITE_API_URL` for every test, so no test reaches a real service.
+See `.claude/rules/web-testing.md`. Every call, first-party and upstream, is answered by `fetch-mock` in the test, and `apps/web/src/test/setup.ts` clears `VITE_API_URL` so no test reaches a real service.
