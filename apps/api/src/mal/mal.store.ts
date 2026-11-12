@@ -27,7 +27,6 @@ export interface StoredMal {
   // What the matcher chose and how sure it was, so a wrong match can be spotted by eye.
   matchedTitle: string | null;
   matchScore: number | null;
-  // Null on a miss and on a row matched before this was stored.
   matchedBy: MalMatchedBy | null;
   matcherVersion: number;
   reason: string | null;

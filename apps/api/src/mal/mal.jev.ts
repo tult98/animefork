@@ -45,7 +45,6 @@ export interface MalJevVerdict {
   noul: number;
   probabilities: Record<string, number>;
   accepted: boolean;
-  // min(noul, choice probability), the number stored as the match score.
   score: number;
 }
 
@@ -53,7 +52,6 @@ export interface MalJudge {
   ask(input: TitleInput, candidates: MalCandidate[]): Promise<MalJevVerdict>;
 }
 
-// What Jev sees: every show any search returned, first search first, each id once.
 export function jevCandidates(pages: MalCandidate[][]): MalCandidate[] {
   const seen = new Map<number, MalCandidate>();
   for (const c of pages.flat()) {
@@ -107,7 +105,6 @@ export function malJevState(
   };
 }
 
-// No show-scope question: MAL lists one entry per season, so only a season answer is usable.
 export function malJevQuestions(candidates: MalCandidate[]) {
   return {
     match: choice(

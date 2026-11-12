@@ -32,7 +32,6 @@ interface SourceRow {
 export interface EvalOutcome {
   stored: { status: string; malId: number | null };
   scored: MalMatch | null;
-  // Null when no search found a show, so Jev was not asked.
   jev: MalJevVerdict | Error | null;
 }
 
@@ -141,7 +140,6 @@ async function main(): Promise<void> {
   });
 
   try {
-    // title_mal keeps no inputs, so the source name, year and episode count come from title_art.
     const { rows } = await pool.query<SourceRow>(
       `select m.source_slug, m.status, m.mal_id,
               a.source_name, a.source_year, a.source_episode_count

@@ -5,7 +5,6 @@ export type MalJevReply = Pick<
   'choice' | 'probabilities' | 'confidence' | 'noul'
 >;
 
-// The MAL judge asks only the season pair, so the answer carries no show questions.
 export function malJevResponse(reply: MalJevReply) {
   return {
     model: 'jev-1.13.0',

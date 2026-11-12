@@ -6,7 +6,6 @@ import {
 } from '../art/tmdb/titles.ts';
 import { MIN_QUERY_LENGTH } from './mal.client.ts';
 
-// Each query is one call to MAL, so a title that matches nothing costs at most this many.
 export const MAX_QUERIES = 4;
 
 // MAL indexes Japanese romaji and English titles, so a Vietnamese display name finds nothing

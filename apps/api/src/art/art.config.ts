@@ -70,7 +70,6 @@ function toJevConfig(
     : undefined;
 }
 
-// Read on its own by the MAL module, which does not need the TMDB key.
 export function loadJevConfig(env: Env): JevConfig | undefined {
   return toJevConfig(parseEnv(JevEnvSchema, env));
 }

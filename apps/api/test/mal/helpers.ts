@@ -40,7 +40,6 @@ export function node(over: Record<string, unknown> = {}) {
   };
 }
 
-// The slug's "II" is not read as a season marker, so the score never clears the gate for this title.
 export const TENKEN_INPUT = {
   slug: 'tensei-shitara-ken-deshita-II-a6066',
   name: 'Chuyển Sinh Thành Thanh Kiếm II',

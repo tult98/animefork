@@ -7,7 +7,6 @@ const DAY = 24 * 60 * MINUTE;
 
 // Bump when the matcher changes, so rows it rejected under the old rules are tried again.
 // Version history: 2 reads the season from the slug, searches the slug romaji first and breaks part ties.
-// 3 asks Jev when the score rejects.
 export const MAL_MATCHER_VERSION = 3;
 
 export const MAL_REFRESH_AFTER_MS = 7 * DAY;
@@ -33,7 +32,6 @@ interface RetryRow {
 // | ok     | 7 days since fetched (1 day while airing), or 10 min since a try | served as is, refreshed in the background  |
 // | none   | 7 days (not at all below the matcher version)| matched again on its next lookup           |
 // | failed | 10 minutes                                   | matched again on its next lookup           |
-// A Jev rejection is stored as none, a Jev error as failed.
 export function isMalSettled(row: RetryRow | undefined, now: Date): boolean {
   if (!row) return false;
   const since = (at: Date) => now.getTime() - at.getTime();

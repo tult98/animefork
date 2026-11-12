@@ -26,7 +26,6 @@ export class MalFiller {
   private readonly store: MalStore;
   private readonly client: MalClient;
   private readonly now: Clock;
-  // Asked only when the score rejects every search; null keeps the score alone.
   private readonly judge: MalJudge | null;
 
   constructor(
