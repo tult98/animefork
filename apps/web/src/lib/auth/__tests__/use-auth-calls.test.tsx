@@ -1,13 +1,28 @@
+// @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { jsonResponse, stubAuth, user } from '../../../test/auth-stub.ts';
-import { signIn, signOut, signUp, verifyEmail } from '../client.ts';
+import { useSignIn, useSignUp, useVerifyEmail } from '../use-auth-calls.ts';
+
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <QueryClientProvider client={new QueryClient()}>
+    {children}
+  </QueryClientProvider>
+);
+
+function run<A, T>(useCall: () => (arg: A) => Promise<T>, arg: A) {
+  const { result } = renderHook(useCall, { wrapper });
+  return result.current(arg);
+}
 
 const credentials = { email: 'mai@example.com', password: 'correct horse' };
 
 describe('signIn', () => {
   it('returns the user and sends the cookie with a JSON body', async () => {
     const stub = stubAuth({ signIn: () => jsonResponse(200, { user }) });
-    expect(await signIn(credentials)).toEqual({ ok: true, data: user });
+    expect(await run(useSignIn, credentials)).toEqual({ ok: true, data: user });
     const [call] = stub.to('signIn');
     expect(call?.init?.credentials).toBe('include');
     expect(call?.body).toEqual(credentials);
@@ -20,7 +35,7 @@ describe('signIn', () => {
     [200, { nope: true }, { kind: 'network' }],
   ])('maps %i %j to %j', async (status, body, error) => {
     stubAuth({ signIn: () => jsonResponse(status, body) });
-    expect(await signIn(credentials)).toEqual({ ok: false, error });
+    expect(await run(useSignIn, credentials)).toEqual({ ok: false, error });
   });
 
   it('reads Retry-After on a 429', async () => {
@@ -28,7 +43,7 @@ describe('signIn', () => {
       signIn: () =>
         jsonResponse(429, { error: 'rate_limited' }, { 'retry-after': '120' }),
     });
-    expect(await signIn(credentials)).toEqual({
+    expect(await run(useSignIn, credentials)).toEqual({
       ok: false,
       error: { kind: 'rate_limited', retryAfterSeconds: 120 },
     });
@@ -39,7 +54,7 @@ describe('signIn', () => {
       signIn: () =>
         jsonResponse(429, { error: 'rate_limited' }, { 'retry-after': 'soon' }),
     });
-    expect(await signIn(credentials)).toEqual({
+    expect(await run(useSignIn, credentials)).toEqual({
       ok: false,
       error: { kind: 'rate_limited', retryAfterSeconds: undefined },
     });
@@ -49,14 +64,14 @@ describe('signIn', () => {
     stubAuth({
       signIn: () => Promise.reject(new TypeError('Failed to fetch')),
     });
-    expect(await signIn(credentials)).toEqual({
+    expect(await run(useSignIn, credentials)).toEqual({
       ok: false,
       error: { kind: 'network' },
     });
   });
 
   it('is a network error without VITE_API_URL', async () => {
-    expect(await signIn(credentials)).toEqual({
+    expect(await run(useSignIn, credentials)).toEqual({
       ok: false,
       error: { kind: 'network' },
     });
@@ -66,17 +81,17 @@ describe('signIn', () => {
 describe('signUp', () => {
   it('accepts a 202', async () => {
     stubAuth({ signUp: () => jsonResponse(202, { ok: true }) });
-    expect(await signUp(credentials)).toEqual({ ok: true, data: null });
+    expect(await run(useSignUp, credentials)).toEqual({ ok: true, data: null });
   });
 
   it('maps a 400 to invalid_request and a 429 to rate_limited', async () => {
     stubAuth({ signUp: () => jsonResponse(400, { error: 'invalid_request' }) });
-    expect(await signUp(credentials)).toEqual({
+    expect(await run(useSignUp, credentials)).toEqual({
       ok: false,
       error: { kind: 'invalid_request' },
     });
     stubAuth({ signUp: () => jsonResponse(429, { error: 'rate_limited' }) });
-    expect(await signUp(credentials)).toMatchObject({
+    expect(await run(useSignUp, credentials)).toMatchObject({
       ok: false,
       error: { kind: 'rate_limited' },
     });
@@ -86,7 +101,7 @@ describe('signUp', () => {
 describe('signUp on a taken email', () => {
   it('maps a 409 to email_taken', async () => {
     stubAuth({ signUp: () => jsonResponse(409, { error: 'email_taken' }) });
-    expect(await signUp(credentials)).toEqual({
+    expect(await run(useSignUp, credentials)).toEqual({
       ok: false,
       error: { kind: 'email_taken' },
     });
@@ -98,7 +113,7 @@ describe('verifyEmail', () => {
     const stub = stubAuth({
       verifyEmail: () => jsonResponse(200, { ok: true }),
     });
-    expect(await verifyEmail('abc')).toEqual({ ok: true, data: null });
+    expect(await run(useVerifyEmail, 'abc')).toEqual({ ok: true, data: null });
     expect(stub.to('verifyEmail')[0]?.body).toEqual({ token: 'abc' });
   });
 
@@ -106,21 +121,9 @@ describe('verifyEmail', () => {
     stubAuth({
       verifyEmail: () => jsonResponse(400, { error: 'invalid_token' }),
     });
-    expect(await verifyEmail('abc')).toEqual({
+    expect(await run(useVerifyEmail, 'abc')).toEqual({
       ok: false,
       error: { kind: 'invalid_token' },
     });
-  });
-});
-
-describe('signOut', () => {
-  it('accepts a 204', async () => {
-    stubAuth({ signOut: () => new Response(null, { status: 204 }) });
-    expect(await signOut()).toEqual({ ok: true, data: null });
-  });
-
-  it('reports a failure', async () => {
-    stubAuth({ signOut: () => jsonResponse(500, {}) });
-    expect(await signOut()).toEqual({ ok: false, error: { kind: 'network' } });
   });
 });

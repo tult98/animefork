@@ -1,4 +1,4 @@
-import type { AuthError } from './client.ts';
+import type { AuthError } from './use-auth-calls.ts';
 import { authCopy } from './copy.ts';
 
 export function authErrorMessage(error: AuthError): string {

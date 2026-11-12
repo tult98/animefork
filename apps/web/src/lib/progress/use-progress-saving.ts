@@ -4,11 +4,13 @@ import {
   MAX_EPISODE_LABEL_LENGTH,
   MAX_IMAGE_LENGTH,
   MAX_TITLE_NAME_LENGTH,
+  type SaveWatchProgressRequest,
   type WatchProgressEpisode,
 } from '../../../../api/src/watch-progress/contract.ts';
+import { useApiMutation } from '../api/use-api-mutation.ts';
 import { SESSION_KEY, useSession } from '../auth/session.ts';
-import { saveProgress } from './client.ts';
 import { createSaver, type Snapshot } from './saver.ts';
+import { toSaveOutcome } from './save-outcome.ts';
 import { progressKey } from './use-progress.ts';
 
 function mergeRow(
@@ -38,6 +40,10 @@ export function useProgressSaving(
 ) {
   const queryClient = useQueryClient();
   const signedIn = useSession().state === 'signedIn';
+  const { mutateAsync: save } = useApiMutation<SaveWatchProgressRequest>({
+    method: 'PUT',
+    endpoint: '/v1/watch-progress',
+  });
   const { slug, seasonSlug, episodeId, titleName, image, episodeLabel } =
     target;
 
@@ -62,7 +68,7 @@ export function useProgressSaving(
         episodeLabel: episodeLabel.slice(0, MAX_EPISODE_LABEL_LENGTH),
       },
       read: () => (ready ? snapshot : null),
-      send: saveProgress,
+      send: (body, { keepalive }) => toSaveOutcome(save({ body, keepalive })),
       // The save answers with the stored row, so the cache takes it as is and nothing is refetched.
       onSaved: (row) =>
         queryClient.setQueryData<WatchProgressEpisode[]>(
@@ -111,6 +117,7 @@ export function useProgressSaving(
   }, [
     videoRef,
     queryClient,
+    save,
     signedIn,
     slug,
     seasonSlug,

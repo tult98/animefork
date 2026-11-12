@@ -1,6 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
-import { verifyEmail, type AuthResult } from '../../lib/auth/client.ts';
+import {
+  useVerifyEmail,
+  type AuthResult,
+} from '../../lib/auth/use-auth-calls.ts';
 import { authCopy } from '../../lib/auth/copy.ts';
 import { ErrorAlert } from '../ui/alert.tsx';
 import { KIND_CLASS, TONE_CLASS } from '../ui/button.tsx';
@@ -32,6 +35,7 @@ export function VerifyEmailStatus() {
   const [status, setStatus] = useState<Status>('verifying');
   // StrictMode runs this effect twice, and a second POST would burn the token and turn success into failure.
   const started = useRef(false);
+  const verifyEmail = useVerifyEmail();
 
   useEffect(() => {
     if (started.current) return;
@@ -41,7 +45,7 @@ export function VerifyEmailStatus() {
       ? verifyEmail(token)
       : Promise.resolve({ ok: false, error: { kind: 'invalid_token' } });
     void request.then((result) => setStatus(statusOf(result)));
-  }, []);
+  }, [verifyEmail]);
 
   if (status === 'verifying') {
     return (

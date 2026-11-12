@@ -2,7 +2,7 @@ import type {
   SaveWatchProgressRequest,
   WatchProgressEpisode,
 } from '../../../../api/src/watch-progress/contract.ts';
-import type { SaveOutcome } from './client.ts';
+import type { SaveOutcome } from './save-outcome.ts';
 
 export const SAVE_INTERVAL_MS = 15_000;
 

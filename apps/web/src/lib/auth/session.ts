@@ -1,10 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import type {
   AuthUser,
   UserResponse,
 } from '../../../../api/src/auth/contract.ts';
 import { useApiQuery } from '../api/use-api-query.ts';
-import { signOut } from './client.ts';
+import { useApiMutation } from '../api/use-api-mutation.ts';
 
 export const SESSION_KEY = ['session'] as const;
 
@@ -29,16 +29,15 @@ export function useSession(): Session {
 
 export function useSessionActions() {
   const queryClient = useQueryClient();
-  const signOutMutation = useMutation({
-    mutationFn: signOut,
-    onSuccess: (result) => {
-      if (result.ok) queryClient.setQueryData(SESSION_KEY, null);
-      // The cookie may still be live, so the server decides what the header shows.
-      else void queryClient.invalidateQueries({ queryKey: SESSION_KEY });
-    },
+  const signOutMutation = useApiMutation({
+    method: 'POST',
+    endpoint: '/v1/auth/sign-out',
+    onSuccess: () => queryClient.setQueryData(SESSION_KEY, null),
+    // The cookie may still be live, so the server decides what the header shows.
+    onError: () => queryClient.invalidateQueries({ queryKey: SESSION_KEY }),
   });
   return {
     setUser: (user: AuthUser) => queryClient.setQueryData(SESSION_KEY, user),
-    signOut: () => signOutMutation.mutateAsync(),
+    signOut: () => signOutMutation.mutateAsync().catch(() => undefined),
   };
 }
