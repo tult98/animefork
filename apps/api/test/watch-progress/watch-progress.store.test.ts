@@ -33,10 +33,16 @@ describe('MemoryWatchProgressStore', () => {
     expect(rows[0]).toMatchObject({ positionS: 300, titleName: 'New' });
   });
 
+  it('returns the stored row', async () => {
+    const store = new MemoryWatchProgressStore();
+    expect(await store.save(row())).toEqual(row());
+  });
+
   it('never unsets completed', async () => {
     const store = new MemoryWatchProgressStore();
     await store.save(row({ completed: true, positionS: 1390 }));
-    await store.save(row({ completed: false, positionS: 5 }));
+    const stored = await store.save(row({ completed: false, positionS: 5 }));
+    expect(stored).toMatchObject({ completed: true, positionS: 5 });
     expect((await store.forSlug('u1', 'show'))[0]).toMatchObject({
       completed: true,
       positionS: 5,
