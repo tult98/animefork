@@ -29,11 +29,16 @@ function install(
 ) {
   vi.stubEnv('VITE_API_URL', 'https://api.test');
   const previous = globalThis.fetch;
-  vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
-    String(input).startsWith('https://api.test/')
+  vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    // The header asks for the session on every page; nobody is signed in here.
+    if (url.startsWith('https://api.test/v1/auth/')) {
+      return Promise.resolve(new Response('', { status: 401 }));
+    }
+    return url.startsWith('https://api.test/')
       ? handler(init)
-      : previous(input, init),
-  );
+      : previous(input, init);
+  });
 }
 
 export interface ArtStubOptions {

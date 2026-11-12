@@ -17,7 +17,10 @@ import { Route as MyListRouteImport } from './routes/my-list'
 import { Route as NewEpisodesRouteImport } from './routes/new-episodes'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as UpcomingRouteImport } from './routes/upcoming'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as WatchSlugChar123EpisodeChar125RouteImport } from './routes/watch.$slug.{-$episode}'
 
 const IndexRoute = IndexRouteImport.update({
@@ -60,9 +63,24 @@ const ScheduleRoute = ScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UpcomingRoute = UpcomingRouteImport.update({
   id: '/upcoming',
   path: '/upcoming',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WatchSlugChar123EpisodeChar125Route =
@@ -81,7 +99,10 @@ export interface FileRoutesByFullPath {
   '/new-episodes': typeof NewEpisodesRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/upcoming': typeof UpcomingRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/watch/$slug/{-$episode}': typeof WatchSlugChar123EpisodeChar125Route
 }
 export interface FileRoutesByTo {
@@ -93,7 +114,10 @@ export interface FileRoutesByTo {
   '/new-episodes': typeof NewEpisodesRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/upcoming': typeof UpcomingRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/watch/$slug/{-$episode}': typeof WatchSlugChar123EpisodeChar125Route
 }
 export interface FileRoutesById {
@@ -106,7 +130,10 @@ export interface FileRoutesById {
   '/new-episodes': typeof NewEpisodesRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/upcoming': typeof UpcomingRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/watch/$slug/{-$episode}': typeof WatchSlugChar123EpisodeChar125Route
 }
 export interface FileRouteTypes {
@@ -120,7 +147,10 @@ export interface FileRouteTypes {
     | '/new-episodes'
     | '/rankings'
     | '/schedule'
+    | '/sign-in'
+    | '/sign-up'
     | '/upcoming'
+    | '/verify-email'
     | '/watch/$slug/{-$episode}'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,7 +162,10 @@ export interface FileRouteTypes {
     | '/new-episodes'
     | '/rankings'
     | '/schedule'
+    | '/sign-in'
+    | '/sign-up'
     | '/upcoming'
+    | '/verify-email'
     | '/watch/$slug/{-$episode}'
   id:
     | '__root__'
@@ -144,7 +177,10 @@ export interface FileRouteTypes {
     | '/new-episodes'
     | '/rankings'
     | '/schedule'
+    | '/sign-in'
+    | '/sign-up'
     | '/upcoming'
+    | '/verify-email'
     | '/watch/$slug/{-$episode}'
   fileRoutesById: FileRoutesById
 }
@@ -157,7 +193,10 @@ export interface RootRouteChildren {
   NewEpisodesRoute: typeof NewEpisodesRoute
   RankingsRoute: typeof RankingsRoute
   ScheduleRoute: typeof ScheduleRoute
+  SignInRoute: typeof SignInRoute
+  SignUpRoute: typeof SignUpRoute
   UpcomingRoute: typeof UpcomingRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   WatchSlugChar123EpisodeChar125Route: typeof WatchSlugChar123EpisodeChar125Route
 }
 
@@ -219,11 +258,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/upcoming': {
       id: '/upcoming'
       path: '/upcoming'
       fullPath: '/upcoming'
       preLoaderRoute: typeof UpcomingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/watch/$slug/{-$episode}': {
@@ -245,7 +305,10 @@ const rootRouteChildren: RootRouteChildren = {
   NewEpisodesRoute: NewEpisodesRoute,
   RankingsRoute: RankingsRoute,
   ScheduleRoute: ScheduleRoute,
+  SignInRoute: SignInRoute,
+  SignUpRoute: SignUpRoute,
   UpcomingRoute: UpcomingRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   WatchSlugChar123EpisodeChar125Route: WatchSlugChar123EpisodeChar125Route,
 }
 export const routeTree = rootRouteImport

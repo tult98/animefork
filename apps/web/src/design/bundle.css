@@ -93,4 +93,64 @@ button{font-family:var(--font-sans)}
 .af-box{border:1px solid var(--border);padding:1px 6px;font:400 13px/1.3 var(--font-sans);color:var(--ink)}
 .af-hover-genres{display:flex;gap:var(--space-sm);font:500 14px/1.3 var(--font-sans);color:var(--ink)}
 .af-hover-genres span+span::before{content:"•";margin-right:var(--space-sm);color:var(--muted)}
+/* links, block and large outline buttons */
+.af-link{color:var(--link);font-weight:500;text-decoration:none}
+.af-link:hover{text-decoration:underline}
+.af-btn--block{width:100%;box-sizing:border-box}
+.af-btn--outline-lg{border:1px solid var(--border);min-height:48px;padding:0 24px;font-size:16px;font-weight:600;line-height:1}
+.af-btn--outline-lg:hover{background:var(--pill-active)}
+/* icon button (header search, notifications, profile) */
+.af-iconbtn{width:44px;height:44px;padding:0;border:0;border-radius:var(--radius-pill);background:transparent;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.af-iconbtn:hover{background:var(--pill-active)}
+.af-iconbtn .af-icon{stroke:currentColor}
+/* field extras: fluid width and an inline action (Show / Hide) */
+.af-field--fluid{min-width:0}
+.af-field--action .af-input{padding-right:80px}
+.af-field-action{position:absolute;right:4px;top:6px;height:44px;min-width:56px;padding:0 12px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--ink);font:700 14px/1 var(--font-sans);cursor:pointer}
+.af-field-action:hover{text-decoration:underline}
+/* checkbox */
+.af-check{display:inline-flex;align-items:center;gap:var(--space-sm);min-height:44px;font:400 14px/1.4 var(--font-sans);color:var(--muted);cursor:pointer}
+.af-check input{width:20px;height:20px;margin:0;accent-color:var(--brand);cursor:pointer}
+/* divider with a word */
+.af-divider{display:flex;align-items:center;gap:var(--space-md);color:var(--muted);font:400 14px/1.4 var(--font-sans)}
+.af-divider::before,.af-divider::after{content:"";flex:1;height:1px;background:var(--border-strong)}
+/* inline alert */
+.af-alert{display:flex;gap:var(--space-sm);align-items:flex-start;padding:12px 16px;background:var(--surface);border-radius:var(--radius-sm);font:500 14px/1.4 var(--font-sans);color:var(--ink)}
+.af-alert svg{flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.af-alert--error{color:var(--error)}
+.af-alert--warning{color:var(--warning)}
+.af-alert--success{color:var(--success)}
+/* select (native dropdown in a field) */
+.af-field--select label{top:8px;font-size:12px;line-height:1}
+.af-field--select::after{content:"";position:absolute;right:20px;top:20px;width:8px;height:8px;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg);pointer-events:none}
+.af-select{box-sizing:border-box;width:100%;height:56px;background:transparent;border:0;border-radius:var(--radius-sm);color:var(--ink);font:400 16px/1.5 var(--font-sans);padding:24px 48px 8px 16px;appearance:none;-webkit-appearance:none;cursor:pointer}
+.af-select option{background:var(--surface);color:var(--ink)}
+/* menu (dropdown list for profile and actions) */
+.af-menu-wrap{position:relative;display:inline-flex}
+.af-menu{box-sizing:border-box;width:240px;padding:var(--space-sm);background:var(--surface);color:var(--ink);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);font-family:var(--font-sans);display:flex;flex-direction:column}
+.af-menu--float{position:absolute;right:0;top:calc(100% + var(--space-sm));z-index:10}
+.af-menu-head{padding:8px 12px;font:400 13px/1.4 var(--font-sans);color:var(--muted)}
+.af-menu-item{display:flex;align-items:center;gap:var(--space-md);min-height:44px;padding:0 12px;border:0;border-radius:var(--radius-md);background:transparent;color:var(--ink);font:400 16px/1.3 var(--font-sans);text-align:left;text-decoration:none;cursor:pointer}
+.af-menu-item:hover{background:var(--pill-active)}
+.af-menu-item svg{flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.af-menu-sep{height:1px;margin:var(--space-sm) 0;background:var(--border-strong)}
+/* auth layout: split sign-in and signup (paper theme) */
+.af-auth{min-height:100%;display:flex;flex-direction:column;background:var(--canvas);color:var(--ink);font-family:var(--font-sans)}
+.af-auth-top{display:flex;align-items:center;justify-content:space-between;padding:var(--space-lg) var(--space-gutter)}
+.af-auth-top img,.af-auth-top .af-logo{height:32px;width:auto;display:block}
+.af-auth-main{flex:1 1 auto;display:flex;flex-wrap:wrap;align-items:stretch;gap:var(--space-lg);padding:0 var(--space-lg) var(--space-lg) 0}
+.af-auth-form{flex:1 1 480px;min-width:0;display:flex;align-items:center;justify-content:center;padding:var(--space-lg) var(--space-gutter) 56px}
+.af-auth-card{width:100%;max-width:400px;display:flex;flex-direction:column;gap:var(--space-md)}
+.af-auth-title{margin:0;font:700 32px/1.25 var(--font-sans)}
+.af-auth-sub{margin:0 0 var(--space-sm);font:400 16px/1.5 var(--font-sans);color:var(--muted)}
+.af-auth-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-sm)}
+.af-auth-legal{margin:0;font:400 13px/1.4 var(--font-sans);color:var(--muted)}
+.af-auth-panel{flex:1 1 560px;min-width:0;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:var(--space-xl);min-height:560px;padding:56px;box-sizing:border-box;background:var(--surface-alt);border-radius:var(--radius-billboard)}
+.af-auth-panel-art{position:absolute;inset:0;width:100%;height:100%}
+.af-auth-posters{position:relative;display:flex;gap:var(--space-md);align-items:flex-end}
+.af-auth-posters figure{margin:0;width:148px}
+.af-auth-copy{position:relative;display:flex;flex-direction:column;gap:var(--space-sm);max-width:520px}
+.af-auth-copy h2{margin:0;font:900 56px/1.1 var(--font-sans)}
+.af-auth-copy p{margin:0;font:400 20px/1.4 var(--font-sans)}
+@media (max-width:960px){.af-auth-panel{display:none}.af-auth-form{padding:var(--space-lg) var(--space-md) var(--space-xl)}.af-auth-top{padding:var(--space-md)}.af-auth-main{padding-right:0}}
 @media (max-width:720px){.af-header{padding-left:var(--space-md)!important;padding-right:var(--space-md)!important}.af-billboard{margin-left:var(--space-md);margin-right:var(--space-md)}.af-billboard-badges{display:none}.af-billboard-title{font-size:36px}.af-billboard-body{padding:var(--space-md)}}

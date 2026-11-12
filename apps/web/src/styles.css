@@ -28,6 +28,19 @@ body {
   outline-offset: 2px;
 }
 
+.af-input:focus-visible {
+  outline: none;
+}
+
+.af-auth-card {
+  max-width: 440px;
+}
+
+/* The field's border carries the focus state instead of an outline around the input. */
+.af-field:has(.af-input:focus-visible):not(.af-field--error) {
+  border-color: var(--muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
