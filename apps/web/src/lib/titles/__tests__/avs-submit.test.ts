@@ -10,7 +10,7 @@ import { buildHome, type TitleShelf } from '../shelves.ts';
 
 const fixture = (name: string) =>
   readFileSync(
-    resolve(import.meta.dirname, '../../../../public/fixtures/default', name),
+    resolve(import.meta.dirname, '../__mockData__/default', name),
     'utf8',
   );
 const newEpisodes = parseNewEpisodes(

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Transport } from '../../transport/index.ts';
-import { ReplayTransport } from '../../transport/replay-transport.ts';
+import { ReplayTransport } from '../../../test/replay-transport.ts';
 import {
   fetchSeasonFirstPage,
   fetchSeasonRest,
@@ -16,10 +16,15 @@ import {
 } from '../season-pages.ts';
 import type { Title } from '../title.ts';
 
-const publicDir = resolve(import.meta.dirname, '../../../../public');
+const mockDir = resolve(import.meta.dirname, '../__mockData__');
 const diskFetch: typeof fetch = async (input) => {
   try {
-    return new Response(readFileSync(`${publicDir}${String(input)}`, 'utf8'));
+    return new Response(
+      readFileSync(
+        `${mockDir}${String(input).replace(/^\/fixtures/, '')}`,
+        'utf8',
+      ),
+    );
   } catch {
     return new Response('missing', { status: 404 });
   }
@@ -121,7 +126,7 @@ describe('the season pages', () => {
 
   it('is one page without a pager', async () => {
     const html = readFileSync(
-      `${publicDir}/fixtures/default/season/autumn/2026.html`,
+      `${mockDir}/default/season/autumn/2026.html`,
       'utf8',
     ).replace(/<div class="wp-pagenavi">.*<\/div>/s, '');
     const single: Transport = {

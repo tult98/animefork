@@ -29,7 +29,7 @@ const SLUG = 'tonikaku-kawaii-a3860';
 const html = readFileSync(
   resolve(
     import.meta.dirname,
-    '../../../../public/fixtures/default/phim/tonikaku-kawaii-a3860/xem-phim.html',
+    '../__mockData__/default/phim/tonikaku-kawaii-a3860/xem-phim.html',
   ),
   'utf8',
 );

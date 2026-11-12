@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
-import { ReplayTransport } from '../../transport/replay-transport.ts';
+import { ReplayTransport } from '../../../test/replay-transport.ts';
 import {
   EpisodeNotFoundError,
   EpisodeSchema,
@@ -13,9 +13,9 @@ import {
   selectEpisode,
 } from '../watch.ts';
 
-const publicDir = resolve(import.meta.dirname, '../../../../public');
+const mockDir = resolve(import.meta.dirname, '../__mockData__');
 const html = readFileSync(
-  `${publicDir}/fixtures/default/phim/tonikaku-kawaii-a3860/xem-phim.html`,
+  `${mockDir}/default/phim/tonikaku-kawaii-a3860/xem-phim.html`,
   'utf8',
 );
 const SLUG = 'tonikaku-kawaii-a3860';
@@ -23,7 +23,7 @@ const SLUG = 'tonikaku-kawaii-a3860';
 describe('parseWatchPage', () => {
   it('reads the poster when the page has one', () => {
     const page = parseWatchPage(html, SLUG);
-    expect(page.image).toBe('/fixtures/sample-poster.svg');
+    expect(page.image).toBe('https://cdn.animevietsub.best/sample-poster.jpg');
     const bare = parseWatchPage(
       html.replace(/<div class="Image">.*?<\/div>/s, ''),
       SLUG,
@@ -124,7 +124,7 @@ describe('parseWatchPage', () => {
       'TONIKAWA: Over the Moon For You',
     ]);
     const second = readFileSync(
-      `${publicDir}/fixtures/default/phim/tonikaku-kawaii-2nd-season-a4476/xem-phim.html`,
+      `${mockDir}/default/phim/tonikaku-kawaii-2nd-season-a4476/xem-phim.html`,
       'utf8',
     );
     expect(
@@ -134,7 +134,7 @@ describe('parseWatchPage', () => {
 
   it('leaves the other names out for a page without a subtitle', () => {
     const kamui = readFileSync(
-      `${publicDir}/fixtures/default/phim/ushiro-no-shoumen-kamui-san-a6084/xem-phim.html`,
+      `${mockDir}/default/phim/ushiro-no-shoumen-kamui-san-a6084/xem-phim.html`,
       'utf8',
     );
     expect(
@@ -158,9 +158,15 @@ describe('fetchWatchPage', () => {
   it('reads /phim/<slug>/xem-phim.html through the transport', async () => {
     const transport = new ReplayTransport({
       fetchImpl: async (input) =>
-        new Response(readFileSync(`${publicDir}${String(input)}`, 'utf8'), {
-          status: 200,
-        }),
+        new Response(
+          readFileSync(
+            `${mockDir}${String(input).replace(/^\/fixtures/, '')}`,
+            'utf8',
+          ),
+          {
+            status: 200,
+          },
+        ),
     });
     const page = await fetchWatchPage(transport, SLUG);
     expect(page.currentEpisode.label).toBe('Tập 1_BD_Full');

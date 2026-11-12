@@ -3,8 +3,6 @@ import type { Transport } from '../../transport/index.ts';
 import { TransportStatusError } from '../../transport/index.ts';
 import { StreamUnavailableError } from '../errors.ts';
 import { ExtensionPlayerSource } from '../extension-player-source.ts';
-import { createPlayerSource } from '../select.ts';
-import { ReplayPlayerSource, REPLAY_SAMPLES } from '../replay-player-source.ts';
 
 const episode = { id: '72839', play: 'api', hash: 'abc' };
 
@@ -121,36 +119,5 @@ describe('ExtensionPlayerSource', () => {
     await expect(
       new ExtensionPlayerSource({ transport }).resolve(episode),
     ).rejects.toBeInstanceOf(TransportStatusError);
-  });
-});
-
-describe('createPlayerSource', () => {
-  const transport = { get: vi.fn(), post: vi.fn() } as unknown as Transport;
-
-  it('serves the bundled sample under ?transport=replay', async () => {
-    const source = createPlayerSource('?transport=replay', {}, transport);
-    expect(source).toBeInstanceOf(ReplayPlayerSource);
-    await expect(source.resolve(episode)).resolves.toEqual({
-      url: REPLAY_SAMPLES.mp4,
-      kind: 'mp4',
-    });
-  });
-
-  it('serves the HLS sample under ?transport=replay&sample=hls', async () => {
-    const source = createPlayerSource(
-      '?transport=replay&sample=hls',
-      {},
-      transport,
-    );
-    await expect(source.resolve(episode)).resolves.toEqual({
-      url: REPLAY_SAMPLES.hls,
-      kind: 'hls',
-    });
-  });
-
-  it('defaults to the extension source', () => {
-    expect(createPlayerSource('', {}, transport)).toBeInstanceOf(
-      ExtensionPlayerSource,
-    );
   });
 });

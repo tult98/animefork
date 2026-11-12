@@ -120,7 +120,7 @@ describe('watchLookupTitle', () => {
       readFileSync(
         resolve(
           import.meta.dirname,
-          `../../../../public/fixtures/default/phim/${slug}/xem-phim.html`,
+          `../__mockData__/default/phim/${slug}/xem-phim.html`,
         ),
         'utf8',
       ),

@@ -6,10 +6,10 @@ import {
 } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
 import { Fragment, StrictMode } from 'react';
-import { ReplayPlayerSource } from '../lib/player/replay-player-source.ts';
+import { ReplayPlayerSource } from './replay-player-source.ts';
 import { PlayerSourceProvider } from '../lib/player/context.tsx';
 import { routeTree } from '../routeTree.gen.ts';
-import { ReplayTransport } from '../lib/transport/replay-transport.ts';
+import { ReplayTransport } from './replay-transport.ts';
 import { TransportProvider } from '../lib/transport/index.ts';
 import { fixtureFetch, type FixtureOverride } from './fixture-fetch.ts';
 
@@ -44,7 +44,7 @@ export async function renderApp(
   render(
     <Wrapper>
       <TransportProvider transport={transport}>
-        <PlayerSourceProvider source={new ReplayPlayerSource('mp4')}>
+        <PlayerSourceProvider source={new ReplayPlayerSource()}>
           <QueryClientProvider client={queryClient}>
             <RouterProvider router={router} />
           </QueryClientProvider>

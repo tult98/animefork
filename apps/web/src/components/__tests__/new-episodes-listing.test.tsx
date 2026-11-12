@@ -82,10 +82,7 @@ describe('the new episodes listing', () => {
   describe('a source with 200 pages', () => {
     const CARD = /<li class="TPostMv">.*?<\/li>/s.exec(
       readFileSync(
-        resolve(
-          import.meta.dirname,
-          `../../../public/fixtures/default/${JP_PATH}.html`,
-        ),
+        resolve(import.meta.dirname, `../__mockData__/default/${JP_PATH}.html`),
         'utf8',
       ),
     )![0];

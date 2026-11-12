@@ -4,20 +4,23 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { installAppHook } from './lib/app-hook.ts';
 import { PlayerSourceProvider } from './lib/player/context.tsx';
-import { createPlayerSource } from './lib/player/select.ts';
-import { TransportProvider, createTransport } from './lib/transport/index.ts';
+import { ExtensionPlayerSource } from './lib/player/extension-player-source.ts';
+import {
+  ExtensionTransport,
+  TransportProvider,
+  loadExtensionHttp,
+} from './lib/transport/index.ts';
 import { routeTree } from './routeTree.gen.ts';
 import './styles.css';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
 });
-const transport = createTransport(window.location.search, import.meta.env);
-const playerSource = createPlayerSource(
-  window.location.search,
-  import.meta.env,
-  transport,
-);
+const transport = new ExtensionTransport({
+  loadHttp: loadExtensionHttp,
+  origin: import.meta.env.VITE_UPSTREAM_ORIGIN,
+});
+const playerSource = new ExtensionPlayerSource({ transport });
 const router = createRouter({ routeTree });
 
 declare module '@tanstack/react-router' {

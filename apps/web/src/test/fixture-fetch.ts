@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-const FIXTURES = resolve(import.meta.dirname, '../../public');
+// ReplayTransport asks for /fixtures/<set>/<page>; the pages live in the mock data beside the component tests.
+const MOCK_DATA = resolve(import.meta.dirname, '../components/__mockData__');
 
 export type FixtureOverride = (
   url: string,
@@ -18,7 +19,7 @@ export function hold(match: string | RegExp) {
   return { override, release: () => release() };
 }
 
-// A fetch that answers ReplayTransport's /fixtures/... requests from public/, with per-test overrides in front.
+// A fetch that answers ReplayTransport's /fixtures/... requests from components/__mockData__, with per-test overrides in front.
 export function fixtureFetch(...overrides: FixtureOverride[]): typeof fetch {
   return async (input, init) => {
     const url = String(input);
@@ -28,7 +29,10 @@ export function fixtureFetch(...overrides: FixtureOverride[]): typeof fetch {
     }
     if (init?.signal?.aborted) throw init.signal.reason;
     try {
-      const body = await readFile(resolve(FIXTURES, `.${url}`), 'utf8');
+      const body = await readFile(
+        resolve(MOCK_DATA, `.${url.replace(/^\/fixtures/, '')}`),
+        'utf8',
+      );
       return new Response(body, { status: 200 });
     } catch {
       return new Response('not found', { status: 404 });

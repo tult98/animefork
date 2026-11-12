@@ -2,7 +2,7 @@
 
 The rebuilt AnimeVsub front end. It lives beside the old Vue app (`apps/desktop-web`), which stays untouched until the cutover. Plan: `docs/webapp-rebuild/plan.md`.
 
-Stack: React 19, Vite, TanStack Router and Query, Tailwind 4, Base UI, zod, Vitest and Testing Library. Playwright is only the browser behind `capture-fixtures`.
+Stack: React 19, Vite, TanStack Router and Query, Tailwind 4, Base UI, zod, Vitest and Testing Library.
 
 ## Commands
 
@@ -16,7 +16,7 @@ Run everything through Nx from the repo root.
 
 `verify` writes logs to `apps/web/artifacts/verify/` (and `summary.json`).
 
-Unit tests sit in a `__tests__` folder beside the code they cover. Component tests run in jsdom and mount the real route tree over the fixtures in `public/fixtures/` (see `src/test/`). There is no browser test suite, so layout, CSS and browser behaviour such as hls.js playback, fullscreen, scrolling, hover timing and reduced motion are not covered by tests.
+Unit tests sit in a `__tests__` folder beside the code they cover. Component tests run in jsdom and mount the real route tree over the mock data in `src/components/__mockData__/` (see `src/test/`). There is no browser test suite, so layout, CSS and browser behaviour such as hls.js playback, fullscreen, scrolling, hover timing and reduced motion are not covered by tests.
 
 ## TMDB art
 
@@ -30,22 +30,21 @@ The watch screen and the details modal both read the watch page through `useWatc
 
 ## Transport
 
-Routes never fetch directly. They call `useTransport()` from `src/lib/transport/`, which returns one of two implementations.
+Routes never fetch directly. They call `useTransport()` from `src/lib/transport/`. `main.tsx` provides `ExtensionTransport`, which calls `Http` from `client-ext-animevsub-helper`, so the Animefork Helper extension does the fetching with the site's cookies. Relative URLs get the upstream origin (`VITE_UPSTREAM_ORIGIN`) and the `#animevsub-vsub` suffix. It throws `ExtensionMissingError` when the extension is absent. The app has no other transport, so it only works in a browser with the extension.
 
-- `ExtensionTransport` calls `Http` from `client-ext-animevsub-helper`, so the Animefork Helper extension does the fetching with the site's cookies. Relative URLs get the upstream origin (`VITE_UPSTREAM_ORIGIN`) and the `#animevsub-vsub` suffix. It throws `ExtensionMissingError` when the extension is absent.
-- `ReplayTransport` serves files from `public/fixtures/<set>/`, mapped from the URL path (`/` is `index.html`, `/a/b/` is `a/b.html`).
-
-Selection: `?transport=replay` in the URL, else `VITE_TRANSPORT=replay`, else the extension. In replay mode `?fixtures=<set>` picks the fixture set (default `default`).
+Tests use `ReplayTransport` (`src/test/replay-transport.ts`), which serves files from a `__mockData__` folder, mapped from the URL path (`/` is `index.html`, `/a/b/` is `a/b.html`).
 
 In dev, `window.__app` exposes `route()`, `queryKeys()`, `shelves()` (the id and card paths of each shelf the home page currently renders) and the active `transport`.
 
-## Fixtures
+## Mock data
 
-**The fixtures in `public/fixtures/default/` are excerpts of the live site, captured from a real browser on 2026-11-10 to 2026-11-12.** `default/index.html` holds the `.MovieListSldCn`, `#single-home` and `#hot-home` sections of the home page. `default/season/autumn/2026.html` holds the first 22 cards of the autumn 2026 season page, the page the home page's season tab links to, with its pager ("Trang 1 của 3"). `default/danh-sach/all/all/autumn/2026/all/all/jp.html` and `jp/trang-2.html` are derived from the season excerpts by dropping their Chinese titles (the live jp list has 60 titles over 2 pages); they stand in for the jp list the home shelf and listing read. `default/season/autumn/2026/trang-2.html` (8 of its 30 cards) and `trang-3.html` (all 3) are pages 2 and 3 of the same season, captured 2026-11-11; the pager of page 1 is written to match them. The site's real season has 63 titles over those 3 pages. `default/anime-sap-chieu.html` (the first 30 cards) and `anime-sap-chieu/trang-2.html` (all 17 of its cards) are the upcoming list, captured 2026-11-12 with its pager ("Trang 1 của 2"); a countdown card sits on each page and the rest read only "SẮP CHIẾU". Each file starts with an HTML comment naming its source and date. Scripts, ads and inline handlers were removed, and the cast lists were dropped because no parser reads them. They are not full pages. Image URLs stay the upstream `https://cdn.animevietsub.best/...` URLs, and the Playwright fixtures answer those requests locally so no test depends on the CDN.
+Test pages live in a `__mockData__` folder beside the `__tests__` folder that reads them, and each folder holds only the pages its tests read. They are excerpts of the live site, captured from a real browser on 2026-11-10 to 2026-11-12, with scripts, ads, inline handlers and cast lists removed. Each file starts with an HTML comment naming its source and date. They are not full pages. Image URLs stay the upstream `https://cdn.animevietsub.best/...` URLs, and nothing loads them in jsdom.
 
-`invalid-title` is the same markup cut down to one card per section, with one hero card given a non-numeric rating to prove the zod error path.
+- `src/components/__mockData__/` backs the component tests through `renderApp` (`src/test/`): the home page, the jp lists with their later pages, the upcoming list and three watch pages.
+- `src/lib/titles/__mockData__/` backs the parser tests: the same home page and watch pages, the season pages, and the jp lists.
+- `invalid-title` in both is the home markup cut down to one card per section, with one hero card given a non-numeric rating to prove the zod error path.
 
-Full pages must be captured from a real browser with the extension. The upstream is behind Cloudflare, so `curl` gets a 403, and nothing here tries to bypass that. `scripts/capture-fixtures.ts` opens Chrome for Testing with the built extension, reads each page through `ExtensionTransport`, and writes it to `public/fixtures/captured/`. It needs a human at the keyboard and stops if a page does not answer 200. The header of the script lists the prerequisites. `node scripts/capture-fixtures.ts --dry-run` prints the plan without a browser.
+The upstream is behind Cloudflare, so `curl` gets a 403, and nothing here tries to bypass that. Capture a new page from a real browser with the extension installed, trim it to what a test reads, and save it under the path `ReplayTransport` maps its URL to.
 
 ## Home data
 

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
-import { ReplayTransport } from '../../transport/replay-transport.ts';
+import { ReplayTransport } from '../../../test/replay-transport.ts';
 import {
   fetchHome,
   fetchNewEpisodes,
@@ -16,8 +16,9 @@ import {
 } from '../home.ts';
 import { TitleSchema } from '../title.ts';
 
-const publicDir = resolve(import.meta.dirname, '../../../../public');
-const read = (path: string) => readFileSync(`${publicDir}${path}`, 'utf8');
+const mockDir = resolve(import.meta.dirname, '../__mockData__');
+const read = (path: string) =>
+  readFileSync(`${mockDir}${path.replace(/^\/fixtures/, '')}`, 'utf8');
 
 const diskFetch: typeof fetch = async (input) => {
   try {

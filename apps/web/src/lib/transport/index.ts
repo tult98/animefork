@@ -5,6 +5,8 @@ export {
   TransportStatusError,
   expectOk,
 } from './errors.ts';
-export { createTransport, selectTransportKind } from './select.ts';
-export type { TransportKind } from './select.ts';
+export {
+  ExtensionTransport,
+  loadExtensionHttp,
+} from './extension-transport.ts';
 export type { Transport, TransportResponse } from './types.ts';
