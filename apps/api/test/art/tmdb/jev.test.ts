@@ -210,6 +210,21 @@ describe('JevMatcher request', () => {
     }
   });
 
+  it('sends the other names the source lists and explains them in both choices', async () => {
+    const { matcher, sent } = matcherFor(confident);
+    await matcher.match(question({ otherNames: ['Case Closed'] }));
+    const body = sent[0]?.body as {
+      state: { source: object };
+      questions: Record<'match' | 'show_match', { instructions: string }>;
+    };
+    expect(body.state.source).toMatchObject({ otherNames: ['Case Closed'] });
+    for (const q of [body.questions.match, body.questions.show_match]) {
+      expect(q.instructions).toContain(
+        'other known titles of the same franchise',
+      );
+    }
+  });
+
   it('leaves unknown source fields out of the state', async () => {
     const { matcher, sent } = matcherFor(confident);
     await matcher.match(question({ year: undefined, episodeCount: undefined }));

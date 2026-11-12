@@ -1,32 +1,22 @@
 import type { TitleInput } from '../art/contract.ts';
 import {
   distinctRomaji,
+  nameQueries,
   searchQueries,
   slugRomaji,
-  stripSeasonMarker,
 } from '../art/tmdb/titles.ts';
 import { MIN_QUERY_LENGTH } from './mal.client.ts';
 
 export const MAX_QUERIES = 4;
-export const MAX_NAME_QUERIES = 2;
-
-const key = (query: string) => query.toLowerCase();
-
-function uniqueIgnoringCase(queries: string[]): string[] {
-  const seen = new Set<string>();
-  return queries.filter((q) => {
-    if (seen.has(key(q))) return false;
-    seen.add(key(q));
-    return true;
-  });
-}
 
 const searchable = (q: string) => q.length >= MIN_QUERY_LENGTH;
 
 function romajiQueries(input: TitleInput, queries: string[]): string[] {
   if (distinctRomaji(input.slug, input.name) === undefined) return [];
-  const romaji = key(slugRomaji(input.slug));
-  return queries.filter((q) => q !== input.name && romaji.startsWith(key(q)));
+  const romaji = slugRomaji(input.slug).toLowerCase();
+  return queries.filter(
+    (q) => q !== input.name && romaji.startsWith(q.toLowerCase()),
+  );
 }
 
 // MAL indexes Japanese romaji and English titles, so a Vietnamese display name finds nothing
@@ -40,12 +30,8 @@ export function malQueries(input: TitleInput): string[] {
 // so they go right after the slug romaji, and each one raises the cap instead of displacing a query.
 export function sourceQueries(input: TitleInput): string[] {
   const base = malQueries(input).filter(searchable).slice(0, MAX_QUERIES);
-  const asked = new Set(base.map(key));
-  const names = uniqueIgnoringCase(
-    (input.otherNames ?? []).map(stripSeasonMarker).filter(searchable),
-  )
-    .filter((q) => !asked.has(key(q)))
-    .slice(0, MAX_NAME_QUERIES);
+  const names = nameQueries(input.otherNames, base, searchable);
   if (names.length === 0) return base;
-  return uniqueIgnoringCase([...romajiQueries(input, base), ...names, ...base]);
+  const romaji = romajiQueries(input, base);
+  return [...romaji, ...names, ...base.filter((q) => !romaji.includes(q))];
 }

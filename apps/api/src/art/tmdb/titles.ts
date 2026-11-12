@@ -101,6 +101,26 @@ function slugQueries(slug: string): string[] {
   return [long, short];
 }
 
+export const MAX_NAME_QUERIES = 2;
+
+// The other names identify the show, not the season, so their season markers are dropped.
+export function nameQueries(
+  otherNames: readonly string[] | undefined,
+  asked: readonly string[],
+  searchable: (query: string) => boolean = () => true,
+): string[] {
+  const seen = new Set(asked.map((q) => q.toLowerCase()));
+  const queries: string[] = [];
+  for (const name of otherNames ?? []) {
+    const query = stripSeasonMarker(name);
+    if (!searchable(query) || seen.has(query.toLowerCase())) continue;
+    seen.add(query.toLowerCase());
+    queries.push(query);
+    if (queries.length === MAX_NAME_QUERIES) break;
+  }
+  return queries;
+}
+
 // TMDB search is literal, so a full name with an arc subtitle often finds
 // nothing while the franchise name alone does. Ordered from most to least specific.
 export function searchQueries(name: string, slug?: string): string[] {

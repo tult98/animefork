@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { MAX_NAME_QUERIES } from '../../src/art/tmdb/titles.ts';
 import {
-  MAX_NAME_QUERIES,
   MAX_QUERIES,
   malQueries,
   sourceQueries,
