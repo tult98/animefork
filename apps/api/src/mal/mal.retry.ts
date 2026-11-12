@@ -32,7 +32,11 @@ interface RetryRow {
 // | ok     | 7 days since fetched (1 day while airing), or 10 min since a try | served as is, refreshed in the background  |
 // | none   | 7 days (not at all below the matcher version)| matched again on its next lookup           |
 // | failed | 10 minutes                                   | matched again on its next lookup           |
-export function isMalSettled(row: RetryRow | undefined, now: Date): boolean {
+export function isMalSettled(
+  row: RetryRow | undefined,
+  now: Date,
+  namesAt?: Date,
+): boolean {
   if (!row) return false;
   const since = (at: Date) => now.getTime() - at.getTime();
   if (row.status === 'ok') {
@@ -53,5 +57,6 @@ export function isMalSettled(row: RetryRow | undefined, now: Date): boolean {
   if (row.status === 'none' && row.matcherVersion < MAL_MATCHER_VERSION) {
     return false;
   }
+  if (namesAt && row.attemptedAt < namesAt) return false;
   return since(row.attemptedAt) < MAL_RETRY_AFTER_MS[row.status];
 }

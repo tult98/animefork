@@ -21,6 +21,7 @@ function toInput(raw: {
   name: string;
   year?: number;
   episodeCount?: number;
+  otherNames?: string[];
 }): TitleInput | undefined {
   const name = raw.name.replace(TRAILING_TAGS, '').trim().slice(0, 200);
   const parsed = TitleInputSchema.safeParse({
@@ -29,6 +30,7 @@ function toInput(raw: {
     seasonName: seasonMarker(name),
     year: bounded(raw.year, 1900, 2100),
     episodeCount: bounded(raw.episodeCount, 1, 2000),
+    otherNames: raw.otherNames,
   });
   return parsed.success ? parsed.data : undefined;
 }
@@ -54,5 +56,9 @@ export function lookupTitles(shelves: HomeShelves): TitleInput[] {
 
 // The watch page lists only the episodes aired so far, so their count is not the season's total and is left out.
 export function watchLookupTitle(page: WatchPage): TitleInput | undefined {
-  return toInput({ slug: page.slug, name: page.title });
+  return toInput({
+    slug: page.slug,
+    name: page.title,
+    otherNames: page.otherNames,
+  });
 }

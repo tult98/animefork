@@ -11,6 +11,10 @@ import {
 } from './art.filler.ts';
 import { ArtService } from './art.service.ts';
 import { ART_STORE, PostgresArtStore } from './art.store.ts';
+import {
+  PostgresTitleNamesStore,
+  TITLE_NAMES_STORE,
+} from './title-names.store.ts';
 import { MalModule } from '../mal/mal.module.ts';
 import { RatingsModule } from '../ratings/ratings.module.ts';
 import { createMatcher } from './tmdb/jev.ts';
@@ -40,6 +44,7 @@ import { createTranslator, OVERVIEW_TRANSLATOR } from './translator.ts';
       useFactory: (config: ArtConfig) => createTranslator(config.deepseek),
     },
     { provide: ART_STORE, useClass: PostgresArtStore },
+    { provide: TITLE_NAMES_STORE, useClass: PostgresTitleNamesStore },
     { provide: FILL_CONCURRENCY, useValue: DEFAULT_FILL_CONCURRENCY },
     { provide: CLOCK, useValue: systemClock },
     ArtFiller,

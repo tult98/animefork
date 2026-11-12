@@ -127,18 +127,29 @@ describe('watchLookupTitle', () => {
       slug,
     );
 
-  it('drops a trailing release tag from the page title', () => {
+  it('drops a trailing release tag from the page title and sends the subtitle as another name', () => {
     expect(watchLookupTitle(page('tonikaku-kawaii-a3860'))).toEqual({
       slug: 'tonikaku-kawaii-a3860',
       name: 'Tonikaku Kawaii',
+      otherNames: ['TONIKAWA: Over the Moon For You'],
     });
   });
 
-  it('takes the season from the page title', () => {
+  it('takes the season from the page title, and the same other name as the first season', () => {
     expect(watchLookupTitle(page('tonikaku-kawaii-2nd-season-a4476'))).toEqual({
       slug: 'tonikaku-kawaii-2nd-season-a4476',
       name: 'Tonikaku Kawaii 2nd Season',
       seasonName: '2nd Season',
+      otherNames: ['TONIKAWA: Over the Moon For You'],
     });
+  });
+
+  it('sends no other names for a page without a subtitle', () => {
+    const title = watchLookupTitle(page('ushiro-no-shoumen-kamui-san-a6084'));
+    expect(title).toMatchObject({ slug: 'ushiro-no-shoumen-kamui-san-a6084' });
+    expect(title).not.toHaveProperty('otherNames');
+    expect(
+      LookupRequestSchema.parse({ titles: [title] }).titles[0],
+    ).not.toHaveProperty('otherNames');
   });
 });

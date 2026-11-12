@@ -7,6 +7,7 @@ import {
   gatherCandidates,
   mapEpisodes,
   syncTitle,
+  tmdbQueries,
   type SyncOutcome,
 } from '../../../src/art/tmdb/sync.ts';
 import type { TitleInput } from '../../../src/art/contract.ts';
@@ -248,6 +249,33 @@ describe('syncTitle against a mocked TMDB', () => {
     );
   });
 
+  it('asks up to two other names after the name and slug queries, on top of the cap', async () => {
+    const searches: string[] = [];
+    const spy: typeof fetch = async (input) => {
+      searches.push(new URL(String(input)).searchParams.get('query') ?? '');
+      return Response.json({ results: [] });
+    };
+    await sync(
+      {
+        slug: 'a-b-c-d-e-f-a1',
+        name: 'Nothing Here-hen: Sub Story-hen',
+        otherNames: [
+          'Soul Land Season 2',
+          'A B C D E F',
+          'Douluo Dalu',
+          'Third',
+        ],
+      },
+      spy,
+    );
+    expect(searches).toHaveLength(7);
+    expect(searches.slice(4)).toEqual([
+      'a b c d e f',
+      'Soul Land',
+      'Douluo Dalu',
+    ]);
+  });
+
   it('downgrades a baseline match to show scope when TMDB lacks the season', async () => {
     const paths: string[] = [];
     const inner = mockTmdb();
@@ -443,5 +471,34 @@ describe('the question built for the matcher', () => {
   it('leaves the romaji out when it repeats the display name', async () => {
     const gathered = await gather('tonikaku-kawaii-a3860', 'Tonikaku Kawaii');
     expect(gathered?.question.romaji).toBeUndefined();
+  });
+
+  it('carries the other names, and leaves them out when there are none', async () => {
+    const gathered = await gatherCandidates(
+      {
+        slug: 'tonikaku-kawaii-a3860',
+        name: 'Tonikaku Kawaii',
+        otherNames: ['TONIKAWA: Over the Moon For You'],
+      },
+      createTmdbClient({ apiKey: 'key', fetch: mockTmdb() }),
+    );
+    expect(gathered?.question.otherNames).toEqual([
+      'TONIKAWA: Over the Moon For You',
+    ]);
+    const bare = await gather('tonikaku-kawaii-a3860', 'Tonikaku Kawaii');
+    expect(bare?.question).not.toHaveProperty('otherNames');
+  });
+});
+
+describe('tmdbQueries', () => {
+  it('asks the same queries as before for a title without other names', () => {
+    const input = {
+      slug: 'a-b-c-d-e-f-a1',
+      name: 'Nothing Here-hen: Sub Story-hen',
+    };
+    expect(tmdbQueries({ ...input, otherNames: [] })).toEqual(
+      tmdbQueries(input),
+    );
+    expect(tmdbQueries(input)).toHaveLength(5);
   });
 });

@@ -10,7 +10,12 @@ import {
 } from './matcher.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
 import type { TitleInput } from '../contract.ts';
-import { distinctRomaji, parseSeasonNumber, searchQueries } from './titles.ts';
+import {
+  distinctRomaji,
+  nameQueries,
+  parseSeasonNumber,
+  searchQueries,
+} from './titles.ts';
 
 export interface TitleArtRow {
   source_slug: string;
@@ -109,6 +114,11 @@ export interface Gathered {
   details: TmdbDetail[];
 }
 
+export function tmdbQueries(input: TitleInput): string[] {
+  const base = searchQueries(input.name, input.slug).slice(0, MAX_SEARCHES);
+  return [...base, ...nameQueries(input.otherNames, base)];
+}
+
 export async function gatherCandidates(
   input: TitleInput,
   tmdb: TmdbClient,
@@ -116,8 +126,7 @@ export async function gatherCandidates(
   const season = parseSeasonNumber(input.seasonName, input.name);
   let query = '';
   let results: Awaited<ReturnType<TmdbClient['searchTv']>> = [];
-  const queries = searchQueries(input.name, input.slug).slice(0, MAX_SEARCHES);
-  for (const candidate of queries) {
+  for (const candidate of tmdbQueries(input)) {
     query = candidate;
     results = await tmdb.searchTv(candidate);
     if (results.length > 0) break;
@@ -140,6 +149,8 @@ export async function gatherCandidates(
       slug: input.slug,
       sourceTitle: input.name,
       romaji: distinctRomaji(input.slug, input.name),
+      ...(input.otherNames !== undefined &&
+        input.otherNames.length > 0 && { otherNames: input.otherNames }),
       season,
       seasonName: input.seasonName,
       year: input.year,

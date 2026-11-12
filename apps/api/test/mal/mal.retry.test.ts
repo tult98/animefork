@@ -113,6 +113,25 @@ describe('isMalSettled', () => {
     expect(isMalSettled(miss(3, MAL_RETRY_AFTER_MS.none), now)).toBe(false);
   });
 
+  it.each(['none', 'failed'] as const)(
+    'matches a %s row once more when other names arrived after its try',
+    (status) => {
+      const miss = row({ status, fetchedAt: null, attemptedAt: ago(1000) });
+      expect(isMalSettled(miss, now)).toBe(true);
+      expect(isMalSettled(miss, now, ago(1001))).toBe(true);
+      expect(isMalSettled(miss, now, ago(1000))).toBe(true);
+      expect(isMalSettled(miss, now, ago(999))).toBe(false);
+      const retried = { ...miss, attemptedAt: ago(0) };
+      expect(isMalSettled(retried, now, ago(999))).toBe(true);
+    },
+  );
+
+  it('never refetches an ok row because other names arrived', () => {
+    const ok = row({ airing: 'finished_airing', datesKnown: true });
+    expect(isMalSettled(ok, now, now)).toBe(true);
+    expect(isMalSettled(ok, now, new Date(now.getTime() + 1))).toBe(true);
+  });
+
   it('tries a no-match again when the matcher has improved since', () => {
     expect(
       isMalSettled(

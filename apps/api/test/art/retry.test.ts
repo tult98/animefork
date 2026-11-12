@@ -55,6 +55,23 @@ describe('retry table', () => {
     },
   );
 
+  it.each<TitleStatus>(['no_match', 'failed'])(
+    'retries a %s row once when other names arrived after its try',
+    (status) => {
+      const now = after(1000);
+      expect(isSettled(row(status), now)).toBe(true);
+      expect(isSettled(row(status), now, after(-1))).toBe(true);
+      expect(isSettled(row(status), now, at)).toBe(true);
+      expect(isSettled(row(status), now, after(1))).toBe(false);
+      const retried = { ...row(status), attemptedAt: after(2) };
+      expect(isSettled(retried, now, after(1))).toBe(true);
+    },
+  );
+
+  it('never retries a matched row because other names arrived', () => {
+    expect(isSettled(row('matched'), after(1), after(1))).toBe(true);
+  });
+
   it.each<[TitleStatus, number, boolean]>([
     ['matched', 1, true],
     ['matched', 2, false],

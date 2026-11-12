@@ -22,7 +22,8 @@ const ALTERNATIVE_TITLE_CAP = 10;
 
 const SOURCE_TITLE_NOTE =
   'The source title may be Vietnamese or a romanization of the Japanese title. ' +
-  'When present, romaji is a Hepburn-style romanization of the original Japanese title, taken from the source site URL slug, so compare it with candidate original names and alternative titles. ';
+  'When present, romaji is a Hepburn-style romanization of the original Japanese title, taken from the source site URL slug, so compare it with candidate original names and alternative titles. ' +
+  'When present, otherNames are other known titles of the same franchise that the source site lists, such as an English, romaji or pinyin title; they name the show, not the season. ';
 
 const MATCH_INSTRUCTIONS =
   'Pick the candidate that is the same anime and the same season as the source. ' +
@@ -112,6 +113,8 @@ export function jevState(question: MatchQuestion): {
     source: {
       title: question.sourceTitle,
       ...(question.romaji !== undefined && { romaji: question.romaji }),
+      ...(question.otherNames !== undefined &&
+        question.otherNames.length > 0 && { otherNames: question.otherNames }),
       season: question.season,
       ...(question.year !== undefined && { year: question.year }),
       ...(question.episodeCount !== undefined && {

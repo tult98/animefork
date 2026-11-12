@@ -44,10 +44,14 @@ export class MalFiller {
     return this.inFlight.has(slug);
   }
 
-  fill(input: TitleInput, aliases?: AliasSource): Promise<void> {
+  fill(
+    input: TitleInput,
+    aliases?: AliasSource,
+    namesAt?: Date,
+  ): Promise<void> {
     const existing = this.inFlight.get(input.slug);
     if (existing) return existing;
-    const done = this.run(input, aliases)
+    const done = this.run(input, aliases, namesAt)
       .catch((error: unknown) => {
         this.logger.error(
           `mal ${input.slug} could not be saved: ${describeError(error)}`,
@@ -64,9 +68,13 @@ export class MalFiller {
     }
   }
 
-  private async run(input: TitleInput, aliases?: AliasSource): Promise<void> {
+  private async run(
+    input: TitleInput,
+    aliases?: AliasSource,
+    namesAt?: Date,
+  ): Promise<void> {
     const current = (await this.store.find([input.slug])).get(input.slug);
-    if (isMalSettled(current, this.now())) return;
+    if (isMalSettled(current, this.now(), namesAt)) return;
     try {
       if (current?.status === 'ok' && current.malId !== null) {
         await this.refresh(current);
@@ -113,9 +121,10 @@ export class MalFiller {
       pages.push(results);
       return results;
     };
+    const otherNames = input.otherNames ?? [];
     let found: MalMatch | null = null;
     for (const query of sourceQueries(input)) {
-      found = matchMal(input, await search(query));
+      found = matchMal(input, await search(query), otherNames);
       if (found) break;
     }
     // A name TMDB confirmed for this show reaches MAL titles the source's own name never would.
@@ -127,7 +136,7 @@ export class MalFiller {
         return [];
       });
       for (const query of names.slice(0, MAX_ALIAS_QUERIES)) {
-        found = matchMal(input, await search(query), names);
+        found = matchMal(input, await search(query), [...otherNames, ...names]);
         if (found) break;
       }
     }

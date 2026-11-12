@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeOtherNames } from '../../../../api/src/art/contract.ts';
 import { expectOk, type Transport } from '../transport/index.ts';
 
 export const EpisodeSchema = z.object({
@@ -24,6 +25,7 @@ export type Season = z.infer<typeof SeasonSchema>;
 export const WatchPageSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
+  otherNames: z.array(z.string().min(1)).optional(),
   image: z.string().min(1).optional(),
   seasons: z.array(SeasonSchema),
   currentSeason: SeasonSchema,
@@ -89,9 +91,25 @@ function parseSeasons(doc: Document): Season[] {
   return seasons;
 }
 
+const NAME_SEPARATORS = /[,;]| \/ /;
+const TRAILING_NOISE = /(?:(?:^|\s+)(?:\(\d{4}\)|Tập\s*\d+|Full))+$/i;
+
+export function parseOtherNames(text: string, title?: string): string[] {
+  return normalizeOtherNames(
+    text
+      .split(NAME_SEPARATORS)
+      .map((name) => name.trim().replace(TRAILING_NOISE, '')),
+    title,
+  );
+}
+
 export function parseWatchPage(html: string, slug: string): WatchPage {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const title = doc.querySelector('h1.Title')?.textContent?.trim();
+  const otherNames = parseOtherNames(
+    doc.querySelector('h2.SubTitle')?.textContent ?? '',
+    title,
+  );
   const image =
     doc.querySelector('.Image img')?.getAttribute('src') || undefined;
   const episodes = parseEpisodes(doc);
@@ -103,6 +121,7 @@ export function parseWatchPage(html: string, slug: string): WatchPage {
   return WatchPageSchema.parse({
     slug,
     title,
+    ...(otherNames.length > 0 && { otherNames }),
     image,
     seasons: seasons.length > 0 ? seasons : [currentSeason],
     currentSeason,

@@ -166,3 +166,32 @@ describe('scoreCandidate with a romaji', () => {
     expect(ask('tsuihou sareta')).toBeGreaterThan(ask());
   });
 });
+
+describe('scoreCandidate with other names', () => {
+  const candidate: Candidate = {
+    id: 9,
+    name: 'Soul Land',
+    originalName: '斗罗大陆',
+    alternativeTitles: ['Douluo Dalu'],
+    firstAirDate: '2018-01-20',
+    episodeCount: 52,
+  };
+  const ask = (otherNames?: string[]) =>
+    scoreCandidate(
+      question({
+        sourceTitle: 'Đấu La Đại Lục',
+        year: 2018,
+        ...(otherNames && { otherNames }),
+      }),
+      candidate,
+    );
+
+  it('rises when another name matches a candidate name or alternative title', () => {
+    expect(ask(['Douluo Dalu'])).toBeGreaterThan(ask() + 0.4);
+    expect(ask(['Soul Land'])).toBeGreaterThan(ask() + 0.4);
+  });
+
+  it('is unchanged with no other names', () => {
+    expect(ask([])).toBe(ask());
+  });
+});

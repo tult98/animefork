@@ -8,6 +8,7 @@ import {
   EpisodeNotFoundError,
   EpisodeSchema,
   fetchWatchPage,
+  parseOtherNames,
   parseWatchPage,
   selectEpisode,
 } from '../watch.ts';
@@ -118,6 +119,34 @@ describe('parseWatchPage', () => {
     expect(() => parseWatchPage(empty, SLUG)).toThrow(ZodError);
   });
 
+  it('reads the subtitle as the other names of the show', () => {
+    expect(parseWatchPage(html, SLUG).otherNames).toEqual([
+      'TONIKAWA: Over the Moon For You',
+    ]);
+    const second = readFileSync(
+      `${publicDir}/fixtures/default/phim/tonikaku-kawaii-2nd-season-a4476/xem-phim.html`,
+      'utf8',
+    );
+    expect(
+      parseWatchPage(second, 'tonikaku-kawaii-2nd-season-a4476').otherNames,
+    ).toEqual(['TONIKAWA: Over the Moon For You']);
+  });
+
+  it('leaves the other names out for a page without a subtitle', () => {
+    const kamui = readFileSync(
+      `${publicDir}/fixtures/default/phim/ushiro-no-shoumen-kamui-san-a6084/xem-phim.html`,
+      'utf8',
+    );
+    expect(
+      parseWatchPage(kamui, 'ushiro-no-shoumen-kamui-san-a6084'),
+    ).not.toHaveProperty('otherNames');
+    const blank = html.replace(
+      /<h2 class="SubTitle">.*?<\/h2>/,
+      '<h2 class="SubTitle">  </h2>',
+    );
+    expect(parseWatchPage(blank, SLUG)).not.toHaveProperty('otherNames');
+  });
+
   it('rejects an episode without a hash', () => {
     expect(
       EpisodeSchema.safeParse({ id: '1', play: 'api', label: 'Tập 1' }).success,
@@ -135,5 +164,49 @@ describe('fetchWatchPage', () => {
     });
     const page = await fetchWatchPage(transport, SLUG);
     expect(page.currentEpisode.label).toBe('Tập 1_BD_Full');
+  });
+});
+
+describe('parseOtherNames', () => {
+  it('splits a ranking entry and drops its year and episode', () => {
+    expect(parseOtherNames('Soul Land, Douluo Dalu (2018) Tập 228')).toEqual([
+      'Soul Land',
+      'Douluo Dalu',
+    ]);
+  });
+
+  it('splits on semicolons and spaced slashes, and drops a trailing Full', () => {
+    expect(parseOtherNames('Fate/Zero; Fate Zero / Fate Zero Full')).toEqual([
+      'Fate/Zero',
+      'Fate Zero',
+    ]);
+  });
+
+  it('reads nothing from an empty or blank subtitle', () => {
+    expect(parseOtherNames('')).toEqual([]);
+    expect(parseOtherNames(' , ; Tập 12 ')).toEqual([]);
+  });
+
+  it('keeps a single name whole', () => {
+    expect(parseOtherNames('  TONIKAWA: Over the Moon For You ')).toEqual([
+      'TONIKAWA: Over the Moon For You',
+    ]);
+  });
+
+  it('drops repeats, ignoring case, and a name equal to the page title', () => {
+    expect(
+      parseOtherNames('Soul Land, SOUL LAND, Đấu La Đại Lục', 'Đấu La Đại Lục'),
+    ).toEqual(['Soul Land']);
+  });
+
+  it('keeps at most 5 names of at most 120 characters', () => {
+    const long = 'x'.repeat(121);
+    expect(parseOtherNames(`A, ${long}, B, C, D, E, F`)).toEqual([
+      'A',
+      'B',
+      'C',
+      'D',
+      'E',
+    ]);
   });
 });

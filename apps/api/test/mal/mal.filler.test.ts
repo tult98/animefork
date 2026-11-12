@@ -66,6 +66,23 @@ function setup(over: Partial<MalClient> = {}, judge: MalJudge | null = null) {
   };
 }
 
+const DONGHUA = {
+  slug: 'dau-la-dai-luc-a1234',
+  name: 'Đấu La Đại Lục',
+  year: 2018,
+  episodeCount: 52,
+};
+
+const SOUL_LAND = candidate({
+  id: 36027,
+  title: 'Douluo Dalu',
+  english: 'Soul Land',
+  synonyms: [],
+  year: 2018,
+  episodes: 52,
+  mediaType: 'ona',
+});
+
 describe('MalFiller.fill', () => {
   it('matches a title and stores its MAL numbers with the match provenance', async () => {
     const { filler, store, searches } = setup();
@@ -145,6 +162,49 @@ describe('MalFiller.fill', () => {
       return [];
     });
     expect(asked).toBe(false);
+  });
+
+  it('finds a donghua by the other names its source lists', async () => {
+    const searchFor = (answers: Record<string, MalCandidate[]>) => {
+      const searches: string[] = [];
+      return {
+        searches,
+        search: async (q: string) => {
+          searches.push(q);
+          return answers[q] ?? [];
+        },
+      };
+    };
+    const bare = searchFor({ 'Soul Land': [SOUL_LAND] });
+    const before = setup({ search: bare.search });
+    await before.filler.fill(DONGHUA);
+    expect(bare.searches).not.toContain('Soul Land');
+    expect(before.store.rows.get(DONGHUA.slug)?.status).toBe('none');
+
+    const named = searchFor({ 'Soul Land': [SOUL_LAND] });
+    const after = setup({ search: named.search });
+    await after.filler.fill({
+      ...DONGHUA,
+      otherNames: ['Douluo Dalu', 'Soul Land'],
+    });
+    expect(named.searches.slice(0, 2)).toEqual(['Douluo Dalu', 'Soul Land']);
+    expect(after.store.rows.get(DONGHUA.slug)).toMatchObject({
+      status: 'ok',
+      malId: SOUL_LAND.id,
+      matchedBy: 'score',
+    });
+  });
+
+  it('scores candidates against the other names, whichever query found them', async () => {
+    const found = async (otherNames?: string[]) => {
+      const { filler, store } = setup({
+        search: async (q) => (q === DONGHUA.name ? [SOUL_LAND] : []),
+      });
+      await filler.fill({ ...DONGHUA, ...(otherNames && { otherNames }) });
+      return store.rows.get(DONGHUA.slug)?.status;
+    };
+    expect(await found()).toBe('none');
+    expect(await found(['Soul Land'])).toBe('ok');
   });
 
   it('stores a no-match when candidates exist but none clears the bar', async () => {
@@ -324,6 +384,28 @@ describe('MalFiller with Jev', () => {
       status: 'ok',
       malId: 1,
       matchedBy: 'score',
+    });
+  });
+
+  it('hands Jev the other names when only a name query found the donghua', async () => {
+    const later = candidate({ ...SOUL_LAND, year: 2023, episodes: 200 });
+    const { filler, store, sent } = withJev(
+      {
+        ...accepting,
+        choice: String(later.id),
+        probabilities: { [later.id]: 0.93 },
+      },
+      { search: async (q) => (q === 'Soul Land' ? [later] : []) },
+    );
+    await filler.fill({ ...DONGHUA, otherNames: ['Soul Land'] });
+    expect(sent).toHaveLength(1);
+    expect(
+      (sent[0]?.body as { state: { source: object } }).state.source,
+    ).toMatchObject({ otherNames: ['Soul Land'] });
+    expect(store.rows.get(DONGHUA.slug)).toMatchObject({
+      status: 'ok',
+      malId: later.id,
+      matchedBy: 'jev',
     });
   });
 

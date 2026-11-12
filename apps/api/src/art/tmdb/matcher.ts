@@ -13,6 +13,7 @@ export interface MatchQuestion {
   sourceTitle: string;
   // Hepburn romanization of the original title, read from the source slug.
   romaji?: string;
+  otherNames?: string[];
   season: number;
   seasonName?: string;
   year?: number;
@@ -101,7 +102,7 @@ export function scoreCandidate(
   question: MatchQuestion,
   candidate: Candidate,
 ): number {
-  const sources = [question.sourceTitle];
+  const sources = [question.sourceTitle, ...(question.otherNames ?? [])];
   if (
     question.romaji &&
     normalizeTitle(question.romaji).split(' ').length >= MIN_ROMAJI_WORDS

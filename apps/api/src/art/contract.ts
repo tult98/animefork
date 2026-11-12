@@ -53,13 +53,47 @@ export const TitleRatingsSchema = z.object({
 
 export type TitleRatings = z.infer<typeof TitleRatingsSchema>;
 
-export const TitleInputSchema = z.object({
+export const MAX_OTHER_NAMES = 5;
+export const MAX_OTHER_NAME_LENGTH = 120;
+const MAX_RAW_OTHER_NAMES = 20;
+const MAX_RAW_OTHER_NAME_LENGTH = 400;
+
+export function normalizeOtherNames(
+  names: readonly string[],
+  displayName?: string,
+): string[] {
+  const seen = new Set<string>();
+  if (displayName !== undefined) seen.add(displayName.trim().toLowerCase());
+  const kept: string[] = [];
+  for (const raw of names) {
+    const name = raw.trim();
+    const key = name.toLowerCase();
+    if (!name || name.length > MAX_OTHER_NAME_LENGTH || seen.has(key)) continue;
+    seen.add(key);
+    kept.push(name);
+    if (kept.length === MAX_OTHER_NAMES) break;
+  }
+  return kept;
+}
+
+const TitleFieldsSchema = z.object({
   slug: z.string().regex(SLUG_PATTERN),
   name: z.string().min(1).max(200),
   seasonName: z.string().min(1).max(100).optional(),
   year: z.number().int().min(1900).max(2100).optional(),
   episodeCount: z.number().int().min(1).max(2000).optional(),
+  otherNames: z
+    .array(z.string().max(MAX_RAW_OTHER_NAME_LENGTH))
+    .max(MAX_RAW_OTHER_NAMES)
+    .optional(),
 });
+
+export const TitleInputSchema = TitleFieldsSchema.transform(
+  ({ otherNames, ...title }): z.output<typeof TitleFieldsSchema> => {
+    const names = normalizeOtherNames(otherNames ?? [], title.name);
+    return names.length > 0 ? { ...title, otherNames: names } : title;
+  },
+);
 
 export type TitleInput = z.infer<typeof TitleInputSchema>;
 
