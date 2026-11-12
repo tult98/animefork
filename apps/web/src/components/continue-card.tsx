@@ -1,8 +1,23 @@
 import { Link } from '@tanstack/react-router';
 import { FINISHED_LABEL, formatWatched } from '../lib/titles/continue-time.ts';
 import type { ContinueItem } from '../lib/titles/shelves.ts';
+import type { Title } from '../lib/titles/title.ts';
+import { DetailsButton } from './details-button.tsx';
+import { useDetails } from './details/details-context.tsx';
 import { useHoverPreview } from './use-hover-preview.ts';
 import { Play } from './ui/icons.ts';
+
+// The details modal reads a catalog title; a history row only carries what the shelf shows, and the modal loads the rest by slug.
+function detailsTitle(item: ContinueItem): Title {
+  return {
+    path: item.slug,
+    name: item.titleName,
+    image: item.image,
+    rating: 0,
+    episodeLabel: item.episodeLabel,
+    genres: [],
+  };
+}
 
 function watchedText({ state }: ContinueItem): string {
   return state.kind === 'finished'
@@ -43,8 +58,13 @@ function ProgressBar({
 }
 
 export function ContinueCard({ item }: { item: ContinueItem }) {
-  const { coverRef, open, wrapperProps, previewProps } =
+  const details = useDetails();
+  const { coverRef, open, unmount, wrapperProps, previewProps } =
     useHoverPreview<HTMLAnchorElement>();
+  const openDetails = () => {
+    unmount();
+    details.open(detailsTitle(item));
+  };
   const id = `card:continue:${item.slug}`;
   const label = `${item.titleName}, ${item.episodeLabel}, ${watchedText(item)}`;
 
@@ -91,15 +111,26 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
               className="size-full object-cover"
             />
           </Link>
-          <div className="af-hover-body card-preview-body">
+          <div
+            className="af-hover-body card-preview-body cursor-pointer hover:bg-surface-alt"
+            data-testid={`${id}:body`}
+            onClick={openDetails}
+          >
             <div className="af-hover-actions">
               <Link
                 {...item.link}
                 aria-label={`Phát ${item.titleName}`}
                 className="af-circle af-circle--play"
+                onClick={(event) => event.stopPropagation()}
               >
                 <Play aria-hidden="true" />
               </Link>
+              <span className="af-spacer" />
+              <DetailsButton
+                name={item.titleName}
+                testId={`${id}:details`}
+                onOpen={openDetails}
+              />
             </div>
             <h3 className="m-0 mb-2 text-xl/[1.25] font-bold">
               {item.titleName}

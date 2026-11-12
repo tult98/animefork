@@ -10,20 +10,35 @@ import type { Title } from '../../lib/titles/title.ts';
 import { DetailsModal } from './details-modal.tsx';
 
 interface Details {
-  open: (title: Title) => void;
+  // An upcoming title has no watch page yet, so the modal leaves its play button out.
+  open: (title: Title, options?: { upcoming?: boolean }) => void;
 }
 
 const DetailsContext = createContext<Details | null>(null);
 
 export function DetailsProvider({ children }: { children: ReactNode }) {
-  const [title, setTitle] = useState<Title | null>(null);
-  const close = useCallback(() => setTitle(null), []);
-  const value = useMemo<Details>(() => ({ open: setTitle }), []);
+  const [shown, setShown] = useState<{
+    title: Title;
+    upcoming: boolean;
+  } | null>(null);
+  const close = useCallback(() => setShown(null), []);
+  const value = useMemo<Details>(
+    () => ({
+      open: (title, options) =>
+        setShown({ title, upcoming: options?.upcoming ?? false }),
+    }),
+    [],
+  );
   return (
     <DetailsContext value={value}>
       {children}
-      {title ? (
-        <DetailsModal key={title.path} title={title} onClose={close} />
+      {shown ? (
+        <DetailsModal
+          key={shown.title.path}
+          title={shown.title}
+          upcoming={shown.upcoming}
+          onClose={close}
+        />
       ) : null}
     </DetailsContext>
   );

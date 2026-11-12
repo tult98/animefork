@@ -89,5 +89,28 @@ describe('the details modal', () => {
       'Tsuki no Sakamichi',
     );
     expect(router.state.location.pathname).toBe('/');
+    expect(within(modal).queryByTestId('details:play')).toBeNull();
+    expect(within(modal).queryByTestId('details:episodes')).toBeNull();
+  });
+
+  it('hides the play button in the popover of an upcoming card but keeps the details button', async () => {
+    await renderApp('/');
+    const shelf = await screen.findByTestId('shelf:upcoming');
+    const card = within(shelf).getByTestId(
+      'card:/phim/tsuki-no-sakamichi-a7001/',
+    );
+    await userEvent.hover(card);
+    const preview = await screen.findByTestId(
+      'card:/phim/tsuki-no-sakamichi-a7001/:preview',
+    );
+    expect(within(preview).queryByRole('link', { name: /^Phát / })).toBeNull();
+    expect(
+      within(preview).getByRole('button', { name: /^Xem chi tiết / }),
+    ).toBeTruthy();
+    expect(
+      within(preview).getByTestId(
+        'card:/phim/tsuki-no-sakamichi-a7001/:details:tooltip',
+      ).textContent,
+    ).toBe('Thông tin');
   });
 });
