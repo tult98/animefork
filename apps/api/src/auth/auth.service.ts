@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   Logger,
@@ -77,20 +78,6 @@ function verificationMail(to: string, link: string): MailMessage {
   };
 }
 
-function signUpNoticeMail(to: string, webBaseUrl: string): MailMessage {
-  return {
-    to,
-    subject: 'Có người vừa đăng ký Animefork bằng email của bạn',
-    text: [
-      'Chào bạn,',
-      '',
-      'Vừa có người dùng email này để đăng ký tài khoản Animefork. Email này đã có tài khoản nên không có gì thay đổi.',
-      '',
-      `Nếu đó là bạn, hãy đăng nhập tại ${webBaseUrl}. Nếu không, bạn có thể bỏ qua email này.`,
-    ].join('\n'),
-  };
-}
-
 @Injectable()
 export class AuthService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AuthService.name);
@@ -157,13 +144,12 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
 
   async signUp(email: string, password: string): Promise<void> {
     const webBaseUrl = this.webBaseUrl();
+    if (await this.store.findUserByEmail(email)) {
+      throw new ConflictException({ error: 'email_taken' });
+    }
     const passwordHash = await hashPassword(password);
     const now = this.now();
     if (!this.mails.take(email, now)) return;
-    if (await this.store.findUserByEmail(email)) {
-      await this.mailer.send(signUpNoticeMail(email, webBaseUrl));
-      return;
-    }
     const token = generateToken();
     await this.store.createPendingSignup(
       {

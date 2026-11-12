@@ -19,6 +19,7 @@ const EMAIL = 'ana@example.test';
 const PASSWORD = 'correct horse battery';
 const INVALID_TOKEN = { error: 'invalid_token' };
 const INVALID_CREDENTIALS = { error: 'invalid_credentials' };
+const EMAIL_TAKEN = { error: 'email_taken' };
 
 type App = Awaited<ReturnType<typeof buildAuthApp>>;
 
@@ -163,18 +164,18 @@ describe('sign up and verification', () => {
     }
   });
 
-  it('answers a sign-up for a confirmed email the same way, mails only a notice and stores nothing', async () => {
+  it('answers a sign-up for a confirmed email with 409 email_taken, mails nothing and stores nothing', async () => {
     const app = await buildAuthApp();
     await signedIn(app);
     const sentBefore = app.mailer.sent.length;
-    const again = await signUp(app, EMAIL, 'another password');
-    expect(again.body).toEqual({ ok: true });
+    const again = await app.post(SIGN_UP_PATH, {
+      email: EMAIL,
+      password: 'another password',
+    });
+    expect(again.status).toBe(409);
+    expect(again.body).toEqual(EMAIL_TAKEN);
     expect(again.headers['set-cookie']).toBeUndefined();
-    expect(app.mailer.sent).toHaveLength(sentBefore + 1);
-    const notice = app.mailer.sent.at(-1);
-    expect(notice?.to).toBe(EMAIL);
-    expect(notice?.text).not.toContain('#token=');
-    expect(notice?.subject).not.toBe(app.mailer.sent[0]?.subject);
+    expect(app.mailer.sent).toHaveLength(sentBefore);
     expect(app.store.pendingSignups.size).toBe(0);
 
     expect((await signIn(app)).status).toBe(200);
@@ -418,14 +419,22 @@ describe('limits', () => {
     expect(app.mailer.sent).toHaveLength(4);
   });
 
-  it('counts the notice to a confirmed email against the same cap', async () => {
+  it('answers 409 email_taken for a confirmed email without consuming the mail cap', async () => {
     const app = await buildAuthApp();
     await signedIn(app);
-    for (let i = 0; i < 3; i++) await signUp(app);
-    expect(app.mailer.sent).toHaveLength(3);
-    app.advance(60 * 60_000);
-    await signUp(app);
-    expect(app.mailer.sent).toHaveLength(4);
+    const sentBefore = app.mailer.sent.length;
+    for (let i = 0; i < 5; i++) {
+      const res = await app.post(SIGN_UP_PATH, {
+        email: EMAIL,
+        password: PASSWORD,
+      });
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual(EMAIL_TAKEN);
+    }
+    expect(app.mailer.sent).toHaveLength(sentBefore);
+    const other = await signUp(app, 'other@example.test');
+    expect(other.body).toEqual({ ok: true });
+    expect(app.mailer.sent).toHaveLength(sentBefore + 1);
   });
 });
 
