@@ -113,9 +113,10 @@ export class MalFiller {
       pages.push(results);
       return results;
     };
+    const otherNames = input.otherNames ?? [];
     let found: MalMatch | null = null;
     for (const query of sourceQueries(input)) {
-      found = matchMal(input, await search(query));
+      found = matchMal(input, await search(query), otherNames);
       if (found) break;
     }
     // A name TMDB confirmed for this show reaches MAL titles the source's own name never would.
@@ -127,7 +128,7 @@ export class MalFiller {
         return [];
       });
       for (const query of names.slice(0, MAX_ALIAS_QUERIES)) {
-        found = matchMal(input, await search(query), names);
+        found = matchMal(input, await search(query), [...otherNames, ...names]);
         if (found) break;
       }
     }

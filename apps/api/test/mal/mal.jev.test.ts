@@ -100,6 +100,19 @@ describe('MalJevJudge request', () => {
     expect(text).toContain('is not a mismatch');
   });
 
+  it('sends the other names the source lists and says what they are', async () => {
+    const { judge, sent } = judgeFor(confident);
+    await judge.ask({ ...TENKEN_INPUT, otherNames: ['TenKen 2'] }, [TENKEN_2]);
+    const body = sent[0]?.body as {
+      state: { source: object };
+      questions: { match: { instructions: string } };
+    };
+    expect(body.state.source).toMatchObject({ otherNames: ['TenKen 2'] });
+    expect(body.questions.match.instructions).toContain(
+      'other known titles of the same franchise',
+    );
+  });
+
   it('caps synonyms at 10 and leaves unknown fields out', async () => {
     const bare = candidate({
       id: 7,

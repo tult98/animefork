@@ -31,6 +31,7 @@ const MATCH_INSTRUCTIONS =
   'Pick the candidate that is the same anime and the same season as the source. ' +
   'The source title may be Vietnamese or a romanization of the Japanese title. ' +
   'When present, romaji is a Hepburn-style romanization of the original Japanese title, taken from the source site URL slug, so compare it with the MyAnimeList titles and synonyms of each candidate. ' +
+  'When present, otherNames are other known titles of the same franchise that the source site lists, such as an English, romaji or pinyin title; they name the show, not the season. ' +
   'MyAnimeList lists each season as its own entry, so pick the entry for the same season as the source. ' +
   'Compare titles, English titles, synonyms, start date, episode count and media type. ' +
   'A movie, a special, a recap or a spin-off is a different show. ' +
@@ -84,6 +85,8 @@ export function malJevState(
     source: {
       title: input.name,
       ...(romaji !== undefined && { romaji }),
+      ...(input.otherNames !== undefined &&
+        input.otherNames.length > 0 && { otherNames: input.otherNames }),
       season: wantedSeason(input),
       ...(input.year !== undefined && { year: input.year }),
       ...(input.episodeCount !== undefined && {
