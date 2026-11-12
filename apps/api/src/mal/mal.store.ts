@@ -7,6 +7,8 @@ import type { MalStatus } from './mal.retry.ts';
 
 export const MAL_STORE = Symbol('MalStore');
 
+export type MalMatchedBy = 'score' | 'jev';
+
 export interface StoredMal {
   slug: string;
   status: MalStatus;
@@ -25,6 +27,8 @@ export interface StoredMal {
   // What the matcher chose and how sure it was, so a wrong match can be spotted by eye.
   matchedTitle: string | null;
   matchScore: number | null;
+  // Null on a miss and on a row matched before this was stored.
+  matchedBy: MalMatchedBy | null;
   matcherVersion: number;
   reason: string | null;
   attemptedAt: Date;
@@ -83,6 +87,7 @@ interface MalRow {
   mal_dates_known: boolean;
   matched_title: string | null;
   match_score: string | null;
+  matched_by: MalMatchedBy | null;
   matcher_version: number;
   reason: string | null;
   attempted_at: Date;
@@ -107,7 +112,8 @@ export class PostgresMalStore implements MalStore {
       `select source_slug, status, mal_id, mal_score, mal_voters, mal_rank,
               mal_popularity, mal_members, mal_airing, mal_episodes,
               mal_start_date, mal_start_year, mal_start_season, mal_dates_known,
-              matched_title, match_score, matcher_version, reason, attempted_at, fetched_at
+              matched_title, match_score, matched_by, matcher_version, reason,
+              attempted_at, fetched_at
          from title_mal where source_slug = any($1::text[])`,
       [slugs],
     );
@@ -131,6 +137,7 @@ export class PostgresMalStore implements MalStore {
         datesKnown: row.mal_dates_known,
         matchedTitle: row.matched_title,
         matchScore: toNumber(row.match_score),
+        matchedBy: row.matched_by,
         matcherVersion: row.matcher_version,
         reason: row.reason,
         attemptedAt: row.attempted_at,
@@ -146,10 +153,10 @@ export class PostgresMalStore implements MalStore {
          (source_slug, status, mal_id, mal_score, mal_voters, mal_rank,
           mal_popularity, mal_members, mal_airing, mal_episodes,
           mal_start_date, mal_start_year, mal_start_season, mal_dates_known,
-          matched_title, match_score, matcher_version, reason, attempted_at,
-          fetched_at)
+          matched_title, match_score, matched_by, matcher_version, reason,
+          attempted_at, fetched_at)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-               $15, $16, $17, $18, $19, $20)
+               $15, $16, $17, $18, $19, $20, $21)
        on conflict (source_slug) do update set
          status = excluded.status,
          mal_id = excluded.mal_id,
@@ -166,6 +173,7 @@ export class PostgresMalStore implements MalStore {
          mal_dates_known = excluded.mal_dates_known,
          matched_title = excluded.matched_title,
          match_score = excluded.match_score,
+         matched_by = excluded.matched_by,
          matcher_version = excluded.matcher_version,
          reason = excluded.reason,
          attempted_at = excluded.attempted_at,
@@ -187,6 +195,7 @@ export class PostgresMalStore implements MalStore {
         row.datesKnown,
         row.matchedTitle,
         row.matchScore,
+        row.matchedBy,
         row.matcherVersion,
         row.reason,
         row.attemptedAt,

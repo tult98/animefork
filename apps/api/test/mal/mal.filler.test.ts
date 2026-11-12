@@ -76,6 +76,7 @@ describe('MalFiller.fill', () => {
       startSeason: { year: 2017, season: 'fall' },
       datesKnown: true,
       matchedTitle: 'Black Clover',
+      matchedBy: 'score',
       reason: null,
     });
     expect(store.rows.get(INPUT.slug)?.matchScore).toBeGreaterThan(0.9);
@@ -142,7 +143,10 @@ describe('MalFiller.fill', () => {
       search: async () => [candidate({ title: 'Naruto', year: 2002 })],
     });
     await filler.fill(INPUT);
-    expect(store.rows.get(INPUT.slug)).toMatchObject({ status: 'none' });
+    expect(store.rows.get(INPUT.slug)).toMatchObject({
+      status: 'none',
+      matchedBy: null,
+    });
   });
 
   it('stores a failure with its reason when MAL errors', async () => {

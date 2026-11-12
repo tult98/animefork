@@ -26,6 +26,7 @@ const ok = (s: string, over: Partial<StoredMal> = {}): StoredMal => ({
   datesKnown: true,
   matchedTitle: 'Black Clover',
   matchScore: 0.987,
+  matchedBy: 'score',
   matcherVersion: 1,
   reason: null,
   attemptedAt: new Date('2026-01-01T00:00:00Z'),
@@ -106,6 +107,28 @@ describe.skipIf(!url)('PostgresMalStore against DATABASE_URL', () => {
     });
   });
 
+  it('round-trips who matched a row', async () => {
+    const a = slug('by-jev');
+    await store.save(ok(a, { matchedBy: 'jev', matchScore: 0.912 }));
+    expect((await store.find([a])).get(a)).toMatchObject({
+      matchedBy: 'jev',
+      matchScore: 0.912,
+    });
+    await expect(
+      store.save(ok(slug('by-bad'), { matchedBy: 'guess' as 'jev' })),
+    ).rejects.toThrow();
+  });
+
+  it('reads who matched as null for a row saved before it was stored', async () => {
+    const s = slug('legacy-by');
+    await pool.query(
+      `insert into title_mal (source_slug, status, mal_id, fetched_at)
+       values ($1, 'ok', 1, now())`,
+      [s],
+    );
+    expect((await store.find([s])).get(s)?.matchedBy).toBeNull();
+  });
+
   it('refuses a start date or season of the wrong shape', async () => {
     await expect(
       store.save(ok(slug('baddate'), { startDate: '2027-1' })),
@@ -137,6 +160,7 @@ describe.skipIf(!url)('PostgresMalStore against DATABASE_URL', () => {
       datesKnown: false,
       matchedTitle: null,
       matchScore: null,
+      matchedBy: null,
       reason: 'no candidate cleared the match',
       fetchedAt: null,
     });
