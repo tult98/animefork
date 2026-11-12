@@ -2,7 +2,7 @@ export const authCopy = {
   brandHome: 'AnimeFork, trang chủ',
   panel: {
     label: 'Giới thiệu',
-    headline: 'Anime trọn vẹn.',
+    headline: 'Watch better.',
     subline: 'Không quảng cáo, xem liền mạch không bị làm phiền.',
   },
   fields: {
