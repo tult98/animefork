@@ -8,6 +8,7 @@ import { APP_CONFIG, type AppConfig } from './config/app.config.ts';
 import { ConfigModule } from './config/config.module.ts';
 import { DatabaseModule } from './database/database.module.ts';
 import { HealthModule } from './health/health.module.ts';
+import { WatchProgressModule } from './watch-progress/watch-progress.module.ts';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { HealthModule } from './health/health.module.ts';
     HealthModule,
     ArtModule,
     AuthModule,
+    WatchProgressModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

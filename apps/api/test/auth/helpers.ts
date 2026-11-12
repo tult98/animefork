@@ -20,6 +20,10 @@ import {
 } from '../../src/database/migration-runner.ts';
 import { MAL_STORE, MemoryMalStore } from '../../src/mal/mal.store.ts';
 import { RATINGS_STORE } from '../../src/ratings/ratings.store.ts';
+import {
+  MemoryWatchProgressStore,
+  WATCH_PROGRESS_STORE,
+} from '../../src/watch-progress/watch-progress.store.ts';
 import { setup } from '../art/helpers.ts';
 
 export const ORIGIN = 'https://web.test';
@@ -65,6 +69,8 @@ export async function buildAuthApp(env: Env = {}) {
     .useValue(art.sync)
     .overrideProvider(AUTH_STORE)
     .useValue(store)
+    .overrideProvider(WATCH_PROGRESS_STORE)
+    .useValue(new MemoryWatchProgressStore())
     .overrideProvider(MAILER)
     .useValue(mailer)
     .overrideProvider(CLOCK)
@@ -90,6 +96,11 @@ export async function buildAuthApp(env: Env = {}) {
     const req = http().get(path);
     return cookie === undefined ? req : req.set('cookie', `session=${cookie}`);
   };
+  const put = (path: string, body?: unknown, cookie?: string) => {
+    const req = http().put(path).set('content-type', 'application/json');
+    if (cookie !== undefined) req.set('cookie', `session=${cookie}`);
+    return body === undefined ? req : req.send(JSON.stringify(body));
+  };
   const lastToken = () => {
     const text = mailer.sent.at(-1)?.text ?? '';
     const token = /#token=([\w-]+)/.exec(text)?.[1];
@@ -100,6 +111,7 @@ export async function buildAuthApp(env: Env = {}) {
     app,
     http,
     post,
+    put,
     get,
     store,
     mailer,
