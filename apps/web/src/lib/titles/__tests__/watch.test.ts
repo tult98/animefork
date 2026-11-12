@@ -135,6 +135,9 @@ describe('fetchWatchPage', () => {
   it('shows the first episode of the watch page as the current one', async () => {
     fetchMock.get(upstream(`/phim/${SLUG}/xem-phim.html`), mockWatchHtml);
     const page = await fetchWatchPage(new FetchTransport(), SLUG);
+    expect(
+      fetchMock.callHistory.called(upstream(`/phim/${SLUG}/xem-phim.html`)),
+    ).toBe(true);
     expect(page.currentEpisode.label).toBe('Tập 1_BD_Full');
   });
 });

@@ -71,6 +71,7 @@ describe('the season pages', () => {
   it('shows the 2 titles of the first page and a page count of 3', async () => {
     fetchMock.get(upstream(path), mockSeasonHtml);
     const first = await fetchSeasonFirstPage(transport, path);
+    expect(fetchMock.callHistory.called(upstream(path))).toBe(true);
     expect(first.titles).toHaveLength(2);
     expect(first.pageCount).toBe(3);
   });
@@ -79,6 +80,10 @@ describe('the season pages', () => {
     fetchMock.get(upstream(page(2)), mockSeasonPage2Html);
     fetchMock.get(upstream(page(3)), mockSeasonPage3Html);
     const rest = await fetchSeasonRest(transport, path, 3);
+    expect(fetchMock.callHistory.calls().map((call) => call.url)).toEqual([
+      upstream(page(2)),
+      upstream(page(3)),
+    ]);
     expect(rest.complete).toBe(true);
     expect(rest.titles.map((t) => t.name)).toEqual([
       'Season Three',

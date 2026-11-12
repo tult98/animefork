@@ -126,6 +126,7 @@ describe('fetchHome', () => {
   it('shows 2 hero titles and the season path of the home page', async () => {
     fetchMock.get(upstream('/'), mockHomeHtml);
     const home = await fetchHome(transport);
+    expect(fetchMock.callHistory.called(upstream('/'))).toBe(true);
     expect(home.hero).toHaveLength(2);
     expect(home.seasonPath).toBe(MOCK_SEASON_PATH);
   });
@@ -157,6 +158,7 @@ describe('fetchSeason', () => {
     fetchMock.get(upstream(MOCK_SEASON_PATH), mockSeasonHtml);
     const home = await fetchHome(transport);
     const season = await fetchSeason(transport, home.seasonPath!);
+    expect(fetchMock.callHistory.called(upstream(MOCK_SEASON_PATH))).toBe(true);
     expect(season.map((t) => t.name)).toEqual(['Season One', 'Season Two']);
   });
 
@@ -190,7 +192,7 @@ describe('japaneseSeasonPath', () => {
     fetchMock.get(upstream(list), mockSeasonHtml);
     const season = await fetchSeason(transport, list);
     expect(season).toHaveLength(2);
-    expect(fetchMock.callHistory.lastCall()?.url).toBe(upstream(list));
+    expect(fetchMock.callHistory.called(upstream(list))).toBe(true);
   });
 });
 
@@ -199,6 +201,9 @@ describe('fetchNewEpisodes', () => {
     expect(NEW_EPISODES_PATH).toBe('/danh-sach/all/all/all/all/all/all/jp/');
     fetchMock.get(upstream(NEW_EPISODES_PATH), mockNewEpisodesHtml);
     expect(await fetchNewEpisodes(transport)).toHaveLength(2);
+    expect(fetchMock.callHistory.called(upstream(NEW_EPISODES_PATH))).toBe(
+      true,
+    );
   });
 
   it('fails with the status when the list is unreachable', async () => {
