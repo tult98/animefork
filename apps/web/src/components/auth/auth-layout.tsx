@@ -3,6 +3,13 @@ import type { ReactNode } from 'react';
 import { authCopy } from '../../lib/auth/copy.ts';
 import { Logo } from '../ui/logo.tsx';
 
+const POSTERS = [
+  { file: 'onepiece', title: 'One Piece', lift: 'mb-0' },
+  { file: 'naruto', title: 'Naruto', lift: 'mb-8' },
+  { file: 'kimetsu', title: 'Kimetsu no Yaiba', lift: 'mb-16' },
+  { file: 'jjk', title: 'Jujutsu Kaisen', lift: 'mb-8' },
+] as const;
+
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="af-auth min-h-screen">
@@ -32,6 +39,19 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             />
             <circle cx="600" cy="70" r="64" style={{ fill: 'var(--ink)' }} />
           </svg>
+          <div className="af-auth-posters">
+            {POSTERS.map(({ file, title, lift }) => (
+              <figure key={file} className={`w-30 ${lift}`}>
+                <img
+                  src={`/auth/${file}.jpg`}
+                  alt={title}
+                  width={342}
+                  height={513}
+                  className="block h-auto w-full rounded-lg"
+                />
+              </figure>
+            ))}
+          </div>
           <div className="af-auth-copy">
             <h2>{authCopy.panel.headline}</h2>
             <p>{authCopy.panel.subline}</p>
