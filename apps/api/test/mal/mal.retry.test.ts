@@ -99,6 +99,20 @@ describe('isMalSettled', () => {
     );
   });
 
+  it('retries a no-match from before Jev, and settles one from version 3 for 7 days', () => {
+    const miss = (matcherVersion: number, age: number) =>
+      row({
+        status: 'none',
+        fetchedAt: null,
+        matcherVersion,
+        attemptedAt: ago(age),
+      });
+    expect(MAL_MATCHER_VERSION).toBe(3);
+    expect(isMalSettled(miss(2, 1000), now)).toBe(false);
+    expect(isMalSettled(miss(3, MAL_RETRY_AFTER_MS.none - 1), now)).toBe(true);
+    expect(isMalSettled(miss(3, MAL_RETRY_AFTER_MS.none), now)).toBe(false);
+  });
+
   it('tries a no-match again when the matcher has improved since', () => {
     expect(
       isMalSettled(

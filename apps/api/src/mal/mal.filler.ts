@@ -1,19 +1,19 @@
 import { Logger } from '@nestjs/common';
 import type { TitleInput } from '../art/contract.ts';
 import { describeError } from '../art/art.filler.ts';
+import { fmt } from '../art/tmdb/jev.ts';
 import type { Clock } from '../common/clock.ts';
-import { MIN_QUERY_LENGTH, type MalClient } from './mal.client.ts';
+import type { MalCandidate, MalClient } from './mal.client.ts';
+import { jevCandidates, type MalJudge } from './mal.jev.ts';
 import { matchMal, type MalMatch } from './mal.matcher.ts';
-import { malQueries } from './mal.queries.ts';
+import { sourceQueries } from './mal.queries.ts';
 import {
   MAL_MATCHER_VERSION,
   isMalSettled,
   type MalStatus,
 } from './mal.retry.ts';
-import type { MalStore, StoredMal } from './mal.store.ts';
+import type { MalMatchedBy, MalStore, StoredMal } from './mal.store.ts';
 
-// Each query is one call to MAL, so a title that matches nothing costs at most this many.
-export const MAX_QUERIES = 4;
 export const MAX_ALIAS_QUERIES = 2;
 
 // Looks up other names for a title; only asked when the source's own name found nothing.
@@ -26,11 +26,18 @@ export class MalFiller {
   private readonly store: MalStore;
   private readonly client: MalClient;
   private readonly now: Clock;
+  private readonly judge: MalJudge | null;
 
-  constructor(store: MalStore, client: MalClient, now: Clock) {
+  constructor(
+    store: MalStore,
+    client: MalClient,
+    now: Clock,
+    judge: MalJudge | null = null,
+  ) {
     this.store = store;
     this.client = client;
     this.now = now;
+    this.judge = judge;
   }
 
   has(slug: string): boolean {
@@ -100,12 +107,15 @@ export class MalFiller {
   }
 
   private async match(input: TitleInput, aliases?: AliasSource): Promise<void> {
-    const queries = malQueries(input)
-      .filter((q) => q.length >= MIN_QUERY_LENGTH)
-      .slice(0, MAX_QUERIES);
+    const pages: MalCandidate[][] = [];
+    const search = async (query: string) => {
+      const results = await this.client.search(query);
+      pages.push(results);
+      return results;
+    };
     let found: MalMatch | null = null;
-    for (const query of queries) {
-      found = matchMal(input, await this.client.search(query));
+    for (const query of sourceQueries(input)) {
+      found = matchMal(input, await search(query));
       if (found) break;
     }
     // A name TMDB confirmed for this show reaches MAL titles the source's own name never would.
@@ -117,37 +127,63 @@ export class MalFiller {
         return [];
       });
       for (const query of names.slice(0, MAX_ALIAS_QUERIES)) {
-        found = matchMal(input, await this.client.search(query), names);
+        found = matchMal(input, await search(query), names);
         if (found) break;
       }
     }
     if (found) {
-      const { candidate, score } = found;
-      const now = this.now();
-      await this.store.save({
-        slug: input.slug,
-        status: 'ok',
-        malId: candidate.id,
-        score: candidate.score,
-        voters: candidate.voters,
-        rank: candidate.rank,
-        popularity: candidate.popularity,
-        members: candidate.members,
-        airing: candidate.airing,
-        episodes: candidate.episodes ?? null,
-        startDate: candidate.startDate,
-        startSeason: candidate.startSeason,
-        datesKnown: true,
-        matchedTitle: candidate.title,
-        matchScore: Math.round(score * 1000) / 1000,
-        matcherVersion: MAL_MATCHER_VERSION,
-        reason: null,
-        attemptedAt: now,
-        fetchedAt: now,
-      });
+      await this.saveMatch(input.slug, found, 'score');
       return;
     }
-    await this.saveMiss(input.slug, 'none', 'no candidate cleared the match');
+    const candidates = jevCandidates(pages);
+    if (!this.judge || candidates.length === 0) {
+      await this.saveMiss(input.slug, 'none', 'no candidate cleared the match');
+      return;
+    }
+    const verdict = await this.judge.ask(input, candidates);
+    if (verdict.accepted) {
+      await this.saveMatch(
+        input.slug,
+        { candidate: verdict.choice, score: verdict.score },
+        'jev',
+      );
+      return;
+    }
+    await this.saveMiss(
+      input.slug,
+      'none',
+      `jev rejected: best ${verdict.choice.id} p=${fmt(verdict.probability)} noul=${fmt(verdict.noul)}`,
+    );
+  }
+
+  private async saveMatch(
+    slug: string,
+    { candidate, score }: MalMatch,
+    by: MalMatchedBy,
+  ): Promise<void> {
+    const now = this.now();
+    await this.store.save({
+      slug,
+      status: 'ok',
+      malId: candidate.id,
+      score: candidate.score,
+      voters: candidate.voters,
+      rank: candidate.rank,
+      popularity: candidate.popularity,
+      members: candidate.members,
+      airing: candidate.airing,
+      episodes: candidate.episodes ?? null,
+      startDate: candidate.startDate,
+      startSeason: candidate.startSeason,
+      datesKnown: true,
+      matchedTitle: candidate.title,
+      matchScore: Math.round(score * 1000) / 1000,
+      matchedBy: by,
+      matcherVersion: MAL_MATCHER_VERSION,
+      reason: null,
+      attemptedAt: now,
+      fetchedAt: now,
+    });
   }
 
   private async saveMiss(
@@ -171,6 +207,7 @@ export class MalFiller {
       datesKnown: false,
       matchedTitle: null,
       matchScore: null,
+      matchedBy: null,
       matcherVersion: MAL_MATCHER_VERSION,
       reason,
       attemptedAt: this.now(),

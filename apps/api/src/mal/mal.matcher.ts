@@ -35,6 +35,8 @@ const MEDIA_TYPE_SCORE: Record<string, number> = {
 // Promos, commercials and music videos share a show's name but are never what the source lists.
 const NOT_A_SHOW = new Set(['pv', 'cm', 'music']);
 
+export const isShow = (c: MalCandidate) => !NOT_A_SHOW.has(c.mediaType ?? '');
+
 export interface MalMatch {
   candidate: MalCandidate;
   score: number;
@@ -66,7 +68,7 @@ function nameScore(
 }
 
 // A translated name may carry no marker while the source slug still says "2nd-season".
-function wantedSeason(input: TitleInput): number {
+export function wantedSeason(input: TitleInput): number {
   const named = parseSeasonNumber(input.seasonName, input.name);
   return named > 1 ? named : slugSeasonNumber(input.slug);
 }
@@ -124,7 +126,7 @@ export function matchMal(
   aliases: string[] = [],
 ): MalMatch | null {
   const ranked = candidates
-    .filter((c) => !NOT_A_SHOW.has(c.mediaType ?? ''))
+    .filter(isShow)
     .map((candidate) => ({
       candidate,
       score: scoreCandidate(input, candidate, aliases),
