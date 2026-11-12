@@ -103,7 +103,6 @@ function slugQueries(slug: string): string[] {
 
 export const MAX_NAME_QUERIES = 2;
 
-// The other names identify the show, not the season, so their season markers are dropped.
 export function nameQueries(
   otherNames: readonly string[] | undefined,
   asked: readonly string[],

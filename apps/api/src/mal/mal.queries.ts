@@ -26,8 +26,6 @@ export function malQueries(input: TitleInput): string[] {
   return [...new Set([...romajiQueries(input, queries), ...queries])];
 }
 
-// The other names the source lists reach MAL titles neither the display name nor the slug do,
-// so they go right after the slug romaji, and each one raises the cap instead of displacing a query.
 export function sourceQueries(input: TitleInput): string[] {
   const base = malQueries(input).filter(searchable).slice(0, MAX_QUERIES);
   const names = nameQueries(input.otherNames, base, searchable);

@@ -32,7 +32,6 @@ interface RetryRow {
 // | ok     | 7 days since fetched (1 day while airing), or 10 min since a try | served as is, refreshed in the background  |
 // | none   | 7 days (not at all below the matcher version)| matched again on its next lookup           |
 // | failed | 10 minutes                                   | matched again on its next lookup           |
-// A miss tried before the title's other names arrived is matched once more with them.
 export function isMalSettled(
   row: RetryRow | undefined,
   now: Date,

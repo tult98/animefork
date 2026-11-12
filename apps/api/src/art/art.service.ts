@@ -177,7 +177,6 @@ export class ArtService {
     };
   }
 
-  // Names are kept only while they can still help: once both matches are settled they would change nothing.
   private async storeNames(
     titles: Map<string, TitleInput>,
     rows: Map<string, Pick<StoredTitle, 'status'>>,
@@ -198,7 +197,6 @@ export class ArtService {
     await Promise.all(
       fresh.map((t) => this.names.saveIfAbsent(t.slug, t.otherNames, now)),
     );
-    // Another lookup may have stored names first, and those are the ones kept.
     return this.names.find(slugs);
   }
 
@@ -210,7 +208,6 @@ export class ArtService {
   }
 }
 
-// Only stored names reach the fillers, so a listing lookup that carries none still uses them.
 function withNames(
   title: TitleInput,
   stored: StoredNames | undefined,

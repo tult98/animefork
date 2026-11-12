@@ -53,7 +53,6 @@ export class ArtFiller {
     return this.overviewsInFlight.has(slug);
   }
 
-  // namesAt is when the title's other names were stored, so a miss tried before them is tried again.
   fill(input: TitleInput, namesAt?: Date): Promise<void> {
     return this.schedule(this.inFlight, input.slug, 'fill', () =>
       this.run(input, namesAt),

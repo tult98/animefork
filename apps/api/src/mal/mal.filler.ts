@@ -44,7 +44,6 @@ export class MalFiller {
     return this.inFlight.has(slug);
   }
 
-  // namesAt is when the title's other names were stored, so a miss tried before them is matched again.
   fill(
     input: TitleInput,
     aliases?: AliasSource,

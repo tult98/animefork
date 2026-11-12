@@ -11,7 +11,6 @@ export interface StoredNames {
 
 export interface TitleNamesStore {
   find(slugs: string[]): Promise<Map<string, StoredNames>>;
-  // First write wins, so one client cannot rewrite the names others already stored.
   saveIfAbsent(slug: string, names: string[], now: Date): Promise<void>;
 }
 

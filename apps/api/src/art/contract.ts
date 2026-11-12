@@ -82,7 +82,6 @@ const TitleFieldsSchema = z.object({
   seasonName: z.string().min(1).max(100).optional(),
   year: z.number().int().min(1900).max(2100).optional(),
   episodeCount: z.number().int().min(1).max(2000).optional(),
-  // Other titles the source lists for the show, such as its English or romaji name.
   otherNames: z
     .array(z.string().max(MAX_RAW_OTHER_NAME_LENGTH))
     .max(MAX_RAW_OTHER_NAMES)

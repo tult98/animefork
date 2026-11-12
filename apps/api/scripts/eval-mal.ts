@@ -31,7 +31,6 @@ export interface SourceRow {
   other_names: string[] | null;
 }
 
-// The other names are the ones the API stored for the slug, used the way the filler uses them.
 export function evalInput(
   row: Omit<SourceRow, 'status' | 'mal_id'>,
 ): TitleInput {

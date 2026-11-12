@@ -25,7 +25,6 @@ export type Season = z.infer<typeof SeasonSchema>;
 export const WatchPageSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
-  // The English, romaji or pinyin titles the site lists under the title, which name the show, not the season.
   otherNames: z.array(z.string().min(1)).optional(),
   image: z.string().min(1).optional(),
   seasons: z.array(SeasonSchema),
@@ -93,7 +92,6 @@ function parseSeasons(doc: Document): Season[] {
 }
 
 const NAME_SEPARATORS = /[,;]| \/ /;
-// A ranking entry reads like "Douluo Dalu (2018) Tập 228", so the year and the episode go.
 const TRAILING_NOISE = /(?:(?:^|\s+)(?:\(\d{4}\)|Tập\s*\d+|Full))+$/i;
 
 export function parseOtherNames(text: string, title?: string): string[] {

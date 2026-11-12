@@ -114,7 +114,6 @@ export interface Gathered {
   details: TmdbDetail[];
 }
 
-// The other names the source lists are asked after the name and slug queries, each one on top of the cap.
 export function tmdbQueries(input: TitleInput): string[] {
   const base = searchQueries(input.name, input.slug).slice(0, MAX_SEARCHES);
   return [...base, ...nameQueries(input.otherNames, base)];

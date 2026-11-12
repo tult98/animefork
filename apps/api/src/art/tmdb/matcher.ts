@@ -13,7 +13,6 @@ export interface MatchQuestion {
   sourceTitle: string;
   // Hepburn romanization of the original title, read from the source slug.
   romaji?: string;
-  // Other titles the source lists for the show, such as its English or pinyin name.
   otherNames?: string[];
   season: number;
   seasonName?: string;
