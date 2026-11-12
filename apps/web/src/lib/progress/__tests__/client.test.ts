@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchProgress, saveProgress } from '../client.ts';
+import { saveProgress } from '../client.ts';
 
 const body = {
   slug: 'show',
@@ -75,24 +75,5 @@ describe('watch progress client', () => {
     vi.stubGlobal('fetch', fetchMock);
     expect(await saveProgress(body)).toEqual({ kind: 'failed' });
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('reads the rows of a slug', async () => {
-    const items = [
-      { episodeId: '12', positionS: 10, durationS: 1400, completed: false },
-    ];
-    const fetchMock = respond(200, { items });
-    vi.stubGlobal('fetch', fetchMock);
-    expect(await fetchProgress('a b')).toEqual(items);
-    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
-      'https://api.test/v1/watch-progress/a%20b',
-    );
-  });
-
-  it('throws on a failed or malformed read', async () => {
-    vi.stubGlobal('fetch', respond(401));
-    await expect(fetchProgress('show')).rejects.toThrow();
-    vi.stubGlobal('fetch', respond(200, { items: [{ episodeId: 1 }] }));
-    await expect(fetchProgress('show')).rejects.toThrow();
   });
 });

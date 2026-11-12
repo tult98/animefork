@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
-import type { WatchProgressEpisode } from '../../../../api/src/watch-progress/contract.ts';
+import type {
+  WatchProgressEpisode,
+  WatchProgressEpisodesResponse,
+} from '../../../../api/src/watch-progress/contract.ts';
+import { useApiQuery } from '../api/use-api-query.ts';
 import { useSession } from '../auth/session.ts';
-import { fetchProgress } from './client.ts';
 
 export const progressKey = (slug: string) => ['watch-progress', slug] as const;
 
@@ -13,9 +15,13 @@ export type ProgressRows =
 
 export function useProgressRows(slug: string): ProgressRows {
   const session = useSession();
-  const query = useQuery({
-    queryKey: progressKey(slug),
-    queryFn: ({ signal }) => fetchProgress(slug, signal),
+  const query = useApiQuery<
+    WatchProgressEpisodesResponse,
+    WatchProgressEpisode[]
+  >({
+    key: progressKey(slug),
+    endpoint: `/v1/watch-progress/${encodeURIComponent(slug)}`,
+    map: (body) => body.items,
     enabled: session.state === 'signedIn',
   });
   if (session.state === 'loading') return { status: 'pending' };
