@@ -131,9 +131,11 @@ function EpisodesView({
             const name = episode.name ?? episode.label;
             const expanded = episode.id === expandedId;
             const n = index + 1;
-            const state: EpisodeProgress = current
-              ? { kind: 'inProgress', fraction: playingProgress / 100 }
-              : (progress.get(episode.id) ?? UNWATCHED);
+            // The playing episode shows the live position once it moves, and what was saved until then.
+            const state: EpisodeProgress =
+              current && playingProgress > 0
+                ? { kind: 'inProgress', fraction: playingProgress / 100 }
+                : (progress.get(episode.id) ?? UNWATCHED);
             return (
               <div
                 key={episode.id}

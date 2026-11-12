@@ -372,6 +372,7 @@ describe('episode states in the episodes panel', () => {
     expect(state(2)).toBe('inProgress');
     expect(state(3)).toBe('unwatched');
     expect(state(4)).toBe('watched');
+    expect(state(5)).toBe('unwatched');
   });
 
   it('marks a watched episode with an icon and text, not colour alone', async () => {
