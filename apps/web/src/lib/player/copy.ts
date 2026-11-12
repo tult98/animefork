@@ -11,6 +11,8 @@ export const PLAYER_COPY = {
   mute: 'Tắt tiếng',
   unmute: 'Bật tiếng',
   volume: 'Âm lượng',
+  skipIntro: 'Bỏ qua phần mở đầu',
+  skipOutro: 'Bỏ qua phần kết',
   nextEpisode: 'Tập tiếp theo',
   episodes: 'Danh sách tập',
   seasons: 'Các phần',
