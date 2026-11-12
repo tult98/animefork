@@ -90,7 +90,7 @@ The real readiness proof is `scripts/home-live.mjs` passing: it asserts `window.
 
 ## Auth
 
-Browsing, listings and watching need **no sign-in**, so no credentials are set. Sign-in, sign-up and verify-email talk to `apps/api` and need a database and mail, so they are *not yet mapped*. When mapped, use `VERIFY_WEB_EMAIL` and `VERIFY_WEB_PASSWORD` set in the developer's shell, never written here. If missing, ask the user. The 401 console errors on every page are the session probe answering "signed out", not a failure.
+Browsing, listings and watching need **no sign-in**, so no credentials are set. Sign-in, sign-up and verify-email talk to `apps/api` and need a database and mail, so they are _not yet mapped_. When mapped, use `VERIFY_WEB_EMAIL` and `VERIFY_WEB_PASSWORD` set in the developer's shell, never written here. If missing, ask the user. The 401 console errors on every page are the session probe answering "signed out", not a failure.
 
 ## Drive
 
