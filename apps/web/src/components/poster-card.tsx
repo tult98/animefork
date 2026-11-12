@@ -4,9 +4,10 @@ import { episodeProgress } from '../lib/titles/episode-progress.ts';
 import { titleWatchLink } from '../lib/titles/link.ts';
 import { releaseInfo } from '../lib/titles/release.ts';
 import type { Title } from '../lib/titles/title.ts';
+import { DetailsButton } from './details-button.tsx';
 import { useDetails } from './details/details-context.tsx';
 import { useHoverPreview } from './use-hover-preview.ts';
-import { Play, ChevronDown, Star } from './ui/icons.ts';
+import { Play, Star } from './ui/icons.ts';
 import { SHIMMER } from './ui/shimmer.ts';
 
 function formatVoters(n: number): string {
@@ -84,7 +85,7 @@ export function PosterCard({
 
   const openDetails = () => {
     unmount();
-    details.open(title);
+    details.open(title, { upcoming });
   };
   const watch = titleWatchLink(title);
   const countdown = upcoming
@@ -180,27 +181,23 @@ export function PosterCard({
             onClick={openDetails}
           >
             <div className="af-hover-actions">
-              <Link
-                {...watch}
-                aria-label={`Phát ${title.name}`}
-                className="af-circle af-circle--play"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <Play aria-hidden="true" />
-              </Link>
+              {upcoming ? null : (
+                <Link
+                  {...watch}
+                  aria-label={`Phát ${title.name}`}
+                  className="af-circle af-circle--play"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <Play aria-hidden="true" />
+                </Link>
+              )}
               <span className="af-spacer" />
-              <button
-                type="button"
-                aria-label={`Xem chi tiết ${title.name}`}
-                data-testid={`card:${title.path}:details`}
-                className="af-circle"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  openDetails();
-                }}
-              >
-                <ChevronDown aria-hidden="true" />
-              </button>
+              <DetailsButton
+                name={title.name}
+                testId={`card:${title.path}:details`}
+                upcoming={upcoming}
+                onOpen={openDetails}
+              />
             </div>
             <h3 className="m-0 mb-2 text-xl/[1.25] font-bold">{title.name}</h3>
             <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1">

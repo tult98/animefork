@@ -182,8 +182,30 @@ describe('continue watching row', () => {
     expect(
       within(preview).getByTestId('card:continue:alpha:preview:progress'),
     ).toBeTruthy();
-    expect(within(preview).queryByRole('button')).toBeNull();
+    expect(
+      within(preview).getByRole('button', { name: 'Xem chi tiết Phim alpha' }),
+    ).toBeTruthy();
+    expect(
+      within(preview).getByTestId('card:continue:alpha:details:tooltip')
+        .textContent,
+    ).toBe('Tập & thông tin');
     expect(preview.textContent).not.toContain('Tập mới');
+  });
+
+  it('opens the details modal from the chevron and from the popover body', async () => {
+    await openHome({ items: [progressRow('alpha')] });
+    const user = userEvent.setup();
+    await user.hover(await screen.findByTestId('card:continue:alpha'));
+    await user.click(await screen.findByTestId('card:continue:alpha:details'));
+    expect(await screen.findByTestId('details')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Phim alpha' })).toBeTruthy();
+    await user.click(screen.getByTestId('details:close'));
+    await waitFor(() => expect(screen.queryByTestId('details')).toBeNull());
+
+    await user.unhover(card('alpha'));
+    await user.hover(card('alpha'));
+    await user.click(await screen.findByTestId('card:continue:alpha:body'));
+    expect(await screen.findByTestId('details')).toBeTruthy();
   });
 
   it('says Đã xem xong in the popover of a finished card', async () => {

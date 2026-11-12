@@ -244,9 +244,11 @@ function Episodes({
 
 export function DetailsModal({
   title,
+  upcoming = false,
   onClose,
 }: {
   title: Title;
+  upcoming?: boolean;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -310,15 +312,17 @@ export function DetailsModal({
 
         <div className="details-head">
           <h2 id="details-title">{title.name}</h2>
-          <Link
-            {...titleWatchLink(title)}
-            className="af-pill af-pill--play"
-            data-testid="details:play"
-            onClick={onClose}
-          >
-            <Play aria-hidden="true" className="fill-current stroke-none" />
-            Phát
-          </Link>
+          {upcoming ? null : (
+            <Link
+              {...titleWatchLink(title)}
+              className="af-pill af-pill--play"
+              data-testid="details:play"
+              onClick={onClose}
+            >
+              <Play aria-hidden="true" className="fill-current stroke-none" />
+              Phát
+            </Link>
+          )}
         </div>
 
         <div className="details-info">
@@ -377,7 +381,7 @@ export function DetailsModal({
           ) : null}
         </section>
 
-        <Episodes title={title} onNavigate={onClose} />
+        {upcoming ? null : <Episodes title={title} onNavigate={onClose} />}
       </div>
     </dialog>
   );
