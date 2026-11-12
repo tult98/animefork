@@ -2,22 +2,21 @@
 
 The rebuilt AnimeVsub front end. It lives beside the old Vue app (`apps/desktop-web`), which stays untouched until the cutover. Plan: `docs/webapp-rebuild/plan.md`.
 
-Stack: React 19, Vite, TanStack Router and Query, Tailwind 4, Base UI, zod, Vitest, Playwright.
+Stack: React 19, Vite, TanStack Router and Query, Tailwind 4, Base UI, zod, Vitest and Testing Library. Playwright is only the browser behind `capture-fixtures`.
 
 ## Commands
 
 Run everything through Nx from the repo root.
 
-| Command                                                | What it does                                                      |
-| ------------------------------------------------------ | ----------------------------------------------------------------- |
-| `pnpm nx dev web`                                      | Dev server on http://localhost:5180                               |
-| `pnpm nx run-many -t typecheck lint test build -p web` | Static checks, unit tests and the production build                |
-| `pnpm nx e2e web`                                      | Playwright replay tests                                           |
-| `pnpm nx verify web`                                   | Typecheck, unit tests and replay e2e, then a pass or fail summary |
+| Command                                                | What it does                                          |
+| ------------------------------------------------------ | ----------------------------------------------------- |
+| `pnpm nx dev web`                                      | Dev server on http://localhost:5180                   |
+| `pnpm nx run-many -t typecheck lint test build -p web` | Static checks, unit tests and the production build    |
+| `pnpm nx verify web`                                   | Typecheck and unit tests, then a pass or fail summary |
 
-`verify` writes logs to `apps/web/artifacts/verify/` (and `summary.json`) and points at the Playwright report, results and screenshots under `apps/web/artifacts/e2e/`.
+`verify` writes logs to `apps/web/artifacts/verify/` (and `summary.json`).
 
-Playwright drives the installed Google Chrome so no browser download is needed. CI sets `PW_CHANNEL=chromium` after `playwright install chromium`. The replay tests run against a dev server on port 5181 with `VITE_API_URL=https://api.test`, and the `*.no-api.spec.ts` files run against a second one on 5182 without it.
+Unit tests sit in a `__tests__` folder beside the code they cover. Component tests run in jsdom and mount the real route tree over the fixtures in `public/fixtures/` (see `src/test/`). There is no browser test suite, so layout, CSS and browser behaviour such as hls.js playback, fullscreen, scrolling, hover timing and reduced motion are not covered by tests.
 
 ## TMDB art
 
@@ -67,7 +66,7 @@ The listing page reads every season page; see Airing listing below. The home rou
 
 The search, notification and account buttons in the header are rendered but disabled until those features exist. There is no "Thêm vào danh sách" control yet because there is no My list. Title links go to the placeholder route `/title/$`.
 
-The `data-testid` names the e2e tests use: `hero`, `hero:slide:<index>`, `hero:description`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:art-skeleton`, `hero:art-skeleton`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.
+The `data-testid` names the component tests use: `hero`, `hero:slide:<index>`, `hero:description`, `hero:pause`, `hero:prev`, `hero:next`, `hero:counter`, `shelf:<id>`, `shelf:<id>:scroll-left`, `shelf:<id>:scroll-right`, `shelf:<id>:see-all`, `shelf:<id>:loading`, `card:<path>`, `card:art-skeleton`, `hero:art-skeleton`, `card:<path>:preview`, `header`, `nav:<id>`, `tab-bar`, `tab:<id>`, `footer`.
 
 ## Airing listing
 
