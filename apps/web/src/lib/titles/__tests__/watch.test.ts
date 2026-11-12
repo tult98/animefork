@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import fetchMock from 'fetch-mock';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
-import { ReplayTransport } from '../../transport/replay-transport.ts';
+import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
+import { fixture } from '../../../test/fixture.ts';
 import {
   EpisodeNotFoundError,
   EpisodeSchema,
@@ -156,13 +158,9 @@ describe('parseWatchPage', () => {
 
 describe('fetchWatchPage', () => {
   it('reads /phim/<slug>/xem-phim.html through the transport', async () => {
-    const transport = new ReplayTransport({
-      fetchImpl: async (input) =>
-        new Response(readFileSync(`${publicDir}${String(input)}`, 'utf8'), {
-          status: 200,
-        }),
-    });
-    const page = await fetchWatchPage(transport, SLUG);
+    const path = `/phim/${SLUG}/xem-phim.html`;
+    fetchMock.get(upstream(path), fixture(path));
+    const page = await fetchWatchPage(new FetchTransport(), SLUG);
     expect(page.currentEpisode.label).toBe('Tập 1_BD_Full');
   });
 });

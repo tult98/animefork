@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import fetchMock from 'fetch-mock';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
-import { ReplayTransport } from '../../transport/replay-transport.ts';
+import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
+import { fixture } from '../../../test/fixture.ts';
 import {
   fetchHome,
   fetchNewEpisodes,
@@ -19,16 +21,7 @@ import { TitleSchema } from '../title.ts';
 const publicDir = resolve(import.meta.dirname, '../../../../public');
 const read = (path: string) => readFileSync(`${publicDir}${path}`, 'utf8');
 
-const diskFetch: typeof fetch = async (input) => {
-  try {
-    return new Response(read(String(input)), { status: 200 });
-  } catch {
-    return new Response('missing', { status: 404 });
-  }
-};
-
-const replay = (set = 'default') =>
-  new ReplayTransport({ baseUrl: `/fixtures/${set}`, fetchImpl: diskFetch });
+const transport = new FetchTransport();
 
 const homeHtml = read('/fixtures/default/index.html');
 const seasonLink = homeHtml.match(
@@ -128,21 +121,25 @@ describe('parseSeason', () => {
   });
 });
 
-describe('fetchHome and fetchSeason through ReplayTransport', () => {
+describe('fetchHome and fetchSeason', () => {
   it('fetches and parses the home fixture', async () => {
-    const home = await fetchHome(replay());
+    fetchMock.get(upstream('/'), fixture('/'));
+    const home = await fetchHome(transport);
     expect(home.hero).toHaveLength(10);
     expect(home.seasonPath).toBe(seasonLink);
   });
 
   it('fetches the season page at the path the home page named', async () => {
-    const home = await fetchHome(replay());
-    const season = await fetchSeason(replay(), home.seasonPath!);
+    fetchMock.get(upstream('/'), fixture('/'));
+    fetchMock.get(upstream(seasonLink!), fixture(seasonLink!));
+    const home = await fetchHome(transport);
+    const season = await fetchSeason(transport, home.seasonPath!);
     expect(season).toHaveLength(22);
   });
 
   it('rejects the invalid fixture on the bad rating, not on anything else', async () => {
-    const error = await fetchHome(replay('invalid-title')).catch((e) => e);
+    fetchMock.get(upstream('/'), fixture('/', 'invalid-title'));
+    const error = await fetchHome(transport).catch((e) => e);
     expect(error).toBeInstanceOf(ZodError);
     expect((error as ZodError).issues.map((i) => i.path.at(-1))).toEqual([
       'rating',
@@ -150,7 +147,8 @@ describe('fetchHome and fetchSeason through ReplayTransport', () => {
   });
 
   it('rejects a missing season page with a status error', async () => {
-    await expect(fetchSeason(replay(), '/season/none/1999/')).rejects.toThrow(
+    fetchMock.get(upstream('/season/none/1999/'), 404);
+    await expect(fetchSeason(transport, '/season/none/1999/')).rejects.toThrow(
       /404/,
     );
   });
@@ -174,26 +172,24 @@ describe('japaneseSeasonPath', () => {
   });
 
   it('reads the fixture list of the season without its Chinese titles', async () => {
-    const home = await fetchHome(replay());
-    const season = await fetchSeason(
-      replay(),
-      japaneseSeasonPath(home.seasonPath!),
-    );
+    const list = japaneseSeasonPath(seasonLink!);
+    fetchMock.get(upstream(list), fixture(list));
+    const season = await fetchSeason(transport, list);
     expect(season).toHaveLength(22);
     expect(season.map((t) => t.name)).not.toContain('Lý Hùng Miêu');
   });
 });
 
-describe('fetchNewEpisodes through ReplayTransport', () => {
+describe('fetchNewEpisodes', () => {
   it('reads the jp list from its own path', async () => {
     expect(NEW_EPISODES_PATH).toBe('/danh-sach/all/all/all/all/all/all/jp/');
-    expect(await fetchNewEpisodes(replay())).toHaveLength(10);
+    fetchMock.get(upstream(NEW_EPISODES_PATH), fixture(NEW_EPISODES_PATH));
+    expect(await fetchNewEpisodes(transport)).toHaveLength(10);
   });
 
   it('rejects when the list is unreachable', async () => {
-    await expect(fetchNewEpisodes(replay('no-such-set'))).rejects.toThrow(
-      /404/,
-    );
+    fetchMock.get(upstream(NEW_EPISODES_PATH), 404);
+    await expect(fetchNewEpisodes(transport)).rejects.toThrow(/404/);
   });
 });
 
