@@ -106,6 +106,20 @@ describe('watch progress', () => {
     ]);
   });
 
+  it('saves a slug longer than 200 characters', async () => {
+    const app = await buildAuthApp();
+    const cookie = await signedIn(app, 'ana@example.test');
+    const slug = `${'long-title-'.repeat(21)}a6125`;
+    expect(slug.length).toBeGreaterThan(200);
+
+    const res = await app.put(
+      WATCH_PROGRESS_PATH,
+      save({ slug, seasonSlug: slug }),
+      cookie,
+    );
+    expect(res.status).toBe(200);
+  });
+
   it('upserts the same episode and stamps the server clock', async () => {
     const app = await buildAuthApp();
     const cookie = await signedIn(app, 'ana@example.test');
