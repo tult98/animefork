@@ -12,6 +12,7 @@ There is no domain yet, so the site is plain HTTP on the server's IP. Caddy send
    - `PUBLIC_URL` is `http://<server-ip>`, no trailing slash. It is compiled into the web bundle and used for CORS.
    - `POSTGRES_PASSWORD` is a long random string.
    - `TMDB_API_KEY` is required. The API does not start without it.
+   - `COOKIE_SECURE`, `SESSION_TTL_DAYS` and `MAIL_FROM` are optional and set up accounts. The session cookie is `Secure` by default, so browsers send it only over HTTPS. On plain HTTP, sign-in works only with `COOKIE_SECURE=0`. Mailed links point at `PUBLIC_URL`.
 5. `cd ~/animefork/deploy && docker compose up -d --build`
 6. Check: `curl http://<server-ip>/healthz` returns `{"ok":true}`.
 
@@ -47,7 +48,7 @@ To restore a dump into a running stack:
 gunzip -c ~/backups/api-2026-11-12-0300.sql.gz | docker compose exec -T db psql -U api api
 ```
 
-The data is cached art and ratings lookups, so it can be rebuilt, but that costs TMDB and model calls.
+Most of the data is cached art and ratings lookups, which can be rebuilt at the cost of TMDB and model calls. The `users` table cannot be rebuilt. Losing it loses every account.
 
 ## Caveats
 
