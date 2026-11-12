@@ -9,8 +9,10 @@ Vitest, React Testing Library and `@fetch-mock/vitest` (a Vitest wrapper over `f
 
 ## What a unit test covers
 
-- Test one small thing: a component, a hook, or a function. Do not render a route or the whole app.
-- Pass the component to the custom `render` from `src/test/test-utils.tsx` (`render(<Hero items={items} />)`). Use `renderHook` from the same file for hooks. Both wrap the app providers. Import `screen`, `userEvent` helpers and the rest of Testing Library from `test-utils` too.
+- Test one small thing: a component or a function. Do not render a route or the whole app.
+- Pass the component to the custom `render` from `src/test/test-utils.tsx` (`render(<Hero items={items} />)`). It wraps the app providers and re-exports the rest of Testing Library, so import `screen`, `waitFor` and the others from there. `userEvent` comes from `@testing-library/user-event`.
+- A component that uses `Link` or `useNavigate` needs a router: pass `{ path: '/start' }`. Its first paint is async, so find elements with `findBy*`. `render` returns `router`, so a test can assert where navigation ended (`router.state.location.pathname`).
+- Test a hook through the component that uses it, not on its own, so one test covers the whole feature. Render the components that share state together when the behavior crosses them (a sign-in form next to the account menu). Use `renderHook` only when no component uses the hook.
 - Do not test plumbing that has no behavior of its own, such as `apiRequest` or a Zod schema that the code under test already runs.
 
 ## Choose the scenarios

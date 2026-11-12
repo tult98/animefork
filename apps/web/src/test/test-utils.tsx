@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+} from '@tanstack/react-router';
+import {
   render as rtlRender,
   renderHook as rtlRenderHook,
   type RenderHookOptions,
@@ -13,6 +19,11 @@ import { FetchTransport } from './fetch-transport.ts';
 
 interface Providers {
   strict?: boolean;
+}
+
+interface RenderUiOptions extends Providers {
+  // Starts a memory router at this URL, for a component that uses Link or useNavigate. Its first paint is async, so find the element with findBy*. The router comes back to check where navigation ended.
+  path?: string;
 }
 
 function newQueryClient() {
@@ -43,10 +54,21 @@ function providers({ strict = false }: Providers = {}) {
 
 export function render(
   ui: ReactElement,
-  options: Omit<RenderOptions, 'wrapper'> & Providers = {},
+  options: Omit<RenderOptions, 'wrapper'> & RenderUiOptions = {},
 ) {
-  const { strict, ...rest } = options;
-  return rtlRender(ui, { wrapper: providers({ strict }), ...rest });
+  const { strict, path, ...rest } = options;
+  const router = createRouter({
+    routeTree: createRootRoute({
+      component: () => ui,
+      notFoundComponent: () => null,
+    }),
+    history: createMemoryHistory({ initialEntries: [path ?? '/'] }),
+  });
+  const result = rtlRender(
+    path === undefined ? ui : <RouterProvider router={router} />,
+    { wrapper: providers({ strict }), ...rest },
+  );
+  return { ...result, router };
 }
 
 export function renderHook<Result, Props>(
