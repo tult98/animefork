@@ -15,8 +15,9 @@ src/
   common/          zod validation pipe, error filter, clock token
   art/             the art feature: controller, service, filler, store, retry table, contract, translator
     tmdb/          TMDB client, matchers (baseline, Jev, cascade), backdrop pick, title parsing, syncTitle, fetchOverview
+  mal/             MyAnimeList numbers: client, score matcher, Jev judge, filler, store, retry table
 db/migrations/     numbered SQL files applied at boot
-scripts/           eval-matcher.ts, a read-only matcher comparison
+scripts/           eval-matcher.ts and eval-mal.ts, read-only matcher comparisons
 ```
 
 A new feature module sits beside `art/` and imports nothing from it. It reads its own env from the `ENV` provider with `parseEnv`, the way `art/art.config.ts` does, and adds its tables as the next numbered file in `db/migrations/`. Neither `database/` nor `common/` changes for it.
@@ -108,6 +109,24 @@ The web hero showed the source site's card excerpt, which the site cuts at about
 
 **Run a single replica.** The single-flight map and the rate limit counters live in process memory. Two replicas would each call TMDB for the same new slug, and each would allow the full rate.
 
+## MyAnimeList
+
+A lookup also carries the MAL score, rank and airing status of each title. `MalFiller` in `src/mal/mal.filler.ts` matches a slug to a MAL id in the background and stores the result in `title_mal`. Without `MAL_CLIENT_ID` it is off.
+
+- **Score.** `matchMal` in `mal.matcher.ts` scores each candidate on name (0.45), season (0.2), year (0.2), episode count (0.1) and media type (0.05), and drops `pv`, `cm` and `music` entries. The best one is accepted at 0.8 or more with a lead of at least 0.05. The filler searches the queries from `malQueries` (at most 4), then, when every one is rejected, up to 2 names TMDB knows the show by. It stops at the first accepted search.
+- **Jev.** When the score rejects every search and `TYPESAFE_API_KEY` is set, the filler asks Jev once. It sends the show candidates of all searches, first search first, each id once, at most 20. With no candidate at all Jev is not asked. `MalJevJudge` in `mal.jev.ts` asks only the season pair: `match`, a choice over the MAL ids, and `any_match`, a noul. MAL lists each season as its own entry, so there is no show-scope question. The state holds the source (`title`, `romaji` when the slug romaji differs from the name, `season`, `year`, `episodeCount`) and per candidate `id`, `title`, `englishTitle`, up to 10 `synonyms`, `startDate` (or `year`), `episodeCount`, `mediaType` and `airingStatus`. The instructions add that a currently airing show's source episode count may be only the episodes aired so far. The answer passes on the same `JEV_MIN_*` thresholds as TMDB, and an accepted pick is stored with `min(noul, choice probability)` as its match score. The module logs `MAL Jev matcher is on (model ...)` or `MAL Jev matcher is off: TYPESAFE_API_KEY is not set` once at boot, and each call logs one line with the slug, the choice, its probability, the confidence, the noul, every option's probability and `accept` or `reject`. The key and the state are never logged.
+- **Outcomes.** A score match is `ok` with `matched_by` `score`. A Jev pick is `ok` with `matched_by` `jev`. A Jev rejection is `none` with a reason such as `jev rejected: best 53913 p=0.62 noul=0.71`, and with Jev off the reason stays `no candidate cleared the match`. A Jev error (network, timeout, 401, 422, malformed answer, a choice that is not a candidate) is `failed`, never `none`. `011_mal_matched_by.sql` adds `matched_by`, null for misses and for rows saved before it.
+- **Retry.** `src/mal/mal.retry.ts` holds the table. New rows carry `MAL_MATCHER_VERSION` 3. Version 2 read the season from the slug and version 3 asks Jev, so every `none` saved below 3 is matched again on its next lookup.
+
+  | `status` | Settled for                                                          | Then                                      |
+  | -------- | -------------------------------------------------------------------- | ----------------------------------------- |
+  | (none)   | not at all                                                           | matched on its next lookup                |
+  | `ok`     | 7 days since fetched (1 day while airing), or 10 minutes since a try | served as is, refreshed in the background |
+  | `none`   | 7 days, not at all below the matcher version                         | matched again on its next lookup          |
+  | `failed` | 10 minutes                                                           | matched again on its next lookup          |
+
+- **Evaluating.** `pnpm nx run api:eval-mal --status=none --limit=20` reads `title_mal` rows joined to `title_art` on the slug for `source_name`, `source_year` and `source_episode_count`, re-runs the MAL searches and the score, and asks Jev for every row that has candidates, also the rows the score accepts, so the two can be compared. It skips the TMDB alias queries. It prints the slug, the stored status and id, the score verdict, Jev's choice and verdict, and whether the two agree. `--status` is `none`, `ok` or `all` (the default), and `--limit` defaults to 50. It opens Postgres read-only and writes nothing, but every row costs up to 4 MAL searches and one Jev request. It needs `DATABASE_URL`, `MAL_CLIENT_ID` and `TYPESAFE_API_KEY` and stops with a message naming the missing ones.
+
 ## Migrations
 
 `MigrationRunner` runs when the app starts, before it listens. It takes a Postgres advisory lock, creates `schema_migrations(name text primary key, applied_at timestamptz)` if needed, and applies every `db/migrations/NNN_name.sql` that table does not list, in name order. Each file runs in its own transaction together with its `schema_migrations` row, so a failed file leaves nothing behind and stops the boot. Restarting is safe because applied files are skipped. Never edit an applied file. Add the next number instead.
@@ -123,7 +142,7 @@ The web hero showed the source site's card excerpt, which the site cuts at about
 | `RATE_LIMIT_PER_MINUTE` | no       | Requests per client per minute, 60 by default                       |
 | `TMDB_API_KEY`          | yes      | TMDB v3 API key, read by the art module                             |
 | `TMDB_API_BASE`         | no       | TMDB API root, for example `https://api.tmdb.org/3` or a local stub |
-| `TYPESAFE_API_KEY`      | no       | TypeSafe API key. Unset turns Jev off                               |
+| `TYPESAFE_API_KEY`      | no       | TypeSafe API key. Unset turns Jev off for TMDB and MAL              |
 | `JEV_MODEL`             | no       | System One model, `jev-latest` by default                           |
 | `JEV_MIN_NOUL`          | no       | Minimum `any_match` noul, 0 to 1, 0.85 by default                   |
 | `JEV_MIN_CHOICE`        | no       | Minimum probability of Jev's choice, 0 to 1, 0.85 by default        |
@@ -170,4 +189,4 @@ VITE_API_URL=http://localhost:3100 pnpm nx dev web
 
 `pnpm nx run-many -t typecheck lint test build -p api`
 
-`test/app.test.ts` boots `AppModule` through `@nestjs/testing` and sends requests with supertest. It swaps the env, the pool, the store and the TMDB client for in-memory ones, so it needs neither Postgres nor the network. The `*.pg.test.ts` files run against a real Postgres only when `DATABASE_URL` is set, for example the compose database above. The TMDB fixtures in `test/art/tmdb/fixtures.ts` are hand-written from the API's documented response shapes. The Jev tests run the real SDK against a fake `fetch` (`test/art/tmdb/jev-mock.ts`), so they check the request body on the wire without calling TypeSafe. The DeepSeek tests run `DeepSeekTranslator` against a fake `fetch` the same way.
+`test/app.test.ts` boots `AppModule` through `@nestjs/testing` and sends requests with supertest. It swaps the env, the pool, the store and the TMDB client for in-memory ones, so it needs neither Postgres nor the network. The `*.pg.test.ts` files run against a real Postgres only when `DATABASE_URL` is set, for example the compose database above. The TMDB fixtures in `test/art/tmdb/fixtures.ts` are hand-written from the API's documented response shapes. The Jev tests run the real SDK against a fake `fetch` (`test/art/tmdb/jev-mock.ts`, and `test/mal/jev-mock.ts` for the season-only MAL answer), so they check the request body on the wire without calling TypeSafe. The DeepSeek tests run `DeepSeekTranslator` against a fake `fetch` the same way.
