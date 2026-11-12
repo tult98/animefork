@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ArtModule } from './art/art.module.ts';
+import { AuthModule } from './auth/auth.module.ts';
 import { HttpErrorFilter } from './common/http-error.filter.ts';
 import { APP_CONFIG, type AppConfig } from './config/app.config.ts';
 import { ConfigModule } from './config/config.module.ts';
@@ -20,6 +21,7 @@ import { HealthModule } from './health/health.module.ts';
     }),
     HealthModule,
     ArtModule,
+    AuthModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
