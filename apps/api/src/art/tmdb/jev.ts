@@ -143,15 +143,14 @@ export function jevQuestions(question: MatchQuestion) {
   };
 }
 
-export function candidateId(
-  candidates: readonly { id: number }[],
+export function chosenCandidate<T extends { id: number }>(
+  candidates: readonly T[],
   raw: string,
-): number {
+): T {
   const id = Number(raw);
-  if (!candidates.some((c) => c.id === id)) {
-    throw new Error(`Jev chose ${raw}, which is not a candidate`);
-  }
-  return id;
+  const chosen = candidates.find((c) => c.id === id);
+  if (!chosen) throw new Error(`Jev chose ${raw}, which is not a candidate`);
+  return chosen;
 }
 
 export const formatProbabilities = (probabilities: Record<string, number>) =>
@@ -199,11 +198,14 @@ export class JevMatcher implements Matcher {
       questions: jevQuestions(question),
     });
     const answers = AnswersSchema.parse(result.answers);
-    const choiceId = candidateId(question.candidates, answers.match.choice);
-    const showChoiceId = candidateId(
+    const choiceId = chosenCandidate(
+      question.candidates,
+      answers.match.choice,
+    ).id;
+    const showChoiceId = chosenCandidate(
       question.candidates,
       answers.show_match.choice,
-    );
+    ).id;
     const choiceProbability =
       answers.match.probabilities[answers.match.choice] ?? 0;
     const showChoiceProbability =

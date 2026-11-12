@@ -135,7 +135,7 @@ describe('MalJevJudge verdict', () => {
   it('accepts a confident pick and scores it min(noul, choice probability)', async () => {
     const { judge } = judgeFor(confident);
     expect(await judge.ask(TENKEN_INPUT, [TENKEN_2, TENKEN_1])).toEqual({
-      choiceId: 53913,
+      choice: TENKEN_2,
       probability: 0.93,
       confidence: 0.8,
       noul: 0.95,

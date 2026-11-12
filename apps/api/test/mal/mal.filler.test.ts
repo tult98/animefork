@@ -4,13 +4,21 @@ import {
   type MalCandidate,
   type MalClient,
 } from '../../src/mal/mal.client.ts';
-import { MAX_QUERIES, MalFiller } from '../../src/mal/mal.filler.ts';
+import {
+  MAX_JEV_CANDIDATES,
+  MAX_QUERIES,
+  MalFiller,
+} from '../../src/mal/mal.filler.ts';
+import { MalJevJudge, type MalJudge } from '../../src/mal/mal.jev.ts';
+import { matchMal } from '../../src/mal/mal.matcher.ts';
 import {
   MAL_REFRESH_AFTER_MS,
   MAL_RETRY_AFTER_MS,
 } from '../../src/mal/mal.retry.ts';
 import { MemoryMalStore } from '../../src/mal/mal.store.ts';
-import { candidate } from './helpers.ts';
+import { TEST_JEV } from '../art/tmdb/jev-mock.ts';
+import { candidate, TENKEN_1, TENKEN_2, TENKEN_INPUT } from './helpers.ts';
+import { fakeMalJev, type MalJevReply } from './jev-mock.ts';
 
 const INPUT = {
   slug: 'black-clover-a1',
@@ -19,7 +27,7 @@ const INPUT = {
   episodeCount: 170,
 };
 
-function setup(over: Partial<MalClient> = {}) {
+function setup(over: Partial<MalClient> = {}, judge: MalJudge | null = null) {
   let t = new Date('2026-01-01T00:00:00Z').getTime();
   const now = () => new Date(t);
   const store = new MemoryMalStore(now);
@@ -47,7 +55,7 @@ function setup(over: Partial<MalClient> = {}) {
     },
     ...over,
   };
-  const filler = new MalFiller(store, client, now);
+  const filler = new MalFiller(store, client, now, judge);
   return {
     store,
     filler,
@@ -281,5 +289,173 @@ describe('MalFiller.fill', () => {
       score: null,
       rank: null,
     });
+  });
+});
+
+describe('MalFiller with Jev', () => {
+  const accepting: MalJevReply = {
+    choice: '53913',
+    probabilities: { '53913': 0.93, '52347': 0.07 },
+    confidence: 0.8,
+    noul: 0.95,
+  };
+
+  const withJev = (
+    reply: Parameters<typeof fakeMalJev>[0],
+    over: Partial<MalClient> = {},
+  ) => {
+    const jev = fakeMalJev(reply);
+    const judge = new MalJevJudge(jev.client, 'jev-latest', TEST_JEV);
+    return { ...setup(over, judge), sent: jev.sent };
+  };
+
+  const tenken = { search: async () => [TENKEN_2, TENKEN_1] };
+
+  type SentState = { state: { candidates: { id: number }[] } };
+  const sentIds = (sent: { body: unknown }[]) =>
+    sent.map((r) => (r.body as SentState).state.candidates.map((c) => c.id));
+
+  it('never asks Jev when the score accepts, and records the score', async () => {
+    const { filler, store, sent } = withJev(accepting);
+    await filler.fill(INPUT);
+    expect(sent).toHaveLength(0);
+    expect(store.rows.get(INPUT.slug)).toMatchObject({
+      status: 'ok',
+      malId: 1,
+      matchedBy: 'score',
+    });
+  });
+
+  it('rejects TenKen II on the score alone', () => {
+    expect(matchMal(TENKEN_INPUT, [TENKEN_2, TENKEN_1])).toBeNull();
+  });
+
+  it('saves TenKen II through Jev when the score rejects it', async () => {
+    const { filler, store, sent } = withJev(accepting, tenken);
+    await filler.fill(TENKEN_INPUT);
+    expect(sent).toHaveLength(1);
+    expect(store.rows.get(TENKEN_INPUT.slug)).toMatchObject({
+      status: 'ok',
+      malId: 53913,
+      matchedTitle: 'Tensei shitara Ken deshita II',
+      matchedBy: 'jev',
+      matchScore: 0.93,
+      airing: 'currently_airing',
+      episodes: 12,
+      reason: null,
+      matcherVersion: 3,
+    });
+  });
+
+  it('stores a no-match with the evidence when Jev rejects', async () => {
+    const { filler, store } = withJev(
+      {
+        ...accepting,
+        probabilities: { '53913': 0.62, '52347': 0.38 },
+        noul: 0.71,
+      },
+      tenken,
+    );
+    await filler.fill(TENKEN_INPUT);
+    expect(store.rows.get(TENKEN_INPUT.slug)).toMatchObject({
+      status: 'none',
+      malId: null,
+      matchedBy: null,
+      reason: 'jev rejected: best 53913 p=0.62 noul=0.71',
+    });
+  });
+
+  it.each<[string, () => Response]>([
+    ['a 401', () => Response.json({ detail: 'bad key' }, { status: 401 })],
+    ['a malformed answer', () => Response.json({ answers: {} })],
+    [
+      'a choice that is not a candidate',
+      () =>
+        Response.json({
+          answers: {
+            match: {
+              type: 'choice',
+              choice: '1',
+              confidence: 0.9,
+              probabilities: { '1': 0.9 },
+            },
+            any_match: { type: 'noul', noul: 0.9 },
+          },
+        }),
+    ],
+  ])('stores failed, never none, on %s', async (_, reply) => {
+    const { filler, store } = withJev(reply, tenken);
+    await filler.fill(TENKEN_INPUT);
+    expect(store.rows.get(TENKEN_INPUT.slug)).toMatchObject({
+      status: 'failed',
+      malId: null,
+    });
+  });
+
+  it('keeps the old reason when Jev is off', async () => {
+    const { filler, store } = setup(tenken);
+    await filler.fill(TENKEN_INPUT);
+    expect(store.rows.get(TENKEN_INPUT.slug)).toMatchObject({
+      status: 'none',
+      reason: 'no candidate cleared the match',
+    });
+  });
+
+  it('does not ask Jev when no search found anything', async () => {
+    const { filler, store, sent } = withJev(accepting, {
+      search: async () => [],
+    });
+    await filler.fill(TENKEN_INPUT, async () => ['Reincarnated as a Sword']);
+    expect(sent).toHaveLength(0);
+    expect(store.rows.get(TENKEN_INPUT.slug)).toMatchObject({
+      status: 'none',
+      reason: 'no candidate cleared the match',
+    });
+  });
+
+  it('asks Jev once with the candidates of every search merged, de-duplicated and capped', async () => {
+    const page = (from: number, count: number) =>
+      Array.from({ length: count }, (_, i) =>
+        candidate({ id: from + i, title: `Unrelated ${from + i}`, year: 1990 }),
+      );
+    const results: Record<string, ReturnType<typeof page>> = {
+      'tensei shitara ken deshita II': [
+        candidate({ id: 900, title: 'Promo', mediaType: 'pv' }),
+        TENKEN_2,
+        ...page(100, 6),
+      ],
+      'tensei shitara ken': [TENKEN_2, TENKEN_1, ...page(103, 8)],
+      'Reincarnated as a Sword': [
+        candidate({ id: 901, title: 'Song', mediaType: 'music' }),
+        ...page(200, 5),
+      ],
+      'TenKen II': page(300, 5),
+    };
+    const searches: string[] = [];
+    const { filler, sent } = withJev(
+      { ...accepting, noul: 0.5 },
+      {
+        search: async (q) => {
+          searches.push(q);
+          return results[q] ?? [];
+        },
+      },
+    );
+    await filler.fill(TENKEN_INPUT, async () => [
+      'Reincarnated as a Sword',
+      'TenKen II',
+    ]);
+    expect(searches).toContain('TenKen II');
+    expect(sent).toHaveLength(1);
+    const expected = [
+      53913,
+      ...[100, 101, 102, 103, 104, 105],
+      52347,
+      ...[106, 107, 108, 109, 110],
+      ...[200, 201, 202, 203, 204],
+      ...[300, 301],
+    ];
+    expect(expected).toHaveLength(MAX_JEV_CANDIDATES);
+    expect(sentIds(sent)).toEqual([expected]);
   });
 });

@@ -12,8 +12,8 @@ import type { TitleInput } from '../art/contract.ts';
 import {
   acceptsChoice,
   ANY_MATCH_INSTRUCTIONS,
-  candidateId,
   ChoiceSchema,
+  chosenCandidate,
   createJevClient,
   fmt,
   formatProbabilities,
@@ -38,7 +38,7 @@ const MATCH_INSTRUCTIONS =
 const AnswersSchema = z.object({ match: ChoiceSchema, any_match: NoulSchema });
 
 export interface MalJevVerdict {
-  choiceId: number;
+  choice: MalCandidate;
   probability: number;
   confidence: number;
   noul: number;
@@ -136,7 +136,7 @@ export class MalJevJudge implements MalJudge {
       questions: malJevQuestions(candidates),
     });
     const answers = AnswersSchema.parse(result.answers);
-    const choiceId = candidateId(candidates, answers.match.choice);
+    const chosen = chosenCandidate(candidates, answers.match.choice);
     const probability = answers.match.probabilities[answers.match.choice] ?? 0;
     const { confidence, probabilities } = answers.match;
     const anyMatch = answers.any_match.noul;
@@ -148,13 +148,13 @@ export class MalJevJudge implements MalJudge {
     );
 
     this.logger.log(
-      `jev mal ${input.slug}: choice ${choiceId} p=${fmt(probability)} ` +
+      `jev mal ${input.slug}: choice ${chosen.id} p=${fmt(probability)} ` +
         `confidence=${fmt(confidence)} noul=${fmt(anyMatch)} ` +
         `probabilities=${formatProbabilities(probabilities)} -> ${accepted ? 'accept' : 'reject'}`,
     );
 
     return {
-      choiceId,
+      choice: chosen,
       probability,
       confidence,
       noul: anyMatch,
