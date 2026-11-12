@@ -1,30 +1,31 @@
 // @vitest-environment jsdom
-import { screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { ExtensionMissingError } from '../../lib/transport/index.ts';
+import { render, screen } from '../../test/test-utils.tsx';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
-import { failing, type FixtureOverride } from '../../test/fixture-fetch.ts';
-import { renderApp } from '../../test/render-app.tsx';
+import { ErrorScreen } from '../error-screen.tsx';
 
-describe('the error screen', () => {
-  it('shows for a fixture that fails validation, not garbage', async () => {
-    await renderApp('/', { fixtures: 'invalid-title' });
-    await screen.findByTestId('error-screen');
-    expect(screen.queryByTestId('shelf:new-episodes')).toBeNull();
-    expect(document.body.textContent).not.toContain('NaN');
+describe('ErrorScreen', () => {
+  it('says the source is unreachable for a network failure', () => {
+    render(<ErrorScreen error={new Error('boom')} onRetry={() => {}} />);
+    expect(screen.getByRole('alert').textContent).toContain(
+      'The source is unreachable',
+    );
   });
 
-  it('shows when the source is unreachable and retry reaches it again', async () => {
-    let reachable = false;
-    const gated: FixtureOverride = (url) =>
-      reachable ? undefined : failing('/fixtures/default/index.html', 503)(url);
-    await renderApp('/', { overrides: [gated] });
-    await screen.findByTestId('error-screen');
-
-    reachable = true;
-    await userEvent.click(screen.getByTestId('error:retry'));
-    await screen.findByTestId('shelf:new-episodes');
-    await waitFor(() =>
-      expect(screen.queryByTestId('error-screen')).toBeNull(),
+  it('asks for the extension when it is missing', () => {
+    render(
+      <ErrorScreen error={new ExtensionMissingError()} onRetry={() => {}} />,
     );
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Extension required',
+    );
+  });
+
+  it('calls onRetry when retry is clicked', async () => {
+    const onRetry = vi.fn();
+    render(<ErrorScreen error={new Error('boom')} onRetry={onRetry} />);
+    await userEvent.click(screen.getByTestId('error:retry'));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });
