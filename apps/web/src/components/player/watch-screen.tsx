@@ -1,6 +1,9 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
+import type { WatchProgressEpisode } from '../../../../api/src/watch-progress/contract.ts';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
+import { resumePoint, startPosition } from '../../lib/progress/resume.ts';
+import { useProgressRows } from '../../lib/progress/use-progress.ts';
 import { watchLink } from '../../lib/titles/link.ts';
 import {
   EpisodeNotFoundError,
@@ -41,10 +44,34 @@ export function WatchScreen({
   const browseSlug = browse ?? slug;
   const browsedQuery = useWatchPage(browseSlug);
 
-  const page = useMemo(
-    () => (watch.data ? select(watch.data, episodeId) : undefined),
-    [watch.data, episodeId],
-  );
+  const progress = useProgressRows(slug);
+  const latestRows = progress.status === 'ready' ? progress.rows : [];
+  // Where to resume is decided once per title, from the rows as they were on arrival. The saves made while
+  // watching refresh the query, and a later answer must not move the viewer to another episode mid-playback.
+  const [snapshot, setSnapshot] = useState<{
+    slug: string;
+    rows: WatchProgressEpisode[];
+  }>();
+  if (progress.status !== 'pending' && snapshot?.slug !== slug) {
+    setSnapshot({ slug, rows: latestRows });
+  }
+  const basis = snapshot?.slug === slug ? snapshot.rows : undefined;
+
+  const resolved = useMemo(() => {
+    if (!watch.data || !basis) return undefined;
+    if (episodeId) {
+      const picked = select(watch.data, episodeId);
+      return (
+        picked && { page: picked, startS: startPosition(episodeId, basis) }
+      );
+    }
+    const point = resumePoint(watch.data.episodes, basis);
+    return {
+      page: point ? selectEpisode(watch.data, point.episodeId) : watch.data,
+      startS: point?.positionS ?? 0,
+    };
+  }, [watch.data, episodeId, basis]);
+  const page = resolved?.page;
 
   if (watch.error) {
     return (
@@ -53,7 +80,7 @@ export function WatchScreen({
       </div>
     );
   }
-  if (page === null) {
+  if (resolved === null) {
     return (
       <div
         role="alert"
@@ -90,6 +117,8 @@ export function WatchScreen({
     else void navigate({ to: '/' });
   };
   const open = (targetSlug: string, episode: Episode) => {
+    // A pick is a fresh decision, and what was just watched may have moved since the first answer.
+    if (targetSlug === slug) setSnapshot({ slug, rows: latestRows });
     setBrowse(null);
     setView('episodes');
     void navigate({ ...watchLink(targetSlug, episode.id), replace: true });
@@ -108,6 +137,7 @@ export function WatchScreen({
       title={page.title}
       episode={page.currentEpisode}
       image={page.image}
+      startS={resolved?.startS ?? 0}
       nextEpisode={next ? { episode: next, number: index + 2 } : undefined}
       onNext={next ? () => open(slug, next) : undefined}
       onBack={goBack}

@@ -36,6 +36,7 @@ interface PlayerProps {
   title: string;
   episode: Episode;
   image?: string;
+  startS: number;
   nextEpisode?: NextEpisodeInfo;
   onNext?: () => void;
   onBack: () => void;
@@ -63,13 +64,14 @@ export function Player({
   title,
   episode,
   image,
+  startS,
   nextEpisode,
   onNext,
   onBack,
   episodesPanel,
 }: PlayerProps) {
   const root = useRef<HTMLDivElement>(null);
-  const { videoRef, state, controls } = usePlayback(episode);
+  const { videoRef, state, controls } = usePlayback(episode, startS);
   useProgressSaving(videoRef, {
     slug,
     seasonSlug,

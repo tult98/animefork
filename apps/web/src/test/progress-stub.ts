@@ -11,6 +11,8 @@ export interface ProgressStubOptions {
   rows?: Record<string, WatchProgressEpisode[]>;
   /** Answers every row read with this status instead of the rows. */
   rowsStatus?: number;
+  /** Row reads answer only once this settles. */
+  gate?: Promise<void>;
   /** Answers a save; the default is 204. */
   put?: (
     body: SaveWatchProgressRequest,
@@ -22,6 +24,7 @@ export interface ProgressStubOptions {
 export function stubProgress({
   rows = {},
   rowsStatus,
+  gate,
   put = () => new Response(null, { status: 204 }),
 }: ProgressStubOptions = {}) {
   const previous = globalThis.fetch;
@@ -43,6 +46,7 @@ export function stubProgress({
         url.slice(`${API}${WATCH_PROGRESS_PATH}/`.length),
       );
       reads.push(slug);
+      await gate;
       return rowsStatus
         ? jsonResponse(rowsStatus, { error: 'unauthenticated' })
         : jsonResponse(200, { items: rows[slug] ?? [] });

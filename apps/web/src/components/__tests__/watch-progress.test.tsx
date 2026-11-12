@@ -7,6 +7,7 @@ import {
   stubProgress,
   type ProgressStubOptions,
 } from '../../test/progress-stub.ts';
+import type { WatchProgressEpisode } from '../../../../api/src/watch-progress/contract.ts';
 import { renderApp } from '../../test/render-app.tsx';
 
 const SLUG = 'tonikaku-kawaii-a3860';
@@ -96,12 +97,12 @@ describe('saving watch progress from the player', () => {
     await t.canplay();
     t.play();
     t.tick(5);
-    await advance(14_999);
+    await advance(14_000);
     expect(t.saves).toHaveLength(0);
-    await advance(1);
+    await advance(1_500);
     expect(t.saves.map((s) => s.body.positionS)).toEqual([5]);
     t.tick(20);
-    await advance(15_000);
+    await advance(15_500);
     await waitFor(() =>
       expect(t.saves.map((s) => s.body.positionS)).toEqual([5, 20]),
     );
@@ -233,5 +234,121 @@ describe('a signed-out viewer', () => {
     await advance(1_000);
     expect(stub.saves).toHaveLength(0);
     expect(stub.reads).toHaveLength(0);
+  });
+});
+
+const row = (
+  episodeId: string,
+  positionS: number,
+  completed = false,
+): WatchProgressEpisode => ({
+  episodeId,
+  positionS,
+  durationS: 1400,
+  completed,
+});
+
+const label = () => screen.getByTestId('player:episode-label').textContent;
+
+describe('resuming', () => {
+  withFakeClock();
+
+  async function resume(
+    path: string,
+    rows: WatchProgressEpisode[],
+    options: ProgressStubOptions = {},
+  ) {
+    const t = await openSignedIn(path, { rows: { [SLUG]: rows }, ...options });
+    return t;
+  }
+
+  it('opens the last watched episode and seeks 5 s before the saved position once it can play', async () => {
+    const t = await resume(`/watch/${SLUG}`, [
+      row(EPISODES[0] ?? '', 1390, true),
+      row(EPISODES[2] ?? '', 300),
+    ]);
+    await waitFor(() => expect(label()).toBe('Tập 3'));
+    expect(t.media.time).toBe(0);
+    await t.canplay();
+    expect(t.media.time).toBe(295);
+  });
+
+  it('never seeks below 0', async () => {
+    const t = await resume(`/watch/${SLUG}`, [row(EPISODES[1] ?? '', 3)]);
+    await waitFor(() => expect(label()).toBe('Tập 2'));
+    await t.canplay();
+    expect(t.media.time).toBe(0);
+  });
+
+  it('offers the next episode from its start once the last one is completed', async () => {
+    const t = await resume(`/watch/${SLUG}`, [
+      row(EPISODES[1] ?? '', 1390, true),
+    ]);
+    await waitFor(() => expect(label()).toBe('Tập 3'));
+    await t.canplay();
+    expect(t.media.time).toBe(0);
+  });
+
+  it('wraps to the first episode after the last one is completed', async () => {
+    await resume(`/watch/${SLUG}`, [row(EPISODES[4] ?? '', 1390, true)]);
+    await waitFor(() => expect(label()).toBe('Tập 1_BD_Full'));
+  });
+
+  it('keeps the episode of the URL and only seeks to its saved position', async () => {
+    const t = await resume(`/watch/${SLUG}/${EPISODES[1]}`, [
+      row(EPISODES[1] ?? '', 200),
+      row(EPISODES[3] ?? '', 900),
+    ]);
+    expect(label()).toBe('Tập 2');
+    await t.canplay();
+    expect(t.media.time).toBe(195);
+  });
+
+  it('starts a completed episode of the URL over', async () => {
+    const t = await resume(`/watch/${SLUG}/${EPISODES[1]}`, [
+      row(EPISODES[1] ?? '', 1390, true),
+    ]);
+    await t.canplay();
+    expect(t.media.time).toBe(0);
+  });
+
+  it('ignores rows for episodes that are not on the page', async () => {
+    await resume(`/watch/${SLUG}`, [row('1', 500)]);
+    expect(label()).toBe('Tập 1_BD_Full');
+  });
+
+  it('shows the loading state until the rows arrive', async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    stubAuth({ me: () => jsonResponse(200, { user }) });
+    stubProgress({ rows: { [SLUG]: [row(EPISODES[2] ?? '', 300)] }, gate });
+    await renderApp(`/watch/${SLUG}`);
+    await screen.findByTestId('watch:loading');
+    await advance(2_000);
+    expect(screen.queryByTestId('player')).toBeNull();
+    release();
+    await screen.findByTestId('player');
+    expect(label()).toBe('Tập 3');
+  });
+
+  it('plays from the first episode when the rows cannot be read', async () => {
+    const t = await resume(`/watch/${SLUG}`, [], { rowsStatus: 500 });
+    expect(label()).toBe('Tập 1_BD_Full');
+    await t.canplay();
+    expect(t.media.time).toBe(0);
+  });
+
+  it('does not move to another episode when the rows change while watching', async () => {
+    const rows = { [SLUG]: [row(EPISODES[2] ?? '', 300)] };
+    const t = await openSignedIn(`/watch/${SLUG}`, { rows });
+    await waitFor(() => expect(label()).toBe('Tập 3'));
+    await t.canplay();
+    t.play();
+    t.tick(400);
+    rows[SLUG] = [row(EPISODES[2] ?? '', 1390, true)];
+    t.pause();
+    await waitFor(() => expect(t.reads.length).toBeGreaterThan(1));
+    await advance(1_000);
+    expect(label()).toBe('Tập 3');
   });
 });
