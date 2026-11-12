@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SaveWatchProgressRequest } from '../../../../../api/src/watch-progress/contract.ts';
-import type { SaveOutcome } from '../client.ts';
+import type { SaveOutcome } from '../save-outcome.ts';
 import { createSaver, SAVE_INTERVAL_MS, type Snapshot } from '../saver.ts';
 
 const meta = {

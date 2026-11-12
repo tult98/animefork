@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
-import { signIn } from '../../lib/auth/client.ts';
+import { useSignIn } from '../../lib/auth/use-auth-calls.ts';
 import { checkCredentials } from '../../lib/auth/credentials.ts';
 import { authCopy } from '../../lib/auth/copy.ts';
 import { authErrorMessage } from '../../lib/auth/messages.ts';
@@ -22,6 +22,7 @@ export function SignInForm() {
   const [problem, setProblem] = useState<Problem | null>(null);
   const { pending, run } = useSubmitOnce();
   const { setUser } = useSessionActions();
+  const signIn = useSignIn();
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();

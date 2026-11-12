@@ -4,7 +4,7 @@ import {
   type UseQueryOptions,
   type UseQueryResult,
 } from '@tanstack/react-query';
-import { apiGet } from './request.ts';
+import { apiRequest } from './request.ts';
 
 export interface ApiQueryOptions<T, TData> extends Omit<
   UseQueryOptions<TData>,
@@ -26,7 +26,7 @@ export function useApiQuery<T, TData = T>({
     ...options,
     queryKey: key,
     queryFn: async ({ signal }) => {
-      const body = await apiGet<T>(endpoint, signal);
+      const body = await apiRequest<T>(endpoint, { signal });
       return map ? map(body) : (body as unknown as TData);
     },
   });

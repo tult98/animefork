@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import type { Credentials } from '../../../../api/src/auth/contract.ts';
-import { signUp } from '../../lib/auth/client.ts';
+import { useSignUp } from '../../lib/auth/use-auth-calls.ts';
 import {
   checkCredentials,
   type CredentialIssues,
@@ -31,6 +31,7 @@ export function SignUpForm() {
   const [sent, setSent] = useState<Credentials | null>(null);
   const [resent, setResent] = useState(false);
   const { pending, run } = useSubmitOnce();
+  const signUp = useSignUp();
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
