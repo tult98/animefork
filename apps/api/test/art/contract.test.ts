@@ -3,6 +3,7 @@ import {
   LookupRequestSchema,
   LookupResponseSchema,
   MAX_TITLES_PER_LOOKUP,
+  normalizeOtherNames,
   TitleInputSchema,
   tmdbImageUrl,
   type LookupResponse,
@@ -117,6 +118,66 @@ describe('contract', () => {
         titles: Array(MAX_TITLES_PER_LOOKUP + 1).fill(title),
       }).success,
     ).toBe(false);
+  });
+
+  it('cleans the other names a client sends', () => {
+    const parsed = TitleInputSchema.parse({
+      slug: 'a-1',
+      name: 'Đấu La Đại Lục',
+      otherNames: [
+        '  Soul Land ',
+        '',
+        '   ',
+        'soul land',
+        'đấu la đại lục',
+        'x'.repeat(121),
+        'x'.repeat(120),
+        'Douluo Dalu',
+        'A',
+        'B',
+        'C',
+      ],
+    });
+    expect(parsed.otherNames).toEqual([
+      'Soul Land',
+      'x'.repeat(120),
+      'Douluo Dalu',
+      'A',
+      'B',
+    ]);
+  });
+
+  it('leaves out other names when none survive, and accepts a title without them', () => {
+    expect(
+      TitleInputSchema.parse({
+        slug: 'a-1',
+        name: 'A',
+        otherNames: [' a', ''],
+      }),
+    ).toEqual({ slug: 'a-1', name: 'A' });
+    expect(TitleInputSchema.parse({ slug: 'a-1', name: 'A' })).toEqual({
+      slug: 'a-1',
+      name: 'A',
+    });
+  });
+
+  it('refuses other names of the wrong shape', () => {
+    const title = { slug: 'a-1', name: 'A' };
+    for (const otherNames of [
+      'Soul Land',
+      [1],
+      ['x'.repeat(401)],
+      Array(21).fill('B'),
+    ]) {
+      expect(TitleInputSchema.safeParse({ ...title, otherNames }).success).toBe(
+        false,
+      );
+    }
+  });
+
+  it('normalizes names on its own for callers outside the schema', () => {
+    expect(normalizeOtherNames(['B', ' b ', 'C'], 'c')).toEqual(['B']);
+    expect(normalizeOtherNames([])).toEqual([]);
   });
 
   it('joins size and path into a TMDB image url', () => {

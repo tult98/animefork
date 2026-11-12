@@ -122,6 +122,8 @@ describe('api app', () => {
     const bodies = [
       { titles: 'x' },
       { titles: [{ slug: 'Bad Slug', name: 'A' }] },
+      { titles: [{ slug: 'a-1', name: 'A', otherNames: 'Soul Land' }] },
+      { titles: [{ slug: 'a-1', name: 'A', otherNames: [1] }] },
       {
         titles: Array.from({ length: MAX_TITLES_PER_LOOKUP + 1 }, (_, i) => ({
           slug: `s-${i}`,
