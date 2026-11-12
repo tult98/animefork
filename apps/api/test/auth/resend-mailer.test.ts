@@ -12,7 +12,10 @@ describe('ResendMailer', () => {
       fetchFn as unknown as typeof fetch,
     ).send(MESSAGE);
 
-    const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
+    const [url, init] = fetchFn.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
     expect(url).toBe(RESEND_API_URL);
     expect((init.headers as Record<string, string>).Authorization).toBe(
       'Bearer re_key',

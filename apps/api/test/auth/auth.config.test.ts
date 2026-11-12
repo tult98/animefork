@@ -3,7 +3,11 @@ import {
   DEFAULT_MAIL_FROM,
   loadAuthConfig,
 } from '../../src/auth/auth.config.ts';
-import { createMailer, LogMailer, ResendMailer } from '../../src/auth/mailer.ts';
+import {
+  createMailer,
+  LogMailer,
+  ResendMailer,
+} from '../../src/auth/mailer.ts';
 
 describe('loadAuthConfig', () => {
   it('defaults to a 30 day session, a Secure cookie and the first allowed origin', () => {
