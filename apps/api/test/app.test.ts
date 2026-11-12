@@ -214,7 +214,9 @@ describe('api app', () => {
     });
     expect(preflight.status).toBe(204);
     expect(preflight.headers['access-control-allow-origin']).toBe(ORIGIN);
-    expect(preflight.headers['access-control-allow-methods']).toBe('GET,POST,PUT');
+    expect(preflight.headers['access-control-allow-methods']).toBe(
+      'GET,POST,PUT',
+    );
     expect(preflight.headers['access-control-allow-credentials']).toBe('true');
   });
 
