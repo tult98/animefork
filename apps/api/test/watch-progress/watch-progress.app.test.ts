@@ -1,9 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import {
-  SIGN_IN_PATH,
-  SIGN_UP_PATH,
-  VERIFY_EMAIL_PATH,
-} from '../../src/auth/contract.ts';
+import { generateToken, hashToken } from '../../src/auth/tokens.ts';
 import {
   WATCH_PROGRESS_PATH,
   WATCH_PROGRESS_SHELF_LIMIT,
@@ -11,18 +8,29 @@ import {
   WatchProgressShelfResponseSchema,
   watchProgressSlugPath,
 } from '../../src/watch-progress/contract.ts';
-import { buildAuthApp, sessionValueOf, START } from '../auth/helpers.ts';
+import { buildAuthApp, START } from '../auth/helpers.ts';
 
 type App = Awaited<ReturnType<typeof buildAuthApp>>;
 
-const PASSWORD = 'correct horse battery';
+const DAY_MS = 24 * 60 * 60_000;
 
+// Opens a session straight in the store. Signing in would run scrypt for every test and starve CI.
 async function signedIn(app: App, email: string) {
-  await app.post(SIGN_UP_PATH, { email, password: PASSWORD });
-  await app.post(VERIFY_EMAIL_PATH, { token: app.lastToken() });
-  const res = await app.post(SIGN_IN_PATH, { email, password: PASSWORD });
-  expect(res.status).toBe(200);
-  return sessionValueOf(res);
+  const user = {
+    id: randomUUID(),
+    email,
+    passwordHash: 'unused',
+    createdAt: START,
+  };
+  app.store.users.set(user.id, user);
+  const token = generateToken();
+  await app.store.createSession(
+    user.id,
+    hashToken(token),
+    START,
+    new Date(START.getTime() + 30 * DAY_MS),
+  );
+  return token;
 }
 
 function save(overrides: Record<string, unknown> = {}) {
