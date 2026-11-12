@@ -13,6 +13,8 @@ import {
   DeepSeekTranslator,
   OVERVIEW_TRANSLATOR,
 } from '../src/art/translator.ts';
+import { AUTH_CLEANUP_EVERY_MS } from '../src/auth/auth.service.ts';
+import { ME_PATH } from '../src/auth/contract.ts';
 import { AppModule } from '../src/app.module.ts';
 import { configureApp } from '../src/app.setup.ts';
 import { APP_CONFIG, ENV, type Env } from '../src/config/app.config.ts';
@@ -56,6 +58,8 @@ async function build(
     .useValue(new MemoryMalStore())
     .overrideProvider(ART_SYNC)
     .useValue(sync)
+    .overrideProvider(AUTH_CLEANUP_EVERY_MS)
+    .useValue(null)
     .compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     bodyParser: false,
@@ -202,7 +206,20 @@ describe('api app', () => {
     });
     expect(preflight.status).toBe(204);
     expect(preflight.headers['access-control-allow-origin']).toBe(ORIGIN);
-    expect(preflight.headers['access-control-allow-methods']).toContain('POST');
+    expect(preflight.headers['access-control-allow-methods']).toBe('GET,POST');
+    expect(preflight.headers['access-control-allow-credentials']).toBe('true');
+  });
+
+  it('allows credentials from the configured origins only, so the session cookie rides along', async () => {
+    const { http } = await build();
+    const allowed = await http().get(ME_PATH).set({ origin: ORIGIN });
+    expect(allowed.status).toBe(401);
+    expect(allowed.headers['access-control-allow-origin']).toBe(ORIGIN);
+    expect(allowed.headers['access-control-allow-credentials']).toBe('true');
+    const other = await http()
+      .get(ME_PATH)
+      .set({ origin: 'https://evil.test' });
+    expect(other.headers['access-control-allow-origin']).toBeUndefined();
   });
 
   it('allows no origin when none is configured', async () => {

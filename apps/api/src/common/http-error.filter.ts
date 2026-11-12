@@ -13,6 +13,8 @@ interface JsonResponse {
 
 const CODES: Partial<Record<number, string>> = {
   [HttpStatus.BAD_REQUEST]: 'invalid_request',
+  [HttpStatus.UNAUTHORIZED]: 'unauthorized',
+  [HttpStatus.FORBIDDEN]: 'forbidden',
   [HttpStatus.NOT_FOUND]: 'not_found',
   [HttpStatus.PAYLOAD_TOO_LARGE]: 'body_too_large',
   [HttpStatus.TOO_MANY_REQUESTS]: 'rate_limited',
