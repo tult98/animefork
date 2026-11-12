@@ -6,7 +6,7 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vitest/config';
 
-// Fixtures live in public/ so the dev server and Playwright can serve them, but they are test data and must not ship.
+// Fixtures live in public/ so the dev server and the tests can serve them, but they are test data and must not ship.
 function dropFixturesFromBuild(): Plugin {
   let outDir = '';
   return {

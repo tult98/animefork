@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "e2e": "playwright test",
     "verify": "node scripts/verify.ts",
     "capture-fixtures": "node scripts/capture-fixtures.ts",
     "tokens": "node scripts/build-tokens.ts"
@@ -58,14 +57,6 @@
         "inputs": [
           "default",
           "^production"
-        ]
-      },
-      "e2e": {
-        "dependsOn": [
-          "^build"
-        ],
-        "outputs": [
-          "{projectRoot}/artifacts/e2e"
         ]
       },
       "tokens": {

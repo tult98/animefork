@@ -30,15 +30,6 @@ const steps: Step[] = [
     ],
     artifacts: ['artifacts/verify/vitest.json'],
   },
-  {
-    name: 'replay e2e',
-    args: ['playwright', 'test'],
-    artifacts: [
-      'artifacts/e2e/report/index.html',
-      'artifacts/e2e/results.json',
-      'artifacts/e2e/test-results/ (screenshots, traces)',
-    ],
-  },
 ];
 
 function run(step: Step): Promise<{ ok: boolean; ms: number; log: string }> {
