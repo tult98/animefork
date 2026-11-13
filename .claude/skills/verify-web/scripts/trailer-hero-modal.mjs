@@ -4,7 +4,7 @@ const r = await start('trailer-hero-modal', {
   ev: process.env.EV,
   actions: 5,
   proves:
-    'home: the hero trailer plays cropped under the scrim, unmutes, holds the slide, stops when the details modal plays its own, stops while scrolled out of view and plays again on return; the card hover video plays cropped with no YouTube chrome',
+    'home: the hero trailer shows within moments with no YouTube overlay, plays cropped under the scrim, unmutes, holds the slide, stops when the details modal plays its own, stops while scrolled out of view and plays again on return; the card hover video shows within 2s with no YouTube overlay',
 });
 const { page } = r;
 await page.goto(r.url('/'));
@@ -17,8 +17,17 @@ const heroPlaying =
   '[data-testid^="hero:slide:"][data-active] [data-testid="trailer"][data-phase="playing"]';
 await page.waitForSelector(heroPlaying, { timeout: 90000 });
 const counter = await page.getByTestId('hero:counter').innerText();
+await page.waitForTimeout(1200);
+await r.shot('1-hero-trailer-just-shown');
 await page.waitForTimeout(5000);
-await r.shot('1-hero-trailer');
+r.check(
+  'hero video settles to its natural size once the YouTube overlay is gone',
+  await page
+    .locator(`${heroPlaying}[data-settled]`)
+    .count()
+    .then((n) => n === 1),
+);
+await r.shot('1b-hero-trailer-settled');
 
 const layout = await page.evaluate((sel) => {
   const box = document.querySelector(sel).getBoundingClientRect();
@@ -83,8 +92,8 @@ const modalTrailer = await page
   .catch(() => false);
 r.check('details trailer plays', modalTrailer);
 if (modalTrailer) {
-  await page.waitForTimeout(5000);
-  await r.shot('3-details-trailer');
+  await page.waitForTimeout(1200);
+  await r.shot('3-details-trailer-just-shown');
   console.log(
     'details toggle label:',
     await page.getByTestId('details:mute').getAttribute('aria-label'),
@@ -130,44 +139,56 @@ const back = await page
   .then(() => true)
   .catch(() => false);
 r.check('hero trailer plays again after scrolling back up', back);
-await page.waitForTimeout(5000);
+await page.waitForTimeout(1200);
 await r.shot('6-hero-back-in-view');
 
 const cards = page.locator(
   '[data-testid="shelf:airing-this-season"] [data-testid^="card:/"]',
 );
+const cardPlaying = '[data-testid="card:promo-video"][data-phase="playing"]';
 let promo = false;
+let shownAfter = null;
 for (let i = 0; i < 6 && !promo; i++) {
   await page.mouse.move(0, 0);
   await page.waitForTimeout(800);
   await cards.nth(i).hover();
+  const hovered = Date.now();
   promo = await page
     .waitForSelector('[data-testid="card:promo-video"]', { timeout: 2500 })
     .then(() => true)
     .catch(() => false);
+  if (promo) {
+    await page.locator('[data-testid$=":preview"]').hover();
+    shownAfter = await page
+      .waitForSelector(cardPlaying, { timeout: 5000 })
+      .then(() => Date.now() - hovered)
+      .catch(() => null);
+  }
 }
 r.check(
   'card hover plays its promo video (live data: one of the first 6 airing cards has a trailer)',
   promo,
 );
 if (promo) {
-  await page.locator('[data-testid$=":preview"]').hover();
-  const hidden = await page.evaluate(
-    () =>
-      getComputedStyle(document.querySelector('.promo-video')).opacity === '0',
-  );
   r.check(
-    'card video stays hidden while YouTube shows its start overlay',
-    hidden,
+    `card video shown within 2s of the hover (${shownAfter}ms)`,
+    shownAfter !== null && shownAfter <= 2000,
   );
-  await page.waitForSelector('.promo-video[data-loaded]', { timeout: 15000 });
-  await page.waitForTimeout(6000);
-  const card = await page.evaluate(() => {
-    const box = document.querySelector('.promo-video');
+  await page.waitForTimeout(700);
+  const opacity = await page.evaluate(
+    (sel) => getComputedStyle(document.querySelector(sel)).opacity,
+    cardPlaying,
+  );
+  r.check(`card video fully shown (opacity ${opacity})`, opacity === '1');
+  await r.shot('7-card-hover-just-shown');
+  await page.waitForSelector(`${cardPlaying}[data-settled]`, {
+    timeout: 8000,
+  });
+  const card = await page.evaluate((sel) => {
+    const box = document.querySelector(sel);
     const b = box.getBoundingClientRect();
     const f = box.querySelector('iframe').getBoundingClientRect();
     return {
-      opacity: getComputedStyle(box).opacity,
       covers:
         f.left < b.left &&
         f.top < b.top &&
@@ -176,12 +197,12 @@ if (promo) {
       box: [Math.round(b.width), Math.round(b.height)],
       frame: [Math.round(f.width), Math.round(f.height)],
     };
-  });
+  }, cardPlaying);
   r.check(
-    `card video shown and cropped past its box (${JSON.stringify(card)})`,
-    card.opacity === '1' && card.covers,
+    `card video settled and cropped past its box (${JSON.stringify(card)})`,
+    card.covers,
   );
-  await r.shot('7-card-hover');
+  await r.shot('8-card-hover-settled');
 }
 
 const res = await r.finish();
