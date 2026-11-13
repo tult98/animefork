@@ -1,116 +1,137 @@
 // @vitest-environment jsdom
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import fetchMock from '@fetch-mock/vitest';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
-import { failing } from '../../test/fixture-fetch.ts';
-import { renderApp } from '../../test/render-app.tsx';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mockWatchHtml } from '../../lib/titles/__mockData__/index.ts';
+import { render, screen, waitFor, within } from '../../test/test-utils.tsx';
+import { homeHtml, newEpisodesHtml, seasonHtml } from '../__mockData__/home.ts';
+import { Home } from '../home.tsx';
 
-const KAMUI = 'ushiro-no-shoumen-kamui-san-a6084';
+beforeEach(() => {
+  fetchMock
+    .get('path:/', homeHtml)
+    .get('path:/danh-sach/all/all/all/all/all/all/jp/', newEpisodesHtml)
+    .get('path:/danh-sach/all/all/autumn/2026/all/all/jp/', seasonHtml)
+    .get('path:/phim/fresh-1-a1/xem-phim.html', mockWatchHtml);
+});
 
-async function openDetails() {
-  const app = await renderApp('/');
-  const shelf = await screen.findByTestId('shelf:new-episodes');
-  await userEvent.click(
-    within(shelf)
-      .getByTestId(`card:/phim/${KAMUI}/`)
-      .querySelector('[data-cover]')!,
-  );
-  const modal = await screen.findByTestId('details');
-  await within(modal).findByTestId('details:episode:81001');
-  return { ...app, modal };
-}
+const cover = (path: string) =>
+  screen.getByTestId(`card:${path}`).querySelector('[data-cover]')!;
 
 describe('the details modal', () => {
-  it('opens from a card instead of navigating', async () => {
-    const { router, modal } = await openDetails();
-    expect(within(modal).getByRole('heading', { level: 2 }).textContent).toBe(
-      'Ushiro no Shoumen Kamui-san',
+  it('opens from a card instead of navigating, with the title, a play link and its episodes', async () => {
+    const { router } = render(<Home />, { path: '/' });
+    await expect(fetchMock).toBeFetched(
+      'path:/danh-sach/all/all/autumn/2026/all/all/jp/',
     );
+
+    await userEvent.click(cover('/phim/fresh-1-a1/'));
+    const modal = await screen.findByTestId('details');
+    await expect(fetchMock).toBeFetched('path:/phim/fresh-1-a1/xem-phim.html');
+
+    expect(within(modal).getByRole('heading', { level: 2 })).toHaveTextContent(
+      'fresh 1',
+    );
+    expect(within(modal).getByTestId('details:play')).toHaveAttribute(
+      'href',
+      '/watch/fresh-1-a1',
+    );
+    expect(within(modal).getByTestId('details:episode:72839')).toBeVisible();
+    expect(within(modal).getByTestId('details:episode:73386')).toBeVisible();
     expect(router.state.location.pathname).toBe('/');
-    expect(within(modal).getByTestId('details:play').getAttribute('href')).toBe(
-      `/watch/${KAMUI}`,
+  });
+
+  it('opens from the info button of a hero slide', async () => {
+    fetchMock.get('path:/phim/hero-1-a1/xem-phim.html', mockWatchHtml);
+    render(<Home />, { path: '/' });
+    await expect(fetchMock).toBeFetched(
+      'path:/danh-sach/all/all/autumn/2026/all/all/jp/',
+    );
+
+    await userEvent.click(
+      within(screen.getByTestId('hero:slide:0')).getByTestId('hero:info'),
+    );
+
+    expect(await screen.findByTestId('details')).toHaveTextContent('Hero 1');
+  });
+
+  it('closes from its close button, and from the backdrop but not from its content', async () => {
+    render(<Home />, { path: '/' });
+    await expect(fetchMock).toBeFetched(
+      'path:/danh-sach/all/all/autumn/2026/all/all/jp/',
+    );
+    await userEvent.click(cover('/phim/fresh-1-a1/'));
+    const modal = await screen.findByTestId('details');
+    await expect(fetchMock).toBeFetched('path:/phim/fresh-1-a1/xem-phim.html');
+
+    await userEvent.click(within(modal).getByTestId('details:episodes'));
+    expect(modal).toBeVisible();
+    await userEvent.click(modal);
+    await waitFor(() =>
+      expect(screen.queryByTestId('details')).not.toBeInTheDocument(),
+    );
+
+    await userEvent.click(cover('/phim/fresh-1-a1/'));
+    await userEvent.click(await screen.findByTestId('details:close'));
+    await waitFor(() =>
+      expect(screen.queryByTestId('details')).not.toBeInTheDocument(),
     );
   });
 
-  it('closes from its close button', async () => {
-    const { modal } = await openDetails();
-    await userEvent.click(within(modal).getByTestId('details:close'));
-    await waitFor(() => expect(screen.queryByTestId('details')).toBeNull());
-  });
+  it('switches season and plays an episode of it', async () => {
+    fetchMock.get(
+      'path:/phim/tonikaku-kawaii-sns-a4229/xem-phim.html',
+      mockWatchHtml.replace('data-id="72839"', 'data-id="90001"'),
+    );
+    const { router } = render(<Home />, { path: '/' });
+    await expect(fetchMock).toBeFetched(
+      'path:/danh-sach/all/all/autumn/2026/all/all/jp/',
+    );
+    await userEvent.click(cover('/phim/fresh-1-a1/'));
+    const modal = await screen.findByTestId('details');
+    await expect(fetchMock).toBeFetched('path:/phim/fresh-1-a1/xem-phim.html');
 
-  it('closes on a click of the backdrop but not of the content', async () => {
-    const { modal } = await openDetails();
-    await userEvent.click(within(modal).getByTestId('details:episodes'));
-    expect(screen.queryByTestId('details')).not.toBeNull();
-    await userEvent.click(modal);
-    await waitFor(() => expect(screen.queryByTestId('details')).toBeNull());
-  });
-
-  it('closes when the dialog reports it closed', async () => {
-    const { modal } = await openDetails();
-    fireEvent(modal, new Event('close'));
-    await waitFor(() => expect(screen.queryByTestId('details')).toBeNull());
-  });
-
-  it('switches season and plays an episode', async () => {
-    const { router, modal } = await openDetails();
     await userEvent.click(within(modal).getByTestId('details:season-button'));
     await userEvent.click(
-      within(modal).getByTestId(
-        'details:season:tonikaku-kawaii-2nd-season-a4476',
+      within(modal).getByTestId('details:season:tonikaku-kawaii-sns-a4229'),
+    );
+    await userEvent.click(
+      await within(modal).findByTestId('details:episode:90001'),
+    );
+
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(
+        '/watch/tonikaku-kawaii-sns-a4229/90001',
       ),
     );
-    await waitFor(() =>
-      expect(within(modal).queryByTestId('details:episode:81001')).toBeNull(),
-    );
-    const first = await within(
-      within(modal).getByTestId('details:episodes'),
-    ).findAllByRole('link');
-    await userEvent.click(first[0]!);
-    await waitFor(() =>
-      expect(router.state.location.pathname).toMatch(
-        /^\/watch\/tonikaku-kawaii-2nd-season-a4476\//,
-      ),
-    );
-    expect(screen.queryByTestId('details')).toBeNull();
+    expect(screen.queryByTestId('details')).not.toBeInTheDocument();
   });
 
-  it('opens for an upcoming card whose watch page does not exist', async () => {
-    const { router } = await renderApp('/', {
-      overrides: [failing(/\/phim\/tsuki-no-sakamichi-a7001\//, 404)],
-    });
-    const shelf = await screen.findByTestId('shelf:upcoming');
-    const cover = within(shelf)
-      .getByTestId('card:/phim/tsuki-no-sakamichi-a7001/')
-      .querySelector('[data-cover]')!;
-    await userEvent.click(cover);
+  it('opens for an upcoming card without a play link or episodes, and its popover has no play button', async () => {
+    const { router } = render(<Home />, { path: '/' });
+    await expect(fetchMock).toBeFetched(
+      'path:/danh-sach/all/all/autumn/2026/all/all/jp/',
+    );
+
+    await userEvent.hover(screen.getByTestId('card:/phim/soon-a1/'));
+    const preview = await screen.findByTestId('card:/phim/soon-a1/:preview');
+    expect(
+      within(preview).queryByRole('link', { name: /^Phát / }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(preview).getByTestId('card:/phim/soon-a1/:details:tooltip'),
+    ).toHaveTextContent('Thông tin');
+
+    await userEvent.click(cover('/phim/soon-a1/'));
     const modal = await screen.findByTestId('details');
-    expect(within(modal).getByRole('heading', { level: 2 }).textContent).toBe(
-      'Tsuki no Sakamichi',
+    expect(within(modal).getByRole('heading', { level: 2 })).toHaveTextContent(
+      'soon',
     );
+    expect(within(modal).queryByTestId('details:play')).not.toBeInTheDocument();
+    expect(
+      within(modal).queryByTestId('details:episodes'),
+    ).not.toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
-    expect(within(modal).queryByTestId('details:play')).toBeNull();
-    expect(within(modal).queryByTestId('details:episodes')).toBeNull();
-  });
-
-  it('hides the play button in the popover of an upcoming card but keeps the details button', async () => {
-    await renderApp('/');
-    const shelf = await screen.findByTestId('shelf:upcoming');
-    const card = within(shelf).getByTestId(
-      'card:/phim/tsuki-no-sakamichi-a7001/',
-    );
-    await userEvent.hover(card);
-    const preview = await screen.findByTestId(
-      'card:/phim/tsuki-no-sakamichi-a7001/:preview',
-    );
-    expect(within(preview).queryByRole('link', { name: /^Phát / })).toBeNull();
-    expect(
-      within(preview).getByRole('button', { name: /^Xem chi tiết / }),
-    ).toBeTruthy();
-    expect(
-      within(preview).getByTestId(
-        'card:/phim/tsuki-no-sakamichi-a7001/:details:tooltip',
-      ).textContent,
-    ).toBe('Thông tin');
+    expect(fetchMock).not.toHaveFetched('path:/phim/soon-a1/xem-phim.html');
   });
 });

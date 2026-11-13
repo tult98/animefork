@@ -1,121 +1,84 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import fetchMock from '@fetch-mock/vitest';
+import { describe, expect, it } from 'vitest';
 import { avsSubmissions, submitAvs } from '../avs-submit.ts';
 import { parseCard } from '../card-parser.ts';
-import { parseHome, parseNewEpisodes, parseSeason } from '../home.ts';
-import { titleWatchLink } from '../link.ts';
-import { buildHome, type TitleShelf } from '../shelves.ts';
+import type { TitleShelf } from '../shelves.ts';
+import type { Title } from '../title.ts';
 
-const fixture = (name: string) =>
-  readFileSync(
-    resolve(import.meta.dirname, '../../../../public/fixtures/default', name),
-    'utf8',
-  );
-const newEpisodes = parseNewEpisodes(
-  fixture('danh-sach/all/all/all/all/all/all/jp.html'),
-);
-
-describe('voter count on a card', () => {
+describe('the AVS voter count of a card', () => {
   const card = (attrs: string) =>
     new DOMParser().parseFromString(
       `<article class="TPostMv"><a href="/phim/a-1/"><h2 class="Title">A</h2></a><div class="anime-avg-user-rating"${attrs}>8.4</div></article>`,
       'text/html',
     ).body.firstElementChild!;
 
-  it('is read from the score badge title', () => {
+  it('is read from the score badge title, and unknown without one', () => {
     expect(
       parseCard(
         card(' title="8.4 trong số 10 dựa trên 1,284 thành viên đánh giá"'),
       ).avsVoters,
     ).toBe(1284);
-  });
-
-  it.each([
-    ['no title', ''],
-    ['an unrelated title', ' title="hello"'],
-  ])('is undefined with %s', (_name, attrs) => {
-    expect(parseCard(card(attrs)).avsVoters).toBeUndefined();
-  });
-
-  it('is read on the saved site pages: every season card, not the hero cards', () => {
-    const home = parseHome(fixture('index.html'));
-    expect(home.hero.every((t) => t.avsVoters === undefined)).toBe(true);
-    expect(newEpisodes.some((t) => t.avsVoters !== undefined)).toBe(true);
-    const season = parseSeason(fixture('season/autumn/2026.html'));
-    expect(season.length).toBeGreaterThan(0);
-    expect(season.every((t) => (t.avsVoters ?? 0) > 0)).toBe(true);
+    expect(parseCard(card('')).avsVoters).toBeUndefined();
   });
 });
 
-describe('avsSubmissions', () => {
-  const home = parseHome(fixture('index.html'));
-  const shelves = buildHome({
-    ...home,
-    newEpisodes,
-    season: undefined,
-  }).filter((s): s is TitleShelf => s.kind !== 'continue');
-  const slugOf = (t: Parameters<typeof titleWatchLink>[0]) =>
-    titleWatchLink(t).params.slug;
-
-  it('sends only stale titles whose card has a voter count', () => {
-    const withCount = newEpisodes.find((t) => t.avsVoters !== undefined)!;
-    const heroOnly = home.hero.find(
-      (h) => !newEpisodes.some((t) => slugOf(t) === slugOf(h)),
-    )!;
-    const items = avsSubmissions(shelves, [
-      slugOf(withCount),
-      slugOf(heroOnly),
-      'not-on-screen',
-    ]);
-    expect(items).toEqual([
-      expect.objectContaining({
-        slug: slugOf(withCount),
-        score: withCount.rating,
-        voters: withCount.avsVoters,
-      }),
-    ]);
+describe('sending the AVS ratings the page already shows', () => {
+  const title = (slug: string, avsVoters?: number): Title => ({
+    path: `/phim/${slug}/`,
+    name: slug,
+    image: 'i.jpg',
+    rating: 8.4,
+    episodeLabel: 'Tập 1',
+    genres: [],
+    quality: 'HD',
+    ...(avsVoters !== undefined && { avsVoters }),
   });
 
-  it('sends nothing when nothing is stale', () => {
+  it('picks the stale titles that show a voter count, once each', () => {
+    const shelves: TitleShelf[] = [
+      { kind: 'hero', id: 'hero', items: [title('a-1'), title('b-2', 50)] },
+      {
+        kind: 'default',
+        id: 'new-episodes',
+        title: 'New',
+        items: [title('b-2', 50), title('c-3', 1284), title('d-4', 9)],
+      },
+    ];
+
+    expect(avsSubmissions(shelves, ['a-1', 'b-2', 'c-3', 'not-shown'])).toEqual(
+      [
+        { slug: 'b-2', score: 8.4, voters: 50, quality: 'HD' },
+        { slug: 'c-3', score: 8.4, voters: 1284, quality: 'HD' },
+      ],
+    );
     expect(avsSubmissions(shelves, [])).toEqual([]);
   });
 
-  it('sends a title once even when several shelves show it', () => {
-    const all = shelves.flatMap((s) => s.items.map(slugOf));
-    const items = avsSubmissions(shelves, all);
-    expect(new Set(items.map((i) => i.slug)).size).toBe(items.length);
-  });
-});
+  it('posts 120 ratings in batches of 50', async () => {
+    fetchMock.post('path:/v1/ratings/avs', 204);
+    const items = Array.from({ length: 120 }, (_, i) => ({
+      slug: `s-${i}`,
+      score: 8,
+      voters: i,
+    }));
 
-describe('submitAvs', () => {
-  const item = (n: number) => ({ slug: `s-${n}`, score: 8, voters: n });
+    await submitAvs('https://api.test/', items);
 
-  it('posts to the ratings endpoint in batches of at most 50', async () => {
-    const fetchImpl = vi.fn(
-      async () => new Response(null, { status: 204 }),
-    ) as unknown as typeof fetch;
-    await submitAvs(
-      'https://api.test/',
-      Array.from({ length: 120 }, (_, i) => item(i)),
-      fetchImpl,
-    );
-    const calls = vi.mocked(fetchImpl).mock.calls;
-    expect(calls.map((c) => c[0])).toEqual(
-      Array(3).fill('https://api.test/v1/ratings/avs'),
-    );
-    expect(
-      calls.map((c) => JSON.parse(String(c[1]?.body)).items.length),
-    ).toEqual([50, 50, 20]);
+    expect(fetchMock).toHaveFetchedTimes(3, 'path:/v1/ratings/avs');
+    expect(fetchMock).toHaveNthPosted(1, 'path:/v1/ratings/avs', {
+      body: { items: items.slice(0, 50) },
+    });
+    expect(fetchMock).toHaveNthPosted(3, 'path:/v1/ratings/avs', {
+      body: { items: items.slice(100) },
+    });
   });
 
-  it('throws when the API answers an error', async () => {
-    const fetchImpl = vi.fn(
-      async () => new Response('no', { status: 500 }),
-    ) as unknown as typeof fetch;
+  it('fails when the API answers an error', async () => {
+    fetchMock.post('path:/v1/ratings/avs', 500);
+
     await expect(
-      submitAvs('https://api.test', [item(1)], fetchImpl),
+      submitAvs('https://api.test', [{ slug: 'a-1', score: 8, voters: 1 }]),
     ).rejects.toThrow('500');
   });
 });

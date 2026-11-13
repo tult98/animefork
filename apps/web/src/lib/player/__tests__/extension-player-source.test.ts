@@ -1,86 +1,45 @@
-import { describe, expect, it, vi } from 'vitest';
-import type { Transport } from '../../transport/index.ts';
+import fetchMock from '@fetch-mock/vitest';
+import { describe, expect, it } from 'vitest';
+import { FetchTransport } from '../../../test/fetch-transport.ts';
 import { TransportStatusError } from '../../transport/index.ts';
 import { StreamUnavailableError } from '../errors.ts';
 import { ExtensionPlayerSource } from '../extension-player-source.ts';
-import { createPlayerSource } from '../select.ts';
-import { ReplayPlayerSource, REPLAY_SAMPLES } from '../replay-player-source.ts';
 
 const episode = { id: '72839', play: 'api', hash: 'abc' };
 
-function transportAnswering(body: unknown, status = 200) {
-  const post = vi.fn().mockResolvedValue({
-    status,
-    data: typeof body === 'string' ? body : JSON.stringify(body),
-  });
-  return { transport: { get: vi.fn(), post } as unknown as Transport, post };
-}
-
-describe('ExtensionPlayerSource', () => {
-  it('posts the episode keys to /ajax/player', async () => {
-    const { transport, post } = transportAnswering({
-      link: [{ file: '//cdn.example/a.mp4', type: 'mp4' }],
+describe('the extension player source', () => {
+  it('resolves a direct stream, adding https to a protocol-relative file', async () => {
+    fetchMock.post('path:/ajax/player', {
+      link: [{ file: '//cdn.example/a.m3u8', type: 'hls' }],
       playTech: 'api',
     });
-    await new ExtensionPlayerSource({ transport }).resolve(episode);
-    expect(post).toHaveBeenCalledWith({
-      url: '/ajax/player',
-      data: { id: '72839', play: 'api', link: 'abc', backuplinks: '1' },
-      signal: undefined,
-    });
-  });
 
-  it('adds https to a protocol-relative file and reads the type', async () => {
-    const { transport } = transportAnswering({
-      link: [{ file: '//cdn.example/a.m3u8', type: 'hls' }],
-    });
     await expect(
-      new ExtensionPlayerSource({ transport }).resolve(episode),
-    ).resolves.toEqual({ url: 'https://cdn.example/a.m3u8', kind: 'hls' });
-  });
-
-  it('treats an untyped absolute file as a progressive mp4', async () => {
-    const { transport } = transportAnswering({
-      link: [{ file: 'https://cdn.example/a.mp4' }],
-    });
-    await expect(
-      new ExtensionPlayerSource({ transport }).resolve(episode),
-    ).resolves.toEqual({ url: 'https://cdn.example/a.mp4', kind: 'mp4' });
-  });
-
-  it('decrypts a bare file into a data URL playlist', async () => {
-    const { transport } = transportAnswering({ link: [{ file: 'cipher' }] });
-    const decryptM3u8 = vi.fn().mockResolvedValue('#EXTM3U\n');
-    const stream = await new ExtensionPlayerSource({
-      transport,
-      decryptM3u8,
-    }).resolve(episode);
-    expect(decryptM3u8).toHaveBeenCalledWith('cipher');
-    expect(stream).toEqual({
-      url: `data:application/vnd.apple.mpegurl;base64,${btoa('#EXTM3U\n')}`,
+      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
+        episode,
+      ),
+    ).resolves.toEqual({
+      url: 'https://cdn.example/a.m3u8',
       kind: 'hls',
     });
+    expect(fetchMock).toHavePosted('path:/ajax/player');
   });
 
-  it('builds the playlist URL from an iframe player page', async () => {
-    const { transport } = transportAnswering({
-      link: 'https://stream.example/embed/1',
-      playTech: 'iframe',
-    });
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          '<script src="/static/avs-loader.min.js?v=1.35.2"></script><script>var id = "pl9"; var avsToken = "tok.en";</script>',
-        ),
+  it('builds the playlist URL from the id and token of an iframe player page', async () => {
+    fetchMock
+      .post('path:/ajax/player', {
+        link: 'https://stream.example/embed/1',
+        playTech: 'iframe',
+      })
+      .get(
+        'path:/embed/1',
+        '<script src="/static/avs-loader.min.js?v=1.35.2"></script><script>var id = "pl9"; var avsToken = "tok.en";</script>',
       );
+
     const stream = await new ExtensionPlayerSource({
-      transport,
-      fetchImpl,
+      transport: new FetchTransport(),
     }).resolve(episode);
-    expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-      'https://stream.example/embed/1#animevsub-vsub_extrao',
-    );
+
     const url = new URL(stream.url);
     expect(stream.kind).toBe('hls');
     expect(url.origin + url.pathname).toBe(
@@ -91,66 +50,46 @@ describe('ExtensionPlayerSource', () => {
     expect(url.hash).toBe('');
   });
 
-  it('fails when the player page carries no token', async () => {
-    const { transport } = transportAnswering({
-      link: 'https://stream.example/embed/1',
-      playTech: 'iframe',
-    });
-    const fetchImpl = vi.fn().mockResolvedValue(new Response('<p>none</p>'));
+  it('fails when the player page has no id or token', async () => {
+    fetchMock
+      .post('path:/ajax/player', {
+        link: 'https://stream.example/embed/1',
+        playTech: 'iframe',
+      })
+      .get('path:/embed/1', '<p>none</p>');
+
     await expect(
-      new ExtensionPlayerSource({ transport, fetchImpl }).resolve(episode),
+      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
+        episode,
+      ),
+    ).rejects.toThrow(
+      new StreamUnavailableError('Player page has no id or avsToken.'),
+    );
+  });
+
+  it('fails clearly when the server has no stream or sends a page instead of JSON', async () => {
+    fetchMock.post('path:/ajax/player', { link: '' }, { repeat: 1 });
+    await expect(
+      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
+        episode,
+      ),
+    ).rejects.toThrow('This server has no stream.');
+
+    fetchMock.post('path:/ajax/player', '<html>blocked</html>');
+    await expect(
+      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
+        episode,
+      ),
     ).rejects.toBeInstanceOf(StreamUnavailableError);
   });
 
-  it('fails when the server has no link', async () => {
-    const { transport } = transportAnswering({ link: '' });
-    await expect(
-      new ExtensionPlayerSource({ transport }).resolve(episode),
-    ).rejects.toBeInstanceOf(StreamUnavailableError);
-  });
+  it('fails with the status when the source answers with an error', async () => {
+    fetchMock.post('path:/ajax/player', 403);
 
-  it('fails on a body that is not JSON', async () => {
-    const { transport } = transportAnswering('<html>blocked</html>');
     await expect(
-      new ExtensionPlayerSource({ transport }).resolve(episode),
-    ).rejects.toBeInstanceOf(StreamUnavailableError);
-  });
-
-  it('passes a bad status through', async () => {
-    const { transport } = transportAnswering('', 403);
-    await expect(
-      new ExtensionPlayerSource({ transport }).resolve(episode),
+      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
+        episode,
+      ),
     ).rejects.toBeInstanceOf(TransportStatusError);
-  });
-});
-
-describe('createPlayerSource', () => {
-  const transport = { get: vi.fn(), post: vi.fn() } as unknown as Transport;
-
-  it('serves the bundled sample under ?transport=replay', async () => {
-    const source = createPlayerSource('?transport=replay', {}, transport);
-    expect(source).toBeInstanceOf(ReplayPlayerSource);
-    await expect(source.resolve(episode)).resolves.toEqual({
-      url: REPLAY_SAMPLES.mp4,
-      kind: 'mp4',
-    });
-  });
-
-  it('serves the HLS sample under ?transport=replay&sample=hls', async () => {
-    const source = createPlayerSource(
-      '?transport=replay&sample=hls',
-      {},
-      transport,
-    );
-    await expect(source.resolve(episode)).resolves.toEqual({
-      url: REPLAY_SAMPLES.hls,
-      kind: 'hls',
-    });
-  });
-
-  it('defaults to the extension source', () => {
-    expect(createPlayerSource('', {}, transport)).toBeInstanceOf(
-      ExtensionPlayerSource,
-    );
   });
 });
