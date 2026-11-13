@@ -50,6 +50,22 @@ describe('the continue watching row', () => {
     expect(hero).toHaveTextContent('Hero 2');
   });
 
+  it('shows one card for a series watched in two seasons, the newest one', async () => {
+    fetchMock.get('path:/v1/auth/me', { user }).get('path:/v1/watch-progress', {
+      items: [
+        { ...row, slug: 'alpha-s2', episodeId: '3' },
+        { ...row, slug: 'alpha', episodeId: '7' },
+      ],
+    });
+    render(<Home />, { path: '/' });
+
+    const shelf = await screen.findByTestId('shelf:continue-watching');
+    expect(within(shelf).getByTestId('card:continue:alpha-s2')).toBeVisible();
+    expect(
+      within(shelf).queryByTestId('card:continue:alpha'),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows a skeleton while a signed-in viewer waits', async () => {
     fetchMock
       .get('path:/v1/auth/me', { user })
