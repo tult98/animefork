@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
 import { PG_POOL } from '../database/migration-runner.ts';
-import type { ListedEpisode } from './jikan.client.ts';
+import type { ListedEpisode } from './episode.parser.ts';
 import type { EpisodeListAttempt } from './episode.retry.ts';
 
 export interface StoredEpisode {

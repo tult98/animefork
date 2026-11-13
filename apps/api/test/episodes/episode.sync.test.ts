@@ -10,8 +10,8 @@ const listed = [
 ];
 
 function setup(translators: EpisodeTranslators | null) {
-  const lists = { list: vi.fn(async () => listed) };
   const site = {
+    list: vi.fn(async () => listed),
     synopsis: vi.fn(async (_id: number, n: number) =>
       n === 1 ? null : 'A door opens.',
     ),
@@ -20,12 +20,11 @@ function setup(translators: EpisodeTranslators | null) {
   const run = () =>
     syncEpisodes([61967], {
       store,
-      lists,
       site,
       translators,
       log: () => undefined,
     });
-  return { lists, site, store, run };
+  return { site, store, run };
 }
 
 const fakeTranslators = (): EpisodeTranslators => ({
@@ -70,7 +69,6 @@ describe('syncEpisodes', () => {
     const translators = fakeTranslators();
     await syncEpisodes([61967], {
       store,
-      lists: setup(null).lists,
       site: setup(null).site,
       translators,
       log: () => undefined,
@@ -79,10 +77,9 @@ describe('syncEpisodes', () => {
   });
 
   it('stops after the limit', async () => {
-    const { lists, site, store } = setup(null);
+    const { site, store } = setup(null);
     await syncEpisodes([61967], {
       store,
-      lists,
       site,
       translators: null,
       limit: 1,

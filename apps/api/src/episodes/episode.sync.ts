@@ -1,12 +1,10 @@
 import type { EpisodeSiteClient } from './episode.client.ts';
-import type { EpisodeListClient } from './jikan.client.ts';
 import type { EpisodeTranslators } from './episode.translate.ts';
 import type { EpisodeStore, StoredEpisode } from './episode.store.ts';
 
 export interface SyncOptions {
   store: EpisodeStore;
-  // Jikan reads the list, MAL's episode page reads each synopsis.
-  lists: EpisodeListClient;
+  // Reads the list and each synopsis from MAL's episode pages.
   site: EpisodeSiteClient;
   // Null stores the English text and leaves the Vietnamese columns empty.
   translators: EpisodeTranslators | null;
@@ -33,7 +31,7 @@ export async function syncEpisodes(
   malIds: number[],
   options: SyncOptions,
 ): Promise<SyncTotals> {
-  const { store, lists, site, translators, log, dryRun = false } = options;
+  const { store, site, translators, log, dryRun = false } = options;
   let budget = options.limit ?? Infinity;
   const totals: SyncTotals = {
     shows: 0,
@@ -50,9 +48,9 @@ export async function syncEpisodes(
 
   for (const malId of malIds) {
     if (budget <= 0) break;
-    const listed = await lists.list(malId);
+    const listed = await site.list(malId);
     if (!listed) {
-      log(`mal ${malId}: no episode list on Jikan, skipped`);
+      log(`mal ${malId}: no episode list on MAL, skipped`);
       continue;
     }
     totals.shows += 1;

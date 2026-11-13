@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { describeError } from '../art/art.filler.ts';
 import type { MalAiring } from '../art/contract.ts';
 import type { Clock } from '../common/clock.ts';
-import type { EpisodeListClient } from './jikan.client.ts';
+import type { EpisodeLister } from './episode.client.ts';
 import { isEpisodeListSettled } from './episode.retry.ts';
 import type { EpisodeStore } from './episode.store.ts';
 import type { EpisodeTranslators } from './episode.translate.ts';
@@ -16,14 +16,14 @@ export interface EpisodeTarget {
 // Most list reads waiting behind the one running. Past it a target is dropped, and its next lookup schedules it again.
 export const MAX_QUEUED_LISTS = 20;
 
-// Fills episode names in the background for the MAL lookup. One Jikan request per show (more only past 100
+// Fills episode names in the background for the MAL lookup. One MAL list request per show (more only past 100
 // episodes), no synopsis pages, and nothing here ever throws into the caller.
 // One list read runs at a time. Single-flight lives in this process's memory, like the other fillers.
 export class EpisodeFiller {
   private readonly logger = new Logger(EpisodeFiller.name);
   private readonly inFlight = new Map<number, Promise<void>>();
   private readonly store: EpisodeStore;
-  private readonly site: EpisodeListClient;
+  private readonly site: EpisodeLister;
   private readonly queue: (() => void)[] = [];
   private running = false;
   // Null stores the English name and leaves the Vietnamese one empty.
@@ -32,7 +32,7 @@ export class EpisodeFiller {
 
   constructor(
     store: EpisodeStore,
-    site: EpisodeListClient,
+    site: EpisodeLister,
     translators: EpisodeTranslators | null,
     now: Clock,
   ) {
@@ -137,7 +137,7 @@ export class EpisodeFiller {
         await this.store.saveListed(malId, listed);
         failure = await this.translate(malId);
       } else {
-        failure = 'Jikan has no episode list for this entry';
+        failure = 'MAL has no episode list for this entry';
       }
     } catch (error) {
       failure = describeError(error);

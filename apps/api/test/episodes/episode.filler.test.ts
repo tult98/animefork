@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { MalClient } from '../../src/mal/mal.client.ts';
 import { MalFiller } from '../../src/mal/mal.filler.ts';
 import { MemoryMalStore } from '../../src/mal/mal.store.ts';
-import { createJikanClient } from '../../src/episodes/jikan.client.ts';
+import { createEpisodeSiteClient } from '../../src/episodes/episode.client.ts';
 import {
   EpisodeFiller,
   MAX_QUEUED_LISTS,
@@ -18,14 +18,9 @@ const INPUT = {
   episodeCount: 170,
 };
 
-// Hand-built from the documented Jikan shape, not a live capture.
-const listPage = {
-  pagination: { last_visible_page: 1, has_next_page: false },
-  data: [
-    { mal_id: 1, title: 'The Boy', aired: null },
-    { mal_id: 2, title: 'The Door', aired: null },
-  ],
-};
+const row = (n: number, title: string) =>
+  `<tr class="episode-list-data"><td class="episode-number nowrap" data-raw="${n}">${n}</td><td class="episode-title"><a href="x">${title}</a></td></tr>`;
+const listPage = `<table class="episode_list">${row(1, 'The Boy')}${row(2, 'The Door')}</table>`;
 
 function setup(
   airing: 'finished_airing' | 'currently_airing' = 'finished_airing',
@@ -34,12 +29,13 @@ function setup(
   const now = () => new Date(t);
   const malStore = new MemoryMalStore(now);
   const episodeStore = new MemoryEpisodeStore();
-  const fetch = vi.fn<typeof globalThis.fetch>(async () =>
-    Response.json(listPage),
+  const fetch = vi.fn<typeof globalThis.fetch>(
+    async () => new Response(listPage),
   );
-  const site = createJikanClient({
+  const site = createEpisodeSiteClient({
     fetch,
     limiter: { wait: async () => undefined, pause: () => undefined },
+    sleep: async () => undefined,
   });
   const translate = vi.fn(async (text: string) => `vi ${text}`);
   const episodes = new EpisodeFiller(
@@ -66,14 +62,12 @@ function setup(
 }
 
 describe('episode names on a MAL fill', () => {
-  it('asks Jikan for one list page and stores the translated titles', async () => {
+  it('asks MAL for one list page and stores the translated titles', async () => {
     const { filler, episodeStore, urls } = setup();
 
     await filler.fill(INPUT);
 
-    expect(urls()).toEqual([
-      'https://api.jikan.moe/v4/anime/7/episodes?page=1',
-    ]);
+    expect(urls()).toEqual(['https://myanimelist.net/anime/7/x/episode']);
     expect(episodeStore.rows.get('7:2')).toMatchObject({
       title: 'The Door',
       titleVi: 'vi The Door',
@@ -81,7 +75,7 @@ describe('episode names on a MAL fill', () => {
     });
   });
 
-  it('keeps the MAL row ok when Jikan is down', async () => {
+  it('keeps the MAL row ok when MAL is down', async () => {
     const { filler, malStore, fetch, episodeStore } = setup();
     fetch.mockResolvedValue(new Response('down', { status: 503 }));
 
@@ -93,7 +87,7 @@ describe('episode names on a MAL fill', () => {
     expect(episodeStore.attempts.get(7)?.status).toBe('failed');
   });
 
-  it('makes no Jikan request on a later lookup inside the settled window', async () => {
+  it('makes no MAL request on a later lookup inside the settled window', async () => {
     const { filler, malStore, fetch, advance } = setup();
     await filler.fill(INPUT);
 

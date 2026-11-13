@@ -27,7 +27,7 @@ import {
   EPISODE_STORE,
   MemoryEpisodeStore,
 } from '../../src/episodes/episode.store.ts';
-import type { ListedEpisode } from '../../src/episodes/jikan.client.ts';
+import type { ListedEpisode } from '../../src/episodes/episode.parser.ts';
 import { MalFiller } from '../../src/mal/mal.filler.ts';
 import {
   MAL_STORE,
