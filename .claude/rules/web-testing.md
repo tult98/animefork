@@ -48,21 +48,22 @@ Say what the feature shows or does, not how the call is answered.
     .get('path:/season/autumn/2026/', mockSeasonHtml);
   ```
 - A status alone is a response: `fetchMock.get(url, 503)`. Use `{ repeat: 1 }` for a call that fails once and then succeeds.
-- Assert that the expected request was made with the matchers, not only the parsed result. Do not read `fetchMock.callHistory` in a test.
-  ```ts
-  const home = await fetchHome(transport);
-  expect(fetchMock).toHaveFetched('path:/');
-  expect(home.hero).toHaveLength(2);
-  ```
-  The matchers are `toHaveFetched(matcher)`, `toHaveNthFetched(n, matcher)` (1-based, for order), `toHaveFetchedTimes(n, matcher)`, `.not.toHaveFetched(matcher)` for a call that must not happen, and the verb forms such as `toHavePosted(matcher, { body })`.
-- `toHaveFetched` and its relatives are synchronous: they check the calls that already happened. To wait for a request, use `await expect(fetchMock).toBeFetched(matcher)` from `src/test/test-utils.tsx`. It waits until the request was made and answered and React has drawn the answer, so the next line can query the UI directly:
+- Assert that the expected request was made, not only what the UI shows. Do not read `fetchMock.callHistory` in a test.
+- When the UI waits on a request, use `await expect(fetchMock).toBeFetched(matcher)` from `src/test/test-utils.tsx`. It waits until the request was made and answered and React has drawn the answer, so the next line can query the UI directly:
   ```ts
   fetchMock.get('path:/v1/auth/me', 401);
   render(<AccountMenu buttonClassName="" />, { path: '/' });
   await expect(fetchMock).toBeFetched('path:/v1/auth/me');
   expect(screen.getByRole('link', { name: 'Đăng nhập' })).toBeTruthy();
   ```
-  It takes the same matcher and options as `toHaveFetched`. It waits for the first matching request, so to wait for a second request to the same route, find its result in the UI with `findBy*`. It fails after 2 seconds and lists the requests that were made. Use the synchronous `.not.toHaveFetched` to check that a request did not happen.
+  It takes the same matcher and options as `toHaveFetched`. It waits for the first matching request, so to wait for a second request to the same route, find its result in the UI with `findBy*`. It fails after 2 seconds and lists the requests that were made.
+- When the request has already happened, such as after `await fetchHome(transport)`, use the synchronous matchers, which do not wait:
+  ```ts
+  const home = await fetchHome(transport);
+  expect(fetchMock).toHaveFetched('path:/');
+  expect(home.hero).toHaveLength(2);
+  ```
+  They are `toHaveFetched(matcher)`, `toHaveNthFetched(n, matcher)` (1-based, for order), `toHaveFetchedTimes(n, matcher)`, `.not.toHaveFetched(matcher)` for a call that must not happen, and the verb forms such as `toHavePosted(matcher, { body })`.
 - To test a state while a request is in flight, give the route a delay: `fetchMock.post(matcher, response, { delay: 200 })`. Do not hold a request open with a promise and a `release()` function.
 - First-party API calls need `VITE_API_URL`: set it in the test file with `vi.stubEnv('VITE_API_URL', 'https://api.test')`, then match the route by path (`'path:/v1/auth/me'`).
 - Upstream site pages go through the `Transport`, which the custom `render` backs with `FetchTransport`. Match them by path too (`'path:/phim/x/xem-phim.html'`).
