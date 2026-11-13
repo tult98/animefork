@@ -87,6 +87,7 @@
     "@tanstack/react-router": "1.170.46",
     "client-ext-animevsub-helper": "workspace:*",
     "hls.js": "1.5.9",
+    "ky": "1.14.3",
     "lucide-react": "1.61.0",
     "react": "19.1.10",
     "react-dom": "19.1.10",

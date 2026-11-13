@@ -1,4 +1,4 @@
-import { ApiError } from '../api/request.ts';
+import { ApiError } from '../api/client.ts';
 import {
   SaveWatchProgressResponseSchema,
   type WatchProgressEpisode,

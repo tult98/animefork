@@ -10,7 +10,7 @@ import { ReplayPlayerSource } from '../lib/player/replay-player-source.ts';
 import { PlayerSourceProvider } from '../lib/player/context.tsx';
 import { routeTree } from '../routeTree.gen.ts';
 import { ReplayTransport } from '../lib/transport/replay-transport.ts';
-import { TransportProvider } from '../lib/transport/index.ts';
+import { setTransport } from '../lib/transport/index.ts';
 import { fixtureFetch, type FixtureOverride } from './fixture-fetch.ts';
 
 export interface RenderedApp {
@@ -33,6 +33,7 @@ export async function renderApp(
     baseUrl: `/fixtures/${fixtures}`,
     fetchImpl: fixtureFetch(...overrides),
   });
+  setTransport(transport);
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
   });
@@ -43,13 +44,11 @@ export async function renderApp(
   const Wrapper = strict ? StrictMode : Fragment;
   render(
     <Wrapper>
-      <TransportProvider transport={transport}>
-        <PlayerSourceProvider source={new ReplayPlayerSource('mp4')}>
-          <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
-          </QueryClientProvider>
-        </PlayerSourceProvider>
-      </TransportProvider>
+      <PlayerSourceProvider source={new ReplayPlayerSource('mp4')}>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </PlayerSourceProvider>
     </Wrapper>,
   );
   return { router };

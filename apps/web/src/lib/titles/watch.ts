@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { normalizeOtherNames } from '../../../../api/src/art/contract.ts';
-import { expectOk, type Transport } from '../transport/index.ts';
 
 export const EpisodeSchema = z.object({
   id: z.string().regex(/^\d+$/),
@@ -134,15 +133,4 @@ export function selectEpisode(page: WatchPage, episodeId: string): WatchPage {
   const currentEpisode = page.episodes.find((e) => e.id === episodeId);
   if (!currentEpisode) throw new EpisodeNotFoundError(episodeId);
   return { ...page, currentEpisode };
-}
-
-export async function fetchWatchPage(
-  transport: Transport,
-  slug: string,
-  signal?: AbortSignal,
-): Promise<WatchPage> {
-  const url = `${SEASON_PREFIX}${slug}/xem-phim.html`;
-  const res = await transport.get({ url, signal });
-  expectOk(res, url);
-  return parseWatchPage(res.data, slug);
 }

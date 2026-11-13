@@ -1,8 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
 import type {
   SkipSegment,
   SkipTimesResponse,
 } from '../../../../api/src/skip-times/contract.ts';
-import { useApiQuery } from '../api/use-api-query.ts';
+import { api } from '../api/client.ts';
 import { episodeNumber } from './skip-segments.ts';
 
 const NONE: SkipSegment[] = [];
@@ -13,10 +14,13 @@ export function useSkipSegments(
   episodeLabel: string,
 ): SkipSegment[] {
   const episode = episodeNumber(episodeLabel);
-  const query = useApiQuery<SkipTimesResponse, SkipSegment[]>({
-    key: ['skip-times', slug, episode],
-    endpoint: `/v1/skip-times/${encodeURIComponent(slug)}/${episode}`,
-    map: (body) => body.segments,
+  const query = useQuery({
+    queryKey: ['skip-times', slug, episode],
+    queryFn: ({ signal }) =>
+      api
+        .get(`v1/skip-times/${encodeURIComponent(slug)}/${episode}`, { signal })
+        .json<SkipTimesResponse>()
+        .then((body) => body.segments),
     enabled: episode !== undefined,
     retry: false,
     staleTime: STALE_MS,

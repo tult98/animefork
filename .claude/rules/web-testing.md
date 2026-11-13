@@ -15,7 +15,7 @@ Vitest, React Testing Library and `@fetch-mock/vitest` (a Vitest wrapper over `f
 - `render` also wraps the component in the details modal provider (`DetailsProvider`), so cards and the hero work without setup.
 - A component that uses `Link` or `useNavigate` needs a router: pass `{ path: '/start' }`. Its first paint is async, so find elements with `findBy*`. `render` returns `router`, so a test can assert where navigation ended (`router.state.location.pathname`).
 - Test a hook through the component that uses it, not on its own, so one test covers the whole feature. Use `renderHook` only when no component uses the hook.
-- Do not test plumbing that has no behavior of its own, such as `apiRequest` or a Zod schema that the code under test already runs.
+- Do not test plumbing that has no behavior of its own, such as the `api` or `upstream` client or a Zod schema that the code under test already runs.
 
 ## Write the test so it reads on its own
 
@@ -74,16 +74,16 @@ Say what the feature shows or does, not how the call is answered.
   expect(screen.getByRole('link', { name: 'Đăng nhập' })).toBeTruthy();
   ```
   It takes the same matcher and options as `toHaveFetched`, so it also checks the method and body: `toBeFetched('path:/v1/auth/sign-in', { method: 'post', body: { email } })`. It waits for the first matching request, so to wait for a second request to the same route, find its result in the UI with `findBy*`. It fails after 2 seconds and lists the requests that were made.
-- When the request has already happened, such as after `await fetchHome(transport)`, use the synchronous matchers, which do not wait:
+- When the request has already happened, such as after `await fetchSeasonFirstPage(path)`, use the synchronous matchers, which do not wait:
   ```ts
-  const home = await fetchHome(transport);
-  expect(fetchMock).toHaveFetched('path:/');
-  expect(home.hero).toHaveLength(2);
+  const first = await fetchSeasonFirstPage('/season/autumn/2026/');
+  expect(fetchMock).toHaveFetched('path:/season/autumn/2026/');
+  expect(first.titles).toHaveLength(2);
   ```
   They are `toHaveFetched(matcher)`, `toHaveNthFetched(n, matcher)` (1-based, for order), `toHaveFetchedTimes(n, matcher)`, `.not.toHaveFetched(matcher)` for a call that must not happen, and the verb forms such as `toHavePosted(matcher, { body })`.
 - To test a state while a request is in flight, give the route a delay: `fetchMock.post(matcher, response, { delay: 200 })`. Do not hold a request open with a promise and a `release()` function.
 - First-party API calls need `VITE_API_URL`: set it in the test file with `vi.stubEnv('VITE_API_URL', 'https://api.test')`, then match the route by path (`'path:/v1/auth/me'`).
-- Upstream site pages go through the `Transport`, which the custom `render` backs with `FetchTransport`. Match them by path too (`'path:/phim/x/xem-phim.html'`).
+- Upstream site pages go through the `upstream` client, which `src/test/setup.ts` backs with `FetchTransport` (global `fetch`). Match them by path too (`'path:/phim/x/xem-phim.html'`).
 - Do not stub `fetch` with `vi.stubGlobal`, and do not write a fake `Transport` by hand.
 
 ## Mock data

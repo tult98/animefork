@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ApiError } from '../../api/request.ts';
+import { HTTPError } from 'ky';
+import { ApiError } from '../../api/client.ts';
 import { toSaveOutcome } from '../save-outcome.ts';
 
 const stored = {
@@ -8,6 +9,15 @@ const stored = {
   durationS: 1400,
   completed: false,
 };
+
+const apiError = (status: number) =>
+  new ApiError(
+    new HTTPError(
+      new Response(null, { status }),
+      new Request('https://api.test/v1/x'),
+      {} as never,
+    ),
+  );
 
 describe('toSaveOutcome', () => {
   it('returns the stored row', async () => {
@@ -18,12 +28,12 @@ describe('toSaveOutcome', () => {
   });
 
   it('tells a 401 apart from other failures', async () => {
-    expect(
-      await toSaveOutcome(Promise.reject(new ApiError('/v1/x', 401))),
-    ).toEqual({ kind: 'unauthorized' });
-    expect(
-      await toSaveOutcome(Promise.reject(new ApiError('/v1/x', 500))),
-    ).toEqual({ kind: 'failed' });
+    expect(await toSaveOutcome(Promise.reject(apiError(401)))).toEqual({
+      kind: 'unauthorized',
+    });
+    expect(await toSaveOutcome(Promise.reject(apiError(500)))).toEqual({
+      kind: 'failed',
+    });
     expect(
       await toSaveOutcome(Promise.reject(new TypeError('offline'))),
     ).toEqual({ kind: 'failed' });

@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { AnyRouter } from '@tanstack/react-router';
 import type { HomeShelves } from './titles/shelves.ts';
-import type { Transport } from './transport/index.ts';
+import { getTransport, type Transport } from './transport/index.ts';
 
 export interface RenderedShelf {
   id: string;
@@ -30,7 +30,6 @@ export function publishShelves(shelves: HomeShelves): void {
 export function installAppHook(deps: {
   router: AnyRouter;
   queryClient: QueryClient;
-  transport: Transport;
 }): void {
   window.__app = {
     route: () => deps.router.state.location.pathname,
@@ -47,6 +46,8 @@ export function installAppHook(deps: {
             ? shelf.items.map((item) => `/phim/${item.slug}/`)
             : shelf.items.map((title) => title.path),
       })),
-    transport: deps.transport,
+    get transport() {
+      return getTransport();
+    },
   };
 }

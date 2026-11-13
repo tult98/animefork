@@ -1,5 +1,4 @@
-import type { Transport } from '../transport/index.ts';
-import { expectOk } from '../transport/index.ts';
+import { upstream, upstreamPath } from '../transport/index.ts';
 import { parseSeason } from './home.ts';
 import type { Title } from './title.ts';
 
@@ -58,27 +57,22 @@ export function limitTitles(titles: Title[], limit?: number): Title[] {
 }
 
 export async function fetchSeasonFirstPage(
-  transport: Transport,
   seasonPath: string,
   signal?: AbortSignal,
 ): Promise<SeasonFirstPage> {
-  const res = await transport.get({ url: seasonPath, signal });
-  expectOk(res, seasonPath);
-  return { titles: parseSeason(res.data), pageCount: parsePageCount(res.data) };
+  const html = await upstream.get(upstreamPath(seasonPath), { signal }).text();
+  return { titles: parseSeason(html), pageCount: parsePageCount(html) };
 }
 
 export async function fetchSeasonRest(
-  transport: Transport,
   seasonPath: string,
   pageCount: number,
   signal?: AbortSignal,
 ): Promise<SeasonRest> {
   const settled = await Promise.allSettled(
     Array.from({ length: pageCount - 1 }, async (_, index) => {
-      const url = seasonPagePath(seasonPath, index + 2);
-      const res = await transport.get({ url, signal });
-      expectOk(res, url);
-      return parseSeason(res.data);
+      const url = upstreamPath(seasonPagePath(seasonPath, index + 2));
+      return parseSeason(await upstream.get(url, { signal }).text());
     }),
   );
   const pages = settled.flatMap((page) =>

@@ -1,5 +1,7 @@
 import fetchMock from '@fetch-mock/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
+import { setTransport } from '../lib/transport/upstream.ts';
+import { FetchTransport } from './fetch-transport.ts';
 
 // A developer's .env points VITE_API_URL at a local service, which no test may reach.
 beforeEach(() => {
@@ -10,8 +12,15 @@ beforeEach(() => {
 beforeEach(() => {
   fetchMock.mockGlobal();
 });
-afterEach(() => {
+afterEach(async () => {
+  // A component that unmounts sends its last request a few promise ticks later, so it must land before the next test's mock replaces this one.
+  await new Promise((resolve) => setTimeout(resolve));
   fetchMock.mockRestore();
+});
+
+// Upstream calls leave through fetch at their real URL, so fetch-mock answers them like any other request.
+beforeEach(() => {
+  setTransport(new FetchTransport());
 });
 
 if (typeof document !== 'undefined') {

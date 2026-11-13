@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it } from 'vitest';
-import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
+import { upstream } from '../../../test/fetch-transport.ts';
 import {
   mockSeasonHtml,
   mockSeasonPage2Html,
@@ -18,8 +18,6 @@ import {
   seasonPagePath,
 } from '../season-pages.ts';
 import type { Title } from '../title.ts';
-
-const transport = new FetchTransport();
 
 const pager = (text: string) =>
   `<div class="wp-pagenavi"><span class="pages">${text}</span></div>`;
@@ -74,11 +72,11 @@ describe('the season pages', () => {
       .get(upstream(page(2)), mockSeasonPage2Html)
       .get(upstream(page(3)), mockSeasonPage3Html);
 
-    const first = await fetchSeasonFirstPage(transport, path);
+    const first = await fetchSeasonFirstPage(path);
     expect(first.titles).toHaveLength(2);
     expect(first.pageCount).toBe(3);
 
-    const rest = await fetchSeasonRest(transport, path, first.pageCount);
+    const rest = await fetchSeasonRest(path, first.pageCount);
     expect(fetchMock).toHaveNthFetched(1, upstream(path));
     expect(fetchMock).toHaveNthFetched(2, upstream(page(2)));
     expect(fetchMock).toHaveNthFetched(3, upstream(page(3)));
@@ -94,14 +92,14 @@ describe('the season pages', () => {
     fetchMock
       .get(upstream(page(2)), 500)
       .get(upstream(page(3)), mockSeasonPage3Html);
-    const rest = await fetchSeasonRest(transport, path, 3);
+    const rest = await fetchSeasonRest(path, 3);
     expect(rest.complete).toBe(false);
     expect(rest.titles.map((t) => t.name)).toEqual(['Season Five']);
   });
 
   it('fails when the first page fails', async () => {
     fetchMock.get(upstream(path), 404);
-    await expect(fetchSeasonFirstPage(transport, path)).rejects.toThrow(/404/);
+    await expect(fetchSeasonFirstPage(path)).rejects.toThrow(/404/);
   });
 });
 

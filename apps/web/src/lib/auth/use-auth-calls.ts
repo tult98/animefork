@@ -6,8 +6,7 @@ import {
   type AuthUser,
   type Credentials,
 } from '../../../../api/src/auth/contract.ts';
-import { useApiMutation } from '../api/use-api-mutation.ts';
-import { ApiError } from '../api/request.ts';
+import { api, ApiError } from '../api/client.ts';
 
 export type AuthError =
   | { kind: 'invalid_credentials' }
@@ -56,16 +55,15 @@ function useAuthCall<TBody, TData>(
   accepts: AuthError['kind'][],
   read: (body: unknown) => AuthResult<TData>,
 ) {
-  const { mutateAsync } = useApiMutation<TBody>({ method: 'POST', endpoint });
   return useCallback(
     async (body: TBody): Promise<AuthResult<TData>> => {
       try {
-        return read(await mutateAsync({ body }));
+        return read(await api.post(endpoint, { json: body }).json());
       } catch (error) {
         return { ok: false, error: toAuthError(error, accepts) };
       }
     },
-    [mutateAsync, accepts, read],
+    [endpoint, accepts, read],
   );
 }
 
@@ -81,7 +79,7 @@ const VERIFY_ACCEPTS: AuthError['kind'][] = [
 
 export function useSignIn() {
   return useAuthCall<Credentials, AuthUser>(
-    '/v1/auth/sign-in',
+    'v1/auth/sign-in',
     SIGN_IN_ACCEPTS,
     readUser,
   );
@@ -89,7 +87,7 @@ export function useSignIn() {
 
 export function useSignUp() {
   return useAuthCall<Credentials, null>(
-    '/v1/auth/sign-up',
+    'v1/auth/sign-up',
     SIGN_UP_ACCEPTS,
     readOk,
   );
@@ -97,7 +95,7 @@ export function useSignUp() {
 
 export function useVerifyEmail() {
   const verify = useAuthCall<{ token: string }, null>(
-    '/v1/auth/verify-email',
+    'v1/auth/verify-email',
     VERIFY_ACCEPTS,
     readOk,
   );
