@@ -283,6 +283,7 @@ body {
   @keyframes trailer-toggle-in {
     from {
       opacity: 0;
+      visibility: hidden;
     }
   }
 
