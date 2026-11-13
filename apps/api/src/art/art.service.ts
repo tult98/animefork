@@ -81,6 +81,7 @@ export class ArtService {
     );
     const art: Record<string, ArtEntry> = {};
     const ready: string[] = [];
+    const matchedRows: StoredTitle[] = [];
 
     for (const [slug, title] of titles) {
       const row = rows.get(slug);
@@ -105,6 +106,7 @@ export class ArtService {
           ) {
             void filler.fillOverview(slug, row.tmdbId);
           }
+          matchedRows.push(row);
           ready.push(slug);
         } else {
           art[slug] = { status: 'none' };
@@ -114,6 +116,9 @@ export class ArtService {
       if (!filler.has(slug)) void filler.fill(title, namesAt);
       art[slug] = { status: 'pending' };
     }
+
+    // Titles matched before episode text was stored get it from their next lookup.
+    await filler.ensureEpisodeInfo(matchedRows);
 
     if (request.episodes) {
       await Promise.all(

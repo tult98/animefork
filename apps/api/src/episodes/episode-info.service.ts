@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ArtFiller } from '../art/art.filler.ts';
 import { ART_STORE, type ArtStore } from '../art/art.store.ts';
 import type { EpisodeInfo, EpisodesResponse } from '../art/contract.ts';
 import { CLOCK, type Clock } from '../common/clock.ts';
@@ -23,6 +24,7 @@ export class EpisodeInfoService {
   private readonly episodes: EpisodeStore;
   private readonly art: ArtStore;
   private readonly clock: Clock;
+  private readonly artFiller: ArtFiller | null;
 
   constructor(
     @Inject(MAL_STORE) mal: MalStore,
@@ -30,12 +32,14 @@ export class EpisodeInfoService {
     @Inject(EPISODE_STORE) episodes: EpisodeStore,
     @Inject(ART_STORE) art: ArtStore,
     @Inject(CLOCK) clock: Clock,
+    @Inject(ArtFiller) artFiller: ArtFiller | null = null,
   ) {
     this.mal = mal;
     this.malFiller = malFiller;
     this.episodes = episodes;
     this.art = art;
     this.clock = clock;
+    this.artFiller = artFiller;
   }
 
   async get(slug: string): Promise<EpisodesResponse> {
@@ -44,13 +48,17 @@ export class EpisodeInfoService {
     const malId = row?.status === 'ok' ? row.malId : null;
     if (row && malId !== null) void this.malFiller?.ensureEpisodes([row]);
 
-    const [listed, attempts, tmdb] = await Promise.all([
+    const [listed, attempts, tmdb, title] = await Promise.all([
       malId === null
         ? new Map<number, StoredEpisode>()
         : this.episodes.find(malId),
       malId === null ? new Map() : this.episodes.listAttempts([malId]),
       this.art.tmdbEpisodes(slug),
+      this.art.find([slug]),
     ]);
+    // A title matched before episode text was stored gets it in the background. This request answers from what is stored.
+    const matched = title.get(slug);
+    if (matched) void this.artFiller?.ensureEpisodeInfo([matched]);
     const episodes = merge(listed, tmdb);
     if (episodes.length > 0) return { status: 'ready', episodes };
 

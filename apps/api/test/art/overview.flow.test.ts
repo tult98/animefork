@@ -353,6 +353,7 @@ describe('overview backfill', () => {
     async (concurrency, order) => {
       const { store, filler, service } = setup({ concurrency });
       store.titles.set('other-a2', matchedRow({ slug: 'other-a2' }));
+      await store.saveEpisodeInfoSync('other-a2', 'ok');
       const events: string[] = [];
       const find = store.find.bind(store);
       const saveOverview = store.saveOverview.bind(store);
