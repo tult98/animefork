@@ -39,6 +39,7 @@ describe('the trailer in the details modal', () => {
     );
     const player = await vi.waitUntil(() => players[0]);
     expect(player.videoId).toBe('abc123');
+    expect(player.mute).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('details').querySelector('img')).toHaveAttribute(
       'src',
       'https://img.test/alpha.jpg',
@@ -52,7 +53,7 @@ describe('the trailer in the details modal', () => {
     expect(player.unMute).toHaveBeenCalled();
     expect(toggle).toHaveAccessibleName('Tắt tiếng');
     await userEvent.click(toggle);
-    expect(player.mute).toHaveBeenCalled();
+    expect(player.mute).toHaveBeenCalledTimes(2);
 
     player.end();
     expect(screen.queryByTestId('details:mute')).not.toBeInTheDocument();

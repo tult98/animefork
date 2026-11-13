@@ -71,6 +71,7 @@ body {
   --rkfs: 210px;
   --bb-h: 560px;
   --card-art-ratio: calc(16 / 9);
+  --trailer-reveal-delay: 4s;
 }
 
 @media (max-width: 1099px) {
@@ -269,8 +270,20 @@ body {
     transition: opacity 0.6s ease;
   }
 
+  /* YouTube shows a pause button over the first seconds of an autoplaying embed, so the art stays up until it is gone. */
   .trailer[data-phase='playing'] {
     opacity: 1;
+    transition-delay: var(--trailer-reveal-delay);
+  }
+
+  .trailer-toggle {
+    animation: trailer-toggle-in 0.6s ease var(--trailer-reveal-delay) both;
+  }
+
+  @keyframes trailer-toggle-in {
+    from {
+      opacity: 0;
+    }
   }
 
   /* Covers its box like object-fit: cover, scaled past the edges so YouTube's title bar and logo fall outside. */

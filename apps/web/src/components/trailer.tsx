@@ -66,7 +66,9 @@ export function Trailer({
             onReady: ({ target: ready }) => {
               playerRef.current = ready;
               ready.getIframe().tabIndex = -1;
-              if (!mutedRef.current) ready.unMute();
+              // YouTube can carry an unmute over from an earlier player, so the start state is set, not assumed.
+              if (mutedRef.current) ready.mute();
+              else ready.unMute();
             },
             onStateChange: ({ data }) => {
               if (data === YT.PlayerState.PLAYING) report('playing');

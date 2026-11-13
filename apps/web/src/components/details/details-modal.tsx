@@ -334,7 +334,7 @@ export function DetailsModal({
           {trailerId && trailerPhase === 'playing' ? (
             <button
               type="button"
-              className="details-mute"
+              className="details-mute trailer-toggle"
               aria-label={muted ? 'Bật tiếng' : 'Tắt tiếng'}
               data-testid="details:mute"
               onClick={() => setMuted(!muted)}

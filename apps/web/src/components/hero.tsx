@@ -191,7 +191,7 @@ export function Hero({ items }: { items: Title[] }) {
             type="button"
             data-testid="hero:mute"
             aria-label={muted ? 'Bật tiếng' : 'Tắt tiếng'}
-            className={CONTROL_CLASS}
+            className={`${CONTROL_CLASS} trailer-toggle`}
             onClick={() => setMuted(!muted)}
           >
             {muted ? (
