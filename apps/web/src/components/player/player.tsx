@@ -155,7 +155,7 @@ export function Player({
 
       <div
         aria-hidden="true"
-        className="pl-chrome pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(to_bottom,var(--hero-overlay),transparent)]"
+        className="pl-chrome pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--canvas)_85%,transparent),transparent)]"
       />
       <div className="pl-chrome pointer-events-none absolute inset-x-gutter top-7 z-1 flex items-center gap-4 max-[720px]:inset-x-4">
         <IconButton
@@ -200,14 +200,9 @@ export function Player({
             <Scrubber
               time={state.time}
               duration={state.duration}
+              segments={skipSegments}
               onSeek={controls.seek}
             />
-            <span
-              data-testid="player:remaining"
-              className="min-w-14 text-right text-body-strong tabular-nums"
-            >
-              {formatClock(state.duration - state.time)}
-            </span>
           </div>
 
           <div className="pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -250,6 +245,16 @@ export function Player({
                 onVolume={controls.setVolume}
                 onToggleMute={controls.toggleMute}
               />
+              <span
+                data-testid="player:time"
+                className="ml-2 text-sm font-medium tabular-nums"
+              >
+                {formatClock(state.time)}
+                <span className="text-muted">
+                  {' / '}
+                  {formatClock(state.duration)}
+                </span>
+              </span>
             </div>
 
             <div className="ml-auto flex items-center gap-2">

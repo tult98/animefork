@@ -1,6 +1,6 @@
 # Watch page and player
 
-The full-screen player for a title: video, controls, episode and season panels, speed panel, next-episode card, remaining time. Route `/watch/<slug>/<episodeId?>`. The stream is the real one, fetched through the extension.
+The full-screen player for a title: video, controls, episode and season panels, speed panel, next-episode card, elapsed and total time. Route `/watch/<slug>/<episodeId?>`. The stream is the real one, fetched through the extension.
 
 ## Sub-features
 
@@ -25,6 +25,8 @@ Proved end to end by `../scripts/watch-player.mjs`: `EV=$(cat apps/web/artifacts
 - Speed: `r.click(page.getByTestId('player:speed'), ...)` then `r.click(page.getByTestId('speed:2'), ...)`. Observable: `video.playbackRate === 2`.
 - Health: `player:error` count is 0, and no response with status 400 or above from a host other than `:3100`.
 - Switch episode (not scripted): `player:episodes`, `episode:2:toggle`, `episode:2:play`. Observable: the path becomes `/watch/<slug>/<id>`. Needs a title with 2 or more episodes.
+- Title block at the top (`player:title`, `player:episode-label`, `player:episode-name`) follows the idle fade.
+- Timeline: hover `player:seek`, the tooltip is `player:scrub-caption` (time, plus " · Mở đầu" or " · Kết thúc" over a skip segment) and `player:tick` marks the segment edges. `player:time` reads "elapsed / total".
 - Other handles: `player:back10`, `player:forward10`, `player:mute`, `player:volume`, `player:seek`, `player:fullscreen`, `player:back`, `episode:now-playing`, `season:<slug>` in `player:seasons-panel`.
 
 ## Gotchas

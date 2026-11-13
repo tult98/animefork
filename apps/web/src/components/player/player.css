@@ -52,8 +52,8 @@
 }
 .pl-scrub:has(:focus-visible) {
   outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  outline-offset: 4px;
+  border-radius: var(--radius-pill);
 }
 .pl-hit {
   position: absolute;
@@ -64,13 +64,21 @@
   opacity: 0;
   cursor: pointer;
 }
+.pl-track {
+  height: 4px;
+  transition: height 0.12s ease;
+}
+.pl-scrub:hover .pl-track,
+.pl-scrub:has(:focus-visible) .pl-track {
+  height: 8px;
+}
 .pl-knob {
-  transform: scale(0);
+  transform: translate(-50%, -50%) scale(0);
   transition: transform 0.12s ease;
 }
 .pl-scrub:hover .pl-knob,
 .pl-scrub:has(:focus-visible) .pl-knob {
-  transform: scale(1);
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .pl-vw,
