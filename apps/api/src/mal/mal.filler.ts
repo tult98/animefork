@@ -238,9 +238,7 @@ export class MalFiller {
   }
 
   // undefined means the lookup failed, so a stored id must survive it.
-  private async trailerFor(
-    malId: number,
-  ): Promise<string | null | undefined> {
+  private async trailerFor(malId: number): Promise<string | null | undefined> {
     return this.trailers?.youtubeId(malId);
   }
 
