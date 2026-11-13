@@ -9,7 +9,8 @@ import {
   type TrailerClient,
 } from '../src/mal/trailer.client.ts';
 
-const DEFAULT_DELAY_MS = 400;
+// Tenrai allows 120 requests a minute without a key, and the running API shares that budget.
+const DEFAULT_DELAY_MS = 600;
 
 export interface BackfillRow {
   source_slug: string;
