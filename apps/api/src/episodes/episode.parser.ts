@@ -100,6 +100,10 @@ const SYNOPSIS_HEADING = '<h2 class="fw-b">Synopsis</h2>';
 const NOISE_LINE = /^(?:\(Source:.*\)|\[Written by .*\])$/i;
 const BOLD_LINE = /^<b>[^<]*<\/b>(?:\s*\(\d+\/\d+\))?$/i;
 
+// False for a page that is not an episode page, as with a block or challenge page.
+export const hasSynopsisSection = (html: string) =>
+  html.includes(SYNOPSIS_HEADING);
+
 // Returns null when the episode has no synopsis yet.
 export function parseSynopsis(html: string): string | null {
   const start = html.indexOf(SYNOPSIS_HEADING);

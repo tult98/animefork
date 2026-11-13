@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { EpisodeSiteClient } from '../../src/episodes/episode.client.ts';
+import {
+  createEpisodeSiteClient,
+  type EpisodeSiteClient,
+} from '../../src/episodes/episode.client.ts';
 import { MemoryEpisodeStore } from '../../src/episodes/episode.store.ts';
 import { syncEpisodes } from '../../src/episodes/episode.sync.ts';
 import type { EpisodeTranslators } from '../../src/episodes/episode.translate.ts';
@@ -30,6 +33,54 @@ function setup(translators: EpisodeTranslators | null) {
 const fakeTranslators = (): EpisodeTranslators => ({
   title: { translate: vi.fn(async (t: string) => `vi ${t}`) },
   synopsis: { translate: vi.fn(async (t: string) => `vi ${t}`) },
+});
+
+describe('syncEpisodes with MAL pages', () => {
+  const run = async (episodePage: string) => {
+    const fetch = vi.fn(async (url: string | URL | Request) =>
+      String(url).endsWith('/episode')
+        ? new Response(
+            '<table class="episode_list"><tr class="episode-list-data"><td class="episode-number nowrap" data-raw="1">1</td><td class="episode-title"><a href="/x">The Battle Begins</a></td></tr></table>',
+          )
+        : new Response(episodePage),
+    );
+    const store = new MemoryEpisodeStore();
+    await syncEpisodes([61967], {
+      store,
+      site: createEpisodeSiteClient({ fetch, sleep: async () => undefined }),
+      translators: null,
+      log: () => undefined,
+    });
+    return {
+      fetch,
+      store,
+      rerun: () =>
+        syncEpisodes([61967], {
+          store,
+          site: createEpisodeSiteClient({
+            fetch,
+            sleep: async () => undefined,
+          }),
+          translators: null,
+          log: () => undefined,
+        }),
+    };
+  };
+
+  it('marks an episode page with no synopsis yet as fetched, so it is read once', async () => {
+    const { fetch, store, rerun } = await run(
+      '<h2 class="fw-b">Synopsis</h2><div class="badresult al">Sorry, no synopsis yet.</div></div>',
+    );
+    expect(store.rows.get('61967:1')?.synopsisFetched).toBe(true);
+    const calls = fetch.mock.calls.length;
+    await rerun();
+    expect(fetch.mock.calls.length).toBe(calls + 1);
+  });
+
+  it('does not mark an episode fetched when MAL answers a challenge page', async () => {
+    const { store } = await run('<html><title>Just a moment...</title></html>');
+    expect(store.rows.get('61967:1')?.synopsisFetched).toBe(false);
+  });
 });
 
 describe('syncEpisodes', () => {
