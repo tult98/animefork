@@ -20,10 +20,6 @@ import {
 } from '../../src/database/migration-runner.ts';
 import { MAL_STORE, MemoryMalStore } from '../../src/mal/mal.store.ts';
 import { RATINGS_STORE } from '../../src/ratings/ratings.store.ts';
-import {
-  MemoryWatchProgressStore,
-  WATCH_PROGRESS_STORE,
-} from '../../src/watch-progress/watch-progress.store.ts';
 import { setup } from '../art/helpers.ts';
 
 export const ORIGIN = 'https://web.test';
@@ -69,8 +65,6 @@ export async function buildAuthApp(env: Env = {}) {
     .useValue(art.sync)
     .overrideProvider(AUTH_STORE)
     .useValue(store)
-    .overrideProvider(WATCH_PROGRESS_STORE)
-    .useValue(new MemoryWatchProgressStore())
     .overrideProvider(MAILER)
     .useValue(mailer)
     .overrideProvider(CLOCK)

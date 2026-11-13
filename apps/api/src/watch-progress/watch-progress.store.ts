@@ -11,62 +11,6 @@ export interface WatchProgressStore {
   forSlug(userId: string, slug: string): Promise<WatchProgressRow[]>;
 }
 
-// Episode ids are numeric strings of any length, so compare length first to get numeric order.
-function compareEpisodeId(a: string, b: string): number {
-  return a.length - b.length || (a < b ? -1 : a > b ? 1 : 0);
-}
-
-function newestFirst(a: WatchProgressRow, b: WatchProgressRow): number {
-  return (
-    b.updatedAt.getTime() - a.updatedAt.getTime() ||
-    compareEpisodeId(b.episodeId, a.episodeId)
-  );
-}
-
-@Injectable()
-export class MemoryWatchProgressStore implements WatchProgressStore {
-  private readonly rows = new Map<string, WatchProgressRow>();
-
-  async save(row: WatchProgressRow): Promise<WatchProgressRow> {
-    const key = JSON.stringify([row.userId, row.slug, row.episodeId]);
-    const existing = this.rows.get(key);
-    const stored = {
-      ...row,
-      completed: row.completed || (existing?.completed ?? false),
-    };
-    this.rows.set(key, stored);
-    return { ...stored };
-  }
-
-  async latestPerSlug(
-    userId: string,
-    limit: number,
-  ): Promise<WatchProgressRow[]> {
-    const keyOfSlug = new Map<string, string>();
-    for (const row of this.rows.values()) {
-      if (row.seriesKey) keyOfSlug.set(row.slug, row.seriesKey);
-    }
-    const latest = new Map<string, WatchProgressRow>();
-    for (const row of [...this.rows.values()].sort(newestFirst)) {
-      const series = row.seriesKey ?? keyOfSlug.get(row.slug) ?? row.slug;
-      if (row.userId === userId && !latest.has(series)) {
-        latest.set(series, row);
-      }
-    }
-    return [...latest.values()]
-      .sort(newestFirst)
-      .slice(0, limit)
-      .map((row) => ({ ...row }));
-  }
-
-  async forSlug(userId: string, slug: string): Promise<WatchProgressRow[]> {
-    return [...this.rows.values()]
-      .filter((row) => row.userId === userId && row.slug === slug)
-      .sort((a, b) => compareEpisodeId(a.episodeId, b.episodeId))
-      .map((row) => ({ ...row }));
-  }
-}
-
 interface WatchProgressDbRow {
   user_id: string;
   slug: string;
