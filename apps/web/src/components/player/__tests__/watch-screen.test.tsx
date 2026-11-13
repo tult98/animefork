@@ -106,7 +106,7 @@ describe('the watch screen', () => {
     );
   });
 
-  it('opens the list at the playing episode past the 100th, named from its page of episode info, and adds the earlier ones on scroll', async () => {
+  it('opens the list at the playing episode past the 100th, named and shown with stills from its page, and adds the earlier ones with their page on scroll', async () => {
     const episodes = Array.from(
       { length: 150 },
       (_, i) =>
@@ -137,11 +137,24 @@ describe('the watch screen', () => {
           ],
         },
         { query: { from: '101', limit: '100' } },
+      )
+      .get(
+        'path:/v1/art/stills/long-show-a1',
+        { status: 'ready', stills: { '2': '/e2.jpg' } },
+        { query: { from: '1', limit: '100' } },
+      )
+      .get(
+        'path:/v1/art/stills/long-show-a1',
+        { status: 'ready', stills: { '120': '/e120.jpg' } },
+        { query: { from: '101', limit: '100' } },
       );
     render(<WatchScreen slug="long-show-a1" episodeId="120" />, {
       path: '/',
     });
     await expect(fetchMock).toBeFetched('path:/v1/episodes/long-show-a1', {
+      query: { from: '101' },
+    });
+    await expect(fetchMock).toBeFetched('path:/v1/art/stills/long-show-a1', {
       query: { from: '101' },
     });
 
@@ -152,10 +165,16 @@ describe('the watch screen', () => {
       'aria-current',
       'true',
     );
+    expect(
+      screen.getByTestId('episode:120').querySelector('img'),
+    ).toHaveAttribute('src', 'https://image.tmdb.org/t/p/w300/e120.jpg');
     expect(screen.getByTestId('episode:115')).toBeInTheDocument();
     expect(screen.queryByTestId('episode:114')).not.toBeInTheDocument();
     expect(screen.getByTestId('episode:150')).toBeInTheDocument();
     expect(fetchMock).not.toHaveFetched('path:/v1/episodes/long-show-a1', {
+      query: { from: '1' },
+    });
+    expect(fetchMock).not.toHaveFetched('path:/v1/art/stills/long-show-a1', {
       query: { from: '1' },
     });
 
@@ -168,6 +187,12 @@ describe('the watch screen', () => {
     await expect(fetchMock).toBeFetched('path:/v1/episodes/long-show-a1', {
       query: { from: '1' },
     });
+    await expect(fetchMock).toBeFetched('path:/v1/art/stills/long-show-a1', {
+      query: { from: '1' },
+    });
     expect(screen.getByTestId('episode:2')).toHaveTextContent('Two');
+    expect(
+      screen.getByTestId('episode:2').querySelector('img'),
+    ).toHaveAttribute('src', 'https://image.tmdb.org/t/p/w300/e2.jpg');
   });
 });

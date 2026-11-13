@@ -29,7 +29,7 @@ const title = (slug: string, year?: number): Title => ({
 });
 
 describe('the art of a watch page', () => {
-  it('puts the backdrop and the episode stills on the page', async () => {
+  it('puts the backdrop on the page', async () => {
     fetchMock.post('path:/v1/art/lookup', {
       art: {
         'tonikaku-kawaii-a3860': {
@@ -37,7 +37,6 @@ describe('the art of a watch page', () => {
           backdropPath: '/b.jpg',
           backdropLang: 'vi',
           posterPath: null,
-          stills: { '1': '/e1.jpg', '3': '/e3.jpg' },
         },
       },
     });
@@ -52,15 +51,9 @@ describe('the art of a watch page', () => {
     expect(fetchMock).toHavePosted('https://api.test/v1/art/lookup', {
       body: {
         titles: [{ slug: MOCK_WATCH_SLUG, name: 'Tonikaku Kawaii' }],
-        episodes: true,
       },
     });
     expect(shown.image).toBe('https://image.tmdb.org/t/p/original/b.jpg');
-    expect(shown.episodes.map((e) => e.thumbnail)).toEqual([
-      'https://image.tmdb.org/t/p/w300/e1.jpg',
-      undefined,
-      'https://image.tmdb.org/t/p/w300/e3.jpg',
-    ]);
   });
 
   it('keeps the source page when the lookup fails', async () => {

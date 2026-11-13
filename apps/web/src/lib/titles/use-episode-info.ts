@@ -4,9 +4,12 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import type {
-  EpisodeInfo,
-  EpisodesResponse,
+import {
+  STILL_SIZE,
+  tmdbImageUrl,
+  type EpisodeInfo,
+  type EpisodesResponse,
+  type StillsResponse,
 } from '../../../../api/src/art/contract.ts';
 import { api } from '../api/client.ts';
 import { artPollDelay } from './art.ts';
@@ -52,6 +55,21 @@ function readyEpisodes(
   );
 }
 
+function readyThumbnails(
+  results: UseQueryResult<StillsResponse>[],
+): Map<number, string> {
+  return new Map(
+    results.flatMap((r) =>
+      r.data?.status === 'ready'
+        ? Object.entries(r.data.stills).map(
+            ([n, path]) =>
+              [Number.parseInt(n, 10), tmdbImageUrl(path, STILL_SIZE)] as const,
+          )
+        : [],
+    ),
+  );
+}
+
 export function useEpisodeInfo(
   slug: string,
   page: WatchPage | undefined,
@@ -78,5 +96,28 @@ export function useEpisodeInfo(
     ),
     combine: readyEpisodes,
   });
-  return useMemo(() => page && applyEpisodeInfo(page, info), [page, info]);
+  const thumbnails = useQueries({
+    queries: buckets.map((from) =>
+      queryOptions({
+        queryKey: ['watch-episode-stills', slug, from],
+        queryFn: ({ signal }) =>
+          api
+            .get(`v1/art/stills/${slug}`, {
+              searchParams: { from, limit: BUCKET },
+              signal,
+            })
+            .json<StillsResponse>(),
+        refetchInterval: (query) =>
+          artPollDelay(
+            query.state.data?.status === 'pending',
+            query.state.dataUpdateCount,
+          ),
+      }),
+    ),
+    combine: readyThumbnails,
+  });
+  return useMemo(
+    () => page && applyEpisodeInfo(page, info, thumbnails),
+    [page, info, thumbnails],
+  );
 }
