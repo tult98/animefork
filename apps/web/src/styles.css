@@ -424,6 +424,28 @@ body {
     cursor: pointer;
   }
 
+  .details-mute {
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    background: var(--hero-overlay);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .details-mute:hover {
+    background: var(--pill-active);
+  }
+
+  .details-mute svg,
   .details-close svg,
   .details-dd-btn svg {
     width: 20px;

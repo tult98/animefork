@@ -12,6 +12,7 @@ import { DetailsModal } from './details-modal.tsx';
 interface Details {
   // An upcoming title has no watch page yet, so the modal leaves its play button out.
   open: (title: Title, options?: { upcoming?: boolean }) => void;
+  isOpen: boolean;
 }
 
 const DetailsContext = createContext<Details | null>(null);
@@ -22,12 +23,14 @@ export function DetailsProvider({ children }: { children: ReactNode }) {
     upcoming: boolean;
   } | null>(null);
   const close = useCallback(() => setShown(null), []);
+  const isOpen = shown !== null;
   const value = useMemo<Details>(
     () => ({
       open: (title, options) =>
         setShown({ title, upcoming: options?.upcoming ?? false }),
+      isOpen,
     }),
-    [],
+    [isOpen],
   );
   return (
     <DetailsContext value={value}>
