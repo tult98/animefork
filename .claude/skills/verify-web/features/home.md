@@ -5,6 +5,7 @@ The landing page: a hero carousel over five shelves (new episodes, top 10, airin
 ## Sub-features
 
 - Hero carousel: auto-advance every 7s, pause button, prev, next, counter (`1 trên 10`).
+- Hero and details modal trailers: the active slide plays its YouTube trailer once (`trailer` with `data-phase` loading, playing or ended), holding the slide until it ends; `hero:mute` and `details:mute` show while it plays. The video fades in 4s after playing starts, so a screenshot waits 5s. Proved by `../scripts/trailer-hero-modal.mjs`. Read the player through `window.YT.get(iframe.id)` (`isMuted()`), never to drive the user path.
 - Shelves: snap scroller, arrows from 1100px up, "Xem tất cả" link.
 - Poster card hover preview after 250ms.
 - Art skeletons while TMDB art loads (only when `VITE_API_URL` answers).

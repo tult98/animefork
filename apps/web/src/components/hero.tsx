@@ -10,7 +10,17 @@ import {
   prevIndex,
 } from '../lib/ui/carousel.ts';
 import { useDetails } from './details/details-context.tsx';
-import { ChevronLeft, ChevronRight, Info, Pause, Play } from './ui/icons.ts';
+import { Trailer, type TrailerPhase } from './trailer.tsx';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  Pause,
+  Play,
+  Volume2,
+  VolumeX,
+} from './ui/icons.ts';
+import { NO_HOVER_QUERY } from './use-hover-preview.ts';
 import { SHIMMER } from './ui/shimmer.ts';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
@@ -39,18 +49,40 @@ export function Hero({ items }: { items: Title[] }) {
   const [userPaused, setUserPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [trailer, setTrailer] = useState<{
+    index: number;
+    phase: TrailerPhase;
+  } | null>(null);
 
   const length = items.length;
-  const autoplay = !reducedMotion && !userPaused && !hovered && !focused;
+  const autoplay =
+    !reducedMotion && !userPaused && !hovered && !focused && !details.isOpen;
+  // A touch device did not ask for the video, and the open modal plays its own.
+  const trailerId =
+    reducedMotion || details.isOpen || window.matchMedia(NO_HOVER_QUERY).matches
+      ? null
+      : (items[index]?.mal?.trailerYoutubeId ?? null);
+  const trailerPhase = trailerId
+    ? trailer?.index === index
+      ? trailer.phase
+      : 'loading'
+    : null;
 
+  // A trailer still loading when the timer fires counts as ended, so a slow embed cannot stall the carousel.
   useEffect(() => {
-    if (!autoplay) return;
+    if (!autoplay || trailerPhase === 'playing') return;
     const id = window.setTimeout(
       () => setIndex((current) => nextIndex(current, length)),
       HERO_ADVANCE_MS,
     );
     return () => window.clearTimeout(id);
-  }, [autoplay, index, length]);
+  }, [autoplay, index, length, trailerPhase]);
+
+  const onTrailerPhase = (phase: TrailerPhase) => {
+    setTrailer({ index, phase });
+    if (phase === 'ended' && autoplay) setIndex(nextIndex(index, length));
+  };
 
   return (
     <section
@@ -95,6 +127,13 @@ export function Hero({ items }: { items: Title[] }) {
                   className="af-billboard-art object-cover object-[50%_15%]"
                 />
               )}
+              {active && trailerId ? (
+                <Trailer
+                  youtubeId={trailerId}
+                  muted={muted}
+                  onPhase={onTrailerPhase}
+                />
+              ) : null}
               <div className="hero-scrim absolute inset-0" />
               <div className="af-billboard-body absolute bottom-0 left-0 pb-8 max-md:right-0 max-md:max-w-none max-md:p-4">
                 <h2
@@ -147,6 +186,21 @@ export function Hero({ items }: { items: Title[] }) {
         })}
       </div>
       <div className="absolute right-4 bottom-4 z-3 flex items-center gap-2 max-md:top-2 max-md:right-2 max-md:bottom-auto">
+        {trailerPhase === 'playing' ? (
+          <button
+            type="button"
+            data-testid="hero:mute"
+            aria-label={muted ? 'Bật tiếng' : 'Tắt tiếng'}
+            className={`${CONTROL_CLASS} trailer-toggle`}
+            onClick={() => setMuted(!muted)}
+          >
+            {muted ? (
+              <VolumeX aria-hidden="true" />
+            ) : (
+              <Volume2 aria-hidden="true" />
+            )}
+          </button>
+        ) : null}
         <span
           data-testid="hero:counter"
           className="rounded-md bg-hero-overlay px-2.5 py-2 text-badge"

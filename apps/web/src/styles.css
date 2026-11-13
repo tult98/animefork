@@ -71,6 +71,7 @@ body {
   --rkfs: 210px;
   --bb-h: 560px;
   --card-art-ratio: calc(16 / 9);
+  --trailer-reveal-delay: 4s;
 }
 
 @media (max-width: 1099px) {
@@ -259,6 +260,44 @@ body {
 }
 
 @layer components {
+  .trailer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    container-type: size;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  /* YouTube shows a pause button over the first seconds of an autoplaying embed, so the art stays up until it is gone. */
+  .trailer[data-phase='playing'] {
+    opacity: 1;
+    transition-delay: var(--trailer-reveal-delay);
+  }
+
+  .trailer-toggle {
+    animation: trailer-toggle-in 0.6s ease var(--trailer-reveal-delay) both;
+  }
+
+  @keyframes trailer-toggle-in {
+    from {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
+  /* Covers its box like object-fit: cover, scaled past the edges so YouTube's title bar and logo fall outside. */
+  .trailer iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100cqw, 177.78cqh);
+    height: max(100cqh, 56.25cqw);
+    border: 0;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+
   .hero-slide {
     opacity: 0;
     visibility: hidden;
@@ -399,6 +438,28 @@ body {
     cursor: pointer;
   }
 
+  .details-mute {
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    background: var(--hero-overlay);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .details-mute:hover {
+    background: var(--pill-active);
+  }
+
+  .details-mute svg,
   .details-close svg,
   .details-dd-btn svg {
     width: 20px;

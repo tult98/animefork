@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import fetchMock from '@fetch-mock/vitest';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HERO_ADVANCE_MS } from '../../lib/ui/carousel.ts';
@@ -10,6 +11,7 @@ import {
   screen,
   within,
 } from '../../test/test-utils.tsx';
+import { stubYouTube } from '../../test/youtube-stub.ts';
 import { Hero } from '../hero.tsx';
 
 const items: Title[] = [
@@ -40,6 +42,23 @@ const items: Title[] = [
     genres: [],
   },
 ];
+
+const withTrailer = (title: Title, trailerYoutubeId: string): Title => ({
+  ...title,
+  mal: {
+    id: 1,
+    score: null,
+    voters: null,
+    rank: null,
+    popularity: null,
+    members: null,
+    airing: null,
+    episodes: null,
+    startDate: null,
+    startSeason: null,
+    trailerYoutubeId,
+  },
+});
 
 describe('the hero', () => {
   afterEach(() => vi.useRealTimers());
@@ -120,5 +139,58 @@ describe('the hero', () => {
     act(() => void fireEvent.mouseLeave(hero));
     advance(HERO_ADVANCE_MS + 100);
     expect(counter).toHaveTextContent('3 trên 3');
+  });
+
+  it('holds the slide while its trailer plays, moves on when it ends, and keeps the sound choice for the next slide', async () => {
+    const players = stubYouTube();
+    render(
+      <Hero
+        items={[
+          withTrailer(items[0]!, 'first'),
+          withTrailer(items[1]!, 'second'),
+          items[2]!,
+        ]}
+      />,
+      { path: '/' },
+    );
+    const first = await vi.waitUntil(() => players[0]);
+    expect(first.videoId).toBe('first');
+    expect(screen.getAllByTestId('trailer')).toHaveLength(1);
+    expect(screen.queryByTestId('hero:mute')).not.toBeInTheDocument();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const advance = (ms: number) => act(() => void vi.advanceTimersByTime(ms));
+    const counter = screen.getByTestId('hero:counter');
+
+    first.play();
+    advance(30_000);
+    expect(counter).toHaveTextContent('1 trên 3');
+    act(() => void fireEvent.click(screen.getByTestId('hero:mute')));
+    expect(first.unMute).toHaveBeenCalled();
+    expect(screen.getByTestId('hero:mute')).toHaveAccessibleName('Tắt tiếng');
+
+    first.end();
+    expect(counter).toHaveTextContent('2 trên 3');
+    expect(first.destroy).toHaveBeenCalled();
+    const second = await vi.waitUntil(() => players[1]);
+    expect(second.videoId).toBe('second');
+    expect(second.unMute).toHaveBeenCalled();
+
+    advance(HERO_ADVANCE_MS + 100);
+    expect(counter).toHaveTextContent('3 trên 3');
+  });
+
+  it('stops the hero trailer while the details modal plays its own', async () => {
+    fetchMock.get('path:/phim/psyren-a1/xem-phim.html', 404);
+    const players = stubYouTube();
+    render(<Hero items={[withTrailer(items[0]!, 'psyren')]} />, { path: '/' });
+    const hero = await vi.waitUntil(() => players[0]);
+    hero.play();
+
+    await userEvent.click(screen.getByTestId('hero:info'));
+    const modal = await screen.findByTestId('details');
+    expect(hero.destroy).toHaveBeenCalled();
+    expect(screen.queryByTestId('hero:mute')).not.toBeInTheDocument();
+    expect(within(modal).getByTestId('trailer')).toBeInTheDocument();
+    expect(screen.getAllByTestId('trailer')).toHaveLength(1);
   });
 });
