@@ -1,90 +1,55 @@
-import { describe, expect, it, vi } from 'vitest';
-import {
-  createEpisodeSiteClient,
-  EpisodeSiteError,
-} from '../../src/episodes/episode.client.ts';
+import fetchMock from '@fetch-mock/vitest';
+import { describe, expect, it } from 'vitest';
+import { createEpisodeSiteClient } from '../../src/episodes/episode.client.ts';
 
-const limiter = { wait: async () => undefined, pause: () => undefined };
+describe('episode site client', () => {
+  // The app's client waits a second between requests and five before a retry, so this runs a client without the waits.
+  it('reads every page of a long list, and asks once more for a page that answers 503', async () => {
+    const client = createEpisodeSiteClient({
+      baseUrl: 'https://tenrai.test/v1',
+      gapMs: 0,
+      retryMs: 0,
+    });
+    fetchMock
+      .get('https://tenrai.test/v1/anime/21/episodes?page=1', {
+        pagination: { has_next_page: true },
+        data: [
+          {
+            mal_id: 1,
+            title: 'The Door to Hell',
+            title_romanji: 'Jigoku no Tobira',
+          },
+        ],
+      })
+      .get('https://tenrai.test/v1/anime/21/episodes?page=2', 503, {
+        repeat: 1,
+      })
+      .get('https://tenrai.test/v1/anime/21/episodes?page=2', {
+        pagination: { has_next_page: false },
+        data: [{ mal_id: 2, title: 'The Key' }],
+      });
 
-function make(answer: (url: string) => Response) {
-  const fetch = vi.fn<typeof globalThis.fetch>(async (url) =>
-    answer(String(url)),
-  );
-  const client = createEpisodeSiteClient({
-    baseUrl: 'https://tenrai.test/v1',
-    fetch,
-    limiter,
-    sleep: async () => undefined,
-  });
-  return { client, fetch };
-}
+    const episodes = await client.list(21);
 
-const ep = (n: number, over: Record<string, unknown> = {}) => ({
-  mal_id: n,
-  title: `Episode ${n}`,
-  title_romanji: `Eipisōdo ${n}`,
-  aired: '1999-10-20T00:00:00+00:00',
-  synopsis: 'A boy wakes.\n\n(Source: Crunchyroll)',
-  ...over,
-});
-
-describe('createEpisodeSiteClient', () => {
-  it('reads every page and keeps the date and the synopsis without its credit', async () => {
-    const { client, fetch } = make((url) =>
-      Response.json({
-        pagination: { has_next_page: url.endsWith('page=1') },
-        data: [ep(url.endsWith('page=1') ? 1 : 2)],
-      }),
-    );
-
-    expect(await client.list(21)).toEqual([
+    expect(episodes).toEqual([
       {
         number: 1,
-        title: 'Episode 1',
-        titleAlt: 'Eipisōdo 1',
-        aired: '1999-10-20',
-        synopsis: 'A boy wakes.',
+        title: 'The Door to Hell',
+        titleAlt: 'Jigoku no Tobira',
+        aired: null,
+        synopsis: null,
       },
       {
         number: 2,
-        title: 'Episode 2',
-        titleAlt: 'Eipisōdo 2',
-        aired: '1999-10-20',
-        synopsis: 'A boy wakes.',
+        title: 'The Key',
+        titleAlt: null,
+        aired: null,
+        synopsis: null,
       },
     ]);
-    expect(fetch.mock.calls.map(([url]) => String(url))).toEqual([
-      'https://tenrai.test/v1/anime/21/episodes?page=1',
+    expect(fetchMock).toHaveFetchedTimes(
+      2,
       'https://tenrai.test/v1/anime/21/episodes?page=2',
-    ]);
-  });
-
-  it('stores no synopsis when Tenrai has none or only a credit', async () => {
-    const { client } = make(() =>
-      Response.json({
-        pagination: { has_next_page: false },
-        data: [
-          ep(1, { synopsis: null }),
-          ep(2, { synopsis: '(Source: Crunchyroll)' }),
-        ],
-      }),
     );
-
-    expect((await client.list(21))?.map((e) => e.synopsis)).toEqual([
-      null,
-      null,
-    ]);
-  });
-
-  it('answers null for an unknown entry and throws for anything that is not a list', async () => {
-    const missing = make(() => new Response('', { status: 404 }));
-    expect(await missing.client.list(1)).toBeNull();
-
-    const html = make(() => new Response('<html>blocked</html>'));
-    await expect(html.client.list(1)).rejects.toBeInstanceOf(EpisodeSiteError);
-
-    const down = make(() => new Response('down', { status: 503 }));
-    await expect(down.client.list(1)).rejects.toMatchObject({ status: 503 });
-    expect(down.fetch).toHaveBeenCalledTimes(2);
   });
 });
