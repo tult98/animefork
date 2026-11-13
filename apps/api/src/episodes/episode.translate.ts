@@ -1,5 +1,6 @@
 import {
   DeepSeekTranslator,
+  TITLE_BATCH_PROMPT,
   TITLE_TRANSLATION_PROMPT,
   type OverviewTranslator,
 } from '../art/translator.ts';
@@ -16,6 +17,7 @@ export function createEpisodeTranslators(
     title: new DeepSeekTranslator({
       ...config,
       prompt: TITLE_TRANSLATION_PROMPT,
+      batchPrompt: TITLE_BATCH_PROMPT,
       tag: 'title',
     }),
   };
