@@ -16,9 +16,10 @@ src/
   art/             the art feature: controller, service, filler, store, retry table, contract, translator
     tmdb/          TMDB client, matchers (baseline, Jev, cascade), backdrop pick, title parsing, syncTitle, fetchOverview
   mal/             MyAnimeList numbers: client, score matcher, Jev judge, filler, store, retry table
+  episodes/        MAL episode names and synopses: page parser, client, store, sync, translators
   auth/            accounts: contract, controller, service, store, session guard, password, tokens, cookie, mailer, limits
 db/migrations/     numbered SQL files applied at boot
-scripts/           eval-matcher.ts and eval-mal.ts, read-only matcher comparisons
+scripts/           eval-matcher.ts and eval-mal.ts, read-only matcher comparisons, and sync-episodes.ts, the episode backfill
 ```
 
 A new feature module sits beside `art/` and imports nothing from it. It reads its own env from the `ENV` provider with `parseEnv`, the way `art/art.config.ts` does, and adds its tables as the next numbered file in `db/migrations/`. Neither `database/` nor `common/` changes for it.
@@ -168,6 +169,21 @@ A lookup also carries the MAL score, rank and airing status of each title. `MalF
   A `none` or `failed` row tried before the title's other names were stored is matched again once (see **Other names**).
 
 - **Evaluating.** `pnpm nx run api:eval-mal --status=none --limit=20` reads `title_mal` rows joined to `title_art` on the slug for `source_name`, `source_year` and `source_episode_count`, and `title_names` for the stored other names when the slug has some, re-runs the MAL searches and the score with those names the way the filler does, and asks Jev for every row that has candidates, also the rows the score accepts, so the two can be compared. It skips the TMDB alias queries. It prints the slug, the stored status and id, the score verdict, Jev's choice and verdict, and whether the two agree. `--status` is `none`, `ok` or `all` (the default), and `--limit` defaults to 50. It opens Postgres read-only and writes nothing, but every row costs up to 4 MAL searches (6 with other names) and one Jev request. It needs `DATABASE_URL`, `MAL_CLIENT_ID` and `TYPESAFE_API_KEY` and stops with a message naming the missing ones.
+
+## Episode info
+
+`episode_info` holds a name and a synopsis for each episode of every title that has an ok MAL match. Nothing in the lookup API or the web app reads it yet. A later feature joins it through `title_mal.mal_id` where `status = 'ok'`.
+
+The key is `(mal_id, episode_number)`. MAL lists each season as its own entry, so the numbers match the season in the source slug. The columns are `title`, `title_alt` (the romaji and Japanese name MAL prints under it), `title_vi`, `synopsis`, `synopsis_vi`, `aired`, `synopsis_fetched_at`, `translated_at` and `fetched_at`. `synopsis_fetched_at` is set once the episode page was read, even when it had no synopsis, so an empty one is not fetched again. `title_vi` and `synopsis_vi` are null until translated.
+
+The data comes from MAL's public HTML, because its API has no episode text. `src/episodes/episode.parser.ts` reads the list page at `/anime/<id>/x/episode`, which gives the number, English title, alternate title and air date in pages of 100 (`?offset=100` and on). The synopsis exists only on `/anime/<id>/x/episode/<n>` and is often empty. The parser drops the "(Source: ...)" credit and the bold arc line MAL appends. `src/episodes/episode.client.ts` makes one request a second with the user agent `Mozilla/5.0 (compatible; animefork-episode-sync/1.0)`, retries once after 5 seconds on a 429 or 5xx answer, and then throws.
+
+`pnpm nx run api:sync-episodes` fills the table. It reads every `title_mal` row with status `ok`, lists each show, stores the episodes, fetches the synopsis of each episode not stored yet and translates what is untranslated. It needs `DATABASE_URL`. It is idempotent and resumable. An episode with its synopsis fetched and its translations stored costs no request, so a stopped run continues where it ended. A new run still fetches each show's list page once to find new episodes. A changed English title drops its Vietnamese one so it is translated again.
+
+- **Flags.** `--mal-id <id>` syncs one entry. `--limit <n>` stops after n episodes that needed a synopsis fetch or a translation. `--dry-run` fetches from MAL and logs what it found, and writes and translates nothing. A dry run with `--mal-id` needs no database.
+- **Translation.** It reuses `DeepSeekTranslator` from `src/art/translator.ts` with the `DEEPSEEK_*` variables. Titles use `TITLE_TRANSLATION_PROMPT`, a sibling of the synopsis prompt, because a title is a few words and has no sentences to cut. Without `DEEPSEEK_API_KEY` the script stores the English, leaves the Vietnamese columns null, and says so in the log. The next run with a key fills them. A title or synopsis that fails to translate stays null and is tried again on the next run. A title DeepSeek returns unchanged counts as a failure, as for overviews. The key is never logged.
+- **Empty synopses.** An episode whose synopsis was empty is not fetched again, so one MAL fills in later is missed. Clearing `synopsis_fetched_at` for those rows makes the next run fetch them.
+- **Cost.** A 1,000 episode show takes about 17 minutes of synopsis requests at one a second, plus one DeepSeek request per text.
 
 ## Migrations
 
