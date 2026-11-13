@@ -14,6 +14,8 @@ export const PLAYER_COPY = {
   skipIntro: 'Bỏ qua phần mở đầu',
   skipOutro: 'Bỏ qua phần kết',
   nextEpisode: 'Tập tiếp theo',
+  playIn: (seconds: number) => `Phát sau ${seconds} giây`,
+  playNow: 'Phát ngay',
   introLabel: 'Mở đầu',
   outroLabel: 'Kết thúc',
   episodes: 'Danh sách tập',

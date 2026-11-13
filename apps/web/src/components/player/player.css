@@ -188,3 +188,13 @@
 [data-idle='true'] .pl-chrome {
   opacity: 0;
 }
+
+.pl-skip-in {
+  animation: pl-skip-in 0.2s ease both;
+}
+@keyframes pl-skip-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

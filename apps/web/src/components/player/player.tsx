@@ -1,6 +1,10 @@
 import { useRef, type ReactNode } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import { formatClock } from '../../lib/player/format.ts';
+import {
+  activeSegment,
+  showsOutroCard,
+} from '../../lib/player/skip-segments.ts';
 import { useSkipSegments } from '../../lib/player/use-skip-segments.ts';
 import { usePlayback } from '../../lib/player/use-playback.ts';
 import { useProgressSaving } from '../../lib/progress/use-progress-saving.ts';
@@ -97,6 +101,10 @@ export function Player({
   const playing = state.phase === 'playing';
   const idle = useIdle(root, playing);
   const playLabel = playing ? PLAYER_COPY.pause : PLAYER_COPY.play;
+  const outroCard = showsOutroCard(
+    activeSegment(skipSegments, state.time),
+    !!nextEpisode && !!onNext,
+  );
   const progress = state.duration > 0 ? (state.time / state.duration) * 100 : 0;
 
   return (
@@ -192,6 +200,9 @@ export function Player({
         <SkipButton
           segments={skipSegments}
           time={state.time}
+          duration={state.duration}
+          image={image}
+          nextEpisode={nextEpisode}
           onSkip={controls.seek}
           onNext={onNext}
         />
@@ -258,7 +269,11 @@ export function Player({
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <NextEpisode next={nextEpisode} image={image} onNext={onNext} />
+              <NextEpisode
+                next={outroCard ? undefined : nextEpisode}
+                image={image}
+                onNext={onNext}
+              />
               <HoverPopup
                 id="episodes"
                 label={PLAYER_COPY.episodes}

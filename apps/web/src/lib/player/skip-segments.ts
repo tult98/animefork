@@ -40,3 +40,27 @@ export function scrubCaption(
   if (kind === 'outro') return `${clock} · ${PLAYER_COPY.outroLabel}`;
   return clock;
 }
+
+// The outro card counts down the video that is left, and fills as the outro runs out.
+export function outroCountdown(
+  outro: SkipSegment,
+  time: number,
+  duration: number,
+): { seconds: number; fraction: number } {
+  if (!Number.isFinite(duration)) return { seconds: 0, fraction: 0 };
+  const left = Math.max(0, duration - time);
+  const span = duration - outro.startS;
+  return {
+    seconds: Math.ceil(left),
+    fraction:
+      span > 0 ? Math.min(1, Math.max(0, (time - outro.startS) / span)) : 0,
+  };
+}
+
+// The outro hands over to the next episode when there is one, so the card replaces the skip pill.
+export function showsOutroCard(
+  segment: SkipSegment | undefined,
+  hasNext: boolean,
+): boolean {
+  return segment?.kind === 'outro' && hasNext;
+}
