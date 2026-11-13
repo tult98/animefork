@@ -4,32 +4,27 @@ import {
   EPISODE_USER_AGENT,
 } from '../../src/episodes/episode.client.ts';
 
-const row = (n: number) =>
-  `<tr class="episode-list-data"><td class="episode-number nowrap" data-raw="${n}">${n}</td><td class="episode-title"><a href="x">Ep ${n}</a></td></tr>`;
-const html = (count: number, from = 1) =>
-  Array.from({ length: count }, (_, i) => row(from + i)).join('');
+const page = (text: string) => `<h2 class="fw-b">Synopsis</h2>${text}</div>`;
 
 describe('createEpisodeSiteClient', () => {
-  it('walks the list pages by offset until one is short', async () => {
-    const fetch = vi
-      .fn()
-      .mockResolvedValueOnce(new Response(html(100)))
-      .mockResolvedValueOnce(new Response(html(3, 101)));
+  it('reads one episode page with the identifiable agent', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () => new Response(page('A door opens.')),
+    );
     const client = createEpisodeSiteClient({
       fetch,
       sleep: async () => undefined,
     });
 
-    const episodes = await client.list(21);
-
-    expect(episodes).toHaveLength(103);
+    expect(await client.synopsis(21, 3)).toBe('A door opens.');
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([
-      'https://myanimelist.net/anime/21/x/episode',
-      'https://myanimelist.net/anime/21/x/episode?offset=100',
+      'https://myanimelist.net/anime/21/x/episode/3',
     ]);
-    expect(fetch.mock.calls[0]?.[1].headers['user-agent']).toBe(
-      EPISODE_USER_AGENT,
-    );
+    expect(
+      (fetch.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+        'user-agent'
+      ],
+    ).toBe(EPISODE_USER_AGENT);
   });
 
   it('retries once after a 429 and waits between calls', async () => {
@@ -37,10 +32,10 @@ describe('createEpisodeSiteClient', () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce(new Response('slow down', { status: 429 }))
-      .mockResolvedValueOnce(new Response(html(1)));
+      .mockResolvedValueOnce(new Response(page('A door opens.')));
     const client = createEpisodeSiteClient({ fetch, sleep, retryMs: 7000 });
 
-    expect(await client.list(5)).toHaveLength(1);
+    expect(await client.synopsis(5, 1)).toBe('A door opens.');
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(sleep).toHaveBeenCalledWith(7000);
   });

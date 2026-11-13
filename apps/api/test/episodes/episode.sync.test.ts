@@ -10,16 +10,22 @@ const listed = [
 ];
 
 function setup(translators: EpisodeTranslators | null) {
+  const lists = { list: vi.fn(async () => listed) };
   const site = {
-    list: vi.fn(async () => listed),
     synopsis: vi.fn(async (_id: number, n: number) =>
       n === 1 ? null : 'A door opens.',
     ),
   } satisfies EpisodeSiteClient;
   const store = new MemoryEpisodeStore();
   const run = () =>
-    syncEpisodes([61967], { store, site, translators, log: () => undefined });
-  return { site, store, run };
+    syncEpisodes([61967], {
+      store,
+      lists,
+      site,
+      translators,
+      log: () => undefined,
+    });
+  return { lists, site, store, run };
 }
 
 const fakeTranslators = (): EpisodeTranslators => ({
@@ -64,6 +70,7 @@ describe('syncEpisodes', () => {
     const translators = fakeTranslators();
     await syncEpisodes([61967], {
       store,
+      lists: setup(null).lists,
       site: setup(null).site,
       translators,
       log: () => undefined,
@@ -72,9 +79,10 @@ describe('syncEpisodes', () => {
   });
 
   it('stops after the limit', async () => {
-    const { site, store } = setup(null);
+    const { lists, site, store } = setup(null);
     await syncEpisodes([61967], {
       store,
+      lists,
       site,
       translators: null,
       limit: 1,

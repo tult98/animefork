@@ -3,6 +3,7 @@ import pg from 'pg';
 import { loadDeepSeekConfig } from '../src/art/art.config.ts';
 import { EnvError } from '../src/config/app.config.ts';
 import { createEpisodeSiteClient } from '../src/episodes/episode.client.ts';
+import { createJikanClient } from '../src/episodes/jikan.client.ts';
 import {
   MemoryEpisodeStore,
   PostgresEpisodeStore,
@@ -42,7 +43,7 @@ function readFlags() {
 
 async function main(): Promise<void> {
   const { limit, malId, dryRun } = readFlags();
-  // A dry run of one show reads MAL only, so it works with no database.
+  // A dry run of one show reads Jikan and MAL only, so it works with no database.
   const needsDb = !(dryRun && malId !== undefined);
   if (needsDb && !process.env.DATABASE_URL?.trim()) {
     fail('set DATABASE_URL (for example in apps/api/.env) and run again');
@@ -74,6 +75,7 @@ async function main(): Promise<void> {
     console.log(`${dryRun ? 'dry run, ' : ''}${malIds.length} MAL entries`);
     const totals = await syncEpisodes(malIds, {
       store,
+      lists: createJikanClient(),
       site: createEpisodeSiteClient(),
       translators: deepseek ? createEpisodeTranslators(deepseek) : null,
       log: (line) => console.log(line),

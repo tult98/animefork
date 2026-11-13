@@ -2,13 +2,9 @@ import { Module } from '@nestjs/common';
 import { loadDeepSeekConfig } from '../art/art.config.ts';
 import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
 import { ENV, type Env } from '../config/app.config.ts';
-import {
-  createEpisodeSiteClient,
-  DEFAULT_GAP_MS,
-  type EpisodeSiteClient,
-} from './episode.client.ts';
+import { createJikanClient, type EpisodeListClient } from './jikan.client.ts';
+import { createJikanLimiter, type JikanLimiter } from './jikan.limiter.ts';
 import { EpisodeFiller } from './episode.filler.ts';
-import { createRateLimiter, type RateLimiter } from './episode.limiter.ts';
 import {
   EPISODE_STORE,
   PostgresEpisodeStore,
@@ -16,31 +12,27 @@ import {
 } from './episode.store.ts';
 import { createEpisodeTranslators } from './episode.translate.ts';
 
-export const EPISODE_LIMITER = Symbol('EpisodeLimiter');
-export const EPISODE_SITE = Symbol('EpisodeSite');
+export const JIKAN_LIMITER = Symbol('JikanLimiter');
+export const EPISODE_LIST = Symbol('EpisodeList');
 export const EPISODE_FILLER = Symbol('EpisodeFiller');
 
 @Module({
   providers: [
     { provide: CLOCK, useValue: systemClock },
     { provide: EPISODE_STORE, useClass: PostgresEpisodeStore },
+    { provide: JIKAN_LIMITER, useFactory: () => createJikanLimiter() },
     {
-      provide: EPISODE_LIMITER,
-      useFactory: (): RateLimiter =>
-        createRateLimiter({ gapMs: DEFAULT_GAP_MS }),
-    },
-    {
-      provide: EPISODE_SITE,
-      inject: [EPISODE_LIMITER],
-      useFactory: (limiter: RateLimiter): EpisodeSiteClient =>
-        createEpisodeSiteClient({ limiter }),
+      provide: EPISODE_LIST,
+      inject: [JIKAN_LIMITER],
+      useFactory: (limiter: JikanLimiter): EpisodeListClient =>
+        createJikanClient({ limiter }),
     },
     {
       provide: EPISODE_FILLER,
-      inject: [EPISODE_STORE, EPISODE_SITE, ENV, CLOCK],
+      inject: [EPISODE_STORE, EPISODE_LIST, ENV, CLOCK],
       useFactory: (
         store: EpisodeStore,
-        site: EpisodeSiteClient,
+        site: EpisodeListClient,
         env: Env,
         now: Clock,
       ): EpisodeFiller => {

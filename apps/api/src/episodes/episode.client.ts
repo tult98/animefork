@@ -1,9 +1,4 @@
-import {
-  LIST_PAGE_SIZE,
-  parseEpisodeList,
-  parseSynopsis,
-  type ListedEpisode,
-} from './episode.parser.ts';
+import { parseSynopsis } from './episode.parser.ts';
 import { createRateLimiter, type RateLimiter } from './episode.limiter.ts';
 
 export const MAL_SITE = 'https://myanimelist.net';
@@ -13,8 +8,6 @@ export const EPISODE_USER_AGENT =
 export const DEFAULT_GAP_MS = 1000;
 export const DEFAULT_RETRY_MS = 5000;
 const DEFAULT_TIMEOUT_MS = 15_000;
-// A full-length series is a dozen pages of 100. This stops a page that never runs out.
-const MAX_LIST_PAGES = 50;
 
 export class EpisodeSiteError extends Error {
   readonly status: number | undefined;
@@ -27,8 +20,6 @@ export class EpisodeSiteError extends Error {
 }
 
 export interface EpisodeSiteClient {
-  // Every listed episode of one MAL entry, or null when MAL has no such entry.
-  list(malId: number): Promise<ListedEpisode[] | null>;
   // The synopsis of one episode, or null while it has none.
   synopsis(malId: number, episode: number): Promise<string | null>;
 }
@@ -96,19 +87,6 @@ export function createEpisodeSiteClient(
   }
 
   return {
-    async list(malId) {
-      const episodes: ListedEpisode[] = [];
-      for (let pageNo = 0; pageNo < MAX_LIST_PAGES; pageNo++) {
-        const offset = pageNo * LIST_PAGE_SIZE;
-        const query = offset > 0 ? `?offset=${offset}` : '';
-        const html = await page(`/anime/${malId}/x/episode${query}`);
-        if (html === null) return pageNo === 0 ? null : episodes;
-        const listed = parseEpisodeList(html);
-        episodes.push(...listed);
-        if (listed.length < LIST_PAGE_SIZE) break;
-      }
-      return episodes;
-    },
     async synopsis(malId, episode) {
       const html = await page(`/anime/${malId}/x/episode/${episode}`);
       return html === null ? null : parseSynopsis(html);

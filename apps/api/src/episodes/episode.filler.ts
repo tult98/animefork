@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { describeError } from '../art/art.filler.ts';
 import type { MalAiring } from '../art/contract.ts';
 import type { Clock } from '../common/clock.ts';
-import type { EpisodeSiteClient } from './episode.client.ts';
+import type { EpisodeListClient } from './jikan.client.ts';
 import { isEpisodeListSettled } from './episode.retry.ts';
 import type { EpisodeStore } from './episode.store.ts';
 import type { EpisodeTranslators } from './episode.translate.ts';
@@ -13,21 +13,26 @@ export interface EpisodeTarget {
   airing: MalAiring | null;
 }
 
-// Fills episode names in the background for the MAL lookup. One list request per show (more only past 100
+// Most list reads waiting behind the one running. Past it a target is dropped, and its next lookup schedules it again.
+export const MAX_QUEUED_LISTS = 20;
+
+// Fills episode names in the background for the MAL lookup. One Jikan request per show (more only past 100
 // episodes), no synopsis pages, and nothing here ever throws into the caller.
-// Single-flight lives in this process's memory, like the other fillers.
+// One list read runs at a time. Single-flight lives in this process's memory, like the other fillers.
 export class EpisodeFiller {
   private readonly logger = new Logger(EpisodeFiller.name);
   private readonly inFlight = new Map<number, Promise<void>>();
   private readonly store: EpisodeStore;
-  private readonly site: EpisodeSiteClient;
+  private readonly site: EpisodeListClient;
+  private readonly queue: (() => void)[] = [];
+  private running = false;
   // Null stores the English name and leaves the Vietnamese one empty.
   private readonly translators: EpisodeTranslators | null;
   private readonly now: Clock;
 
   constructor(
     store: EpisodeStore,
-    site: EpisodeSiteClient,
+    site: EpisodeListClient,
     translators: EpisodeTranslators | null,
     now: Clock,
   ) {
@@ -97,20 +102,42 @@ export class EpisodeFiller {
   private start(target: EpisodeTarget): Promise<void> {
     const existing = this.inFlight.get(target.malId);
     if (existing) return existing;
-    const done = this.run(target).finally(() =>
-      this.inFlight.delete(target.malId),
-    );
+    if (this.running && this.queue.length >= MAX_QUEUED_LISTS) {
+      return Promise.resolve();
+    }
+    const done = this.slot()
+      .then(() => this.run(target))
+      .finally(() => {
+        this.release();
+        this.inFlight.delete(target.malId);
+      });
     this.inFlight.set(target.malId, done);
     return done;
   }
 
+  private slot(): Promise<void> {
+    if (!this.running) {
+      this.running = true;
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => this.queue.push(resolve));
+  }
+
+  private release(): void {
+    const next = this.queue.shift();
+    if (next) next();
+    else this.running = false;
+  }
+
   private async run({ slug, malId, airing }: EpisodeTarget): Promise<void> {
-    let failure: string | null = null;
+    let failure: string | null;
     try {
       const listed = await this.site.list(malId);
       if (listed) {
         await this.store.saveListed(malId, listed);
         failure = await this.translate(malId);
+      } else {
+        failure = 'Jikan has no episode list for this entry';
       }
     } catch (error) {
       failure = describeError(error);
