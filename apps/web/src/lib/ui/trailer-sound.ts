@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-// One switch for every trailer. Kept in memory only: a browser blocks sound on a page the viewer has not touched yet, so each load starts muted.
+// Kept in memory only: a browser blocks sound on a page the viewer has not touched yet, so each load starts muted.
 let muted = true;
 const listeners = new Set<() => void>();
 
