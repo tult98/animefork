@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
-import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
 import type { AvsSubmission } from '../art/contract.ts';
 import { PG_POOL } from '../database/migration-runner.ts';
 import { AVS_MIN_REWRITE_MS, type StoredRatings } from './ratings.ts';
@@ -19,45 +18,6 @@ function oneDecimal(score: number): number {
 // A later item for the same slug wins, which also keeps one statement from touching a row twice.
 function lastPerSlug(items: AvsSubmission[]): AvsSubmission[] {
   return [...new Map(items.map((item) => [item.slug, item])).values()];
-}
-
-@Injectable()
-export class MemoryRatingsStore implements RatingsStore {
-  readonly rows = new Map<string, StoredRatings>();
-  private readonly now: Clock;
-
-  constructor(@Inject(CLOCK) now: Clock = systemClock) {
-    this.now = now;
-  }
-
-  async find(slugs: string[]): Promise<Map<string, StoredRatings>> {
-    const found = new Map<string, StoredRatings>();
-    for (const slug of slugs) {
-      const row = this.rows.get(slug);
-      if (row) found.set(slug, { ...row });
-    }
-    return found;
-  }
-
-  async saveAvs(items: AvsSubmission[]): Promise<void> {
-    const now = this.now();
-    for (const item of lastPerSlug(items)) {
-      const existing = this.rows.get(item.slug);
-      if (
-        existing?.avsFetchedAt &&
-        now.getTime() - existing.avsFetchedAt.getTime() < AVS_MIN_REWRITE_MS
-      ) {
-        continue;
-      }
-      this.rows.set(item.slug, {
-        slug: item.slug,
-        avsScore: oneDecimal(item.score),
-        avsVoters: item.voters,
-        avsFetchedAt: now,
-        quality: item.quality ?? existing?.quality ?? null,
-      });
-    }
-  }
 }
 
 interface RatingsRow {

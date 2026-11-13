@@ -1,147 +1,121 @@
 import { describe, expect, it } from 'vitest';
-import {
-  MAL_MATCHER_VERSION,
-  MAL_AIRING_REFRESH_AFTER_MS,
-  MAL_REFRESH_AFTER_MS,
-  MAL_RETRY_AFTER_MS,
-  isMalSettled,
-} from '../../src/mal/mal.retry.ts';
+import { isMalSettled } from '../../src/mal/mal.retry.ts';
 
+const MINUTE = 60_000;
+const DAY = 24 * 60 * MINUTE;
 const now = new Date('2026-06-01T00:00:00Z');
 const ago = (ms: number) => new Date(now.getTime() - ms);
-const row = (
-  over: Partial<Parameters<typeof isMalSettled>[0] & object> = {},
-) => ({
-  status: 'ok' as const,
-  matcherVersion: MAL_MATCHER_VERSION,
-  attemptedAt: ago(0),
-  fetchedAt: ago(0),
-  ...over,
-});
-
-describe('isMalSettled airing', () => {
-  const at = (
-    age: number,
-    airing: 'currently_airing' | 'finished_airing' | null,
-  ) => row({ airing, attemptedAt: ago(age), fetchedAt: ago(age) });
-
-  it('checks an airing title daily and a finished one weekly', () => {
-    expect(
-      isMalSettled(
-        at(MAL_AIRING_REFRESH_AFTER_MS - 1, 'currently_airing'),
-        now,
-      ),
-    ).toBe(true);
-    expect(
-      isMalSettled(at(MAL_AIRING_REFRESH_AFTER_MS, 'currently_airing'), now),
-    ).toBe(false);
-    expect(
-      isMalSettled(at(MAL_AIRING_REFRESH_AFTER_MS, 'finished_airing'), now),
-    ).toBe(true);
-  });
-
-  it('fetches a row saved before start dates were stored once more', () => {
-    const old = (datesKnown: boolean) =>
-      row({
-        airing: 'finished_airing',
-        datesKnown,
-        fetchedAt: ago(60_000 * 20),
-        attemptedAt: ago(60_000 * 20),
-      });
-    expect(isMalSettled(old(false), now)).toBe(false);
-    expect(isMalSettled(old(true), now)).toBe(true);
-  });
-
-  it('fetches a row saved without a status once more', () => {
-    expect(isMalSettled(at(60_000 * 20, null), now)).toBe(false);
-  });
-});
 
 describe('isMalSettled', () => {
-  it('is never settled without a row', () => {
+  it('is not settled for a title with no row', () => {
     expect(isMalSettled(undefined, now)).toBe(false);
   });
 
-  it('keeps an ok row for the refresh age, then wants a refresh', () => {
-    const at = (age: number) =>
-      row({ attemptedAt: ago(age), fetchedAt: ago(age) });
-    expect(isMalSettled(at(MAL_REFRESH_AFTER_MS - 1), now)).toBe(true);
-    expect(isMalSettled(at(MAL_REFRESH_AFTER_MS), now)).toBe(false);
-  });
-
-  it('does not retry a failed refresh on every lookup', () => {
-    const old = ago(MAL_REFRESH_AFTER_MS + 1);
-    expect(
-      isMalSettled(row({ fetchedAt: old, attemptedAt: ago(1000) }), now),
-    ).toBe(true);
-    expect(
-      isMalSettled(
-        row({ fetchedAt: old, attemptedAt: ago(MAL_RETRY_AFTER_MS.failed) }),
-        now,
-      ),
-    ).toBe(false);
-  });
-
-  it('retries a failure after 10 minutes and a no-match after 7 days', () => {
-    const miss = (status: 'none' | 'failed', age: number) =>
-      row({ status, fetchedAt: null, attemptedAt: ago(age) });
-    expect(
-      isMalSettled(miss('failed', MAL_RETRY_AFTER_MS.failed - 1), now),
-    ).toBe(true);
-    expect(isMalSettled(miss('failed', MAL_RETRY_AFTER_MS.failed), now)).toBe(
-      false,
-    );
-    expect(isMalSettled(miss('none', MAL_RETRY_AFTER_MS.none - 1), now)).toBe(
+  it.each([
+    [
+      'keeps a finished show for 7 days',
+      { airing: 'finished_airing', fetched: 7 * DAY - 1 },
       true,
-    );
-    expect(isMalSettled(miss('none', MAL_RETRY_AFTER_MS.none), now)).toBe(
+    ],
+    [
+      'refreshes a finished show after 7 days',
+      { airing: 'finished_airing', fetched: 7 * DAY },
       false,
-    );
-  });
-
-  it('retries a no-match from before Jev, and settles one from version 3 for 7 days', () => {
-    const miss = (matcherVersion: number, age: number) =>
-      row({
-        status: 'none',
-        fetchedAt: null,
-        matcherVersion,
-        attemptedAt: ago(age),
-      });
-    expect(MAL_MATCHER_VERSION).toBe(3);
-    expect(isMalSettled(miss(2, 1000), now)).toBe(false);
-    expect(isMalSettled(miss(3, MAL_RETRY_AFTER_MS.none - 1), now)).toBe(true);
-    expect(isMalSettled(miss(3, MAL_RETRY_AFTER_MS.none), now)).toBe(false);
-  });
-
-  it.each(['none', 'failed'] as const)(
-    'matches a %s row once more when other names arrived after its try',
-    (status) => {
-      const miss = row({ status, fetchedAt: null, attemptedAt: ago(1000) });
-      expect(isMalSettled(miss, now)).toBe(true);
-      expect(isMalSettled(miss, now, ago(1001))).toBe(true);
-      expect(isMalSettled(miss, now, ago(1000))).toBe(true);
-      expect(isMalSettled(miss, now, ago(999))).toBe(false);
-      const retried = { ...miss, attemptedAt: ago(0) };
-      expect(isMalSettled(retried, now, ago(999))).toBe(true);
-    },
-  );
-
-  it('never refetches an ok row because other names arrived', () => {
-    const ok = row({ airing: 'finished_airing', datesKnown: true });
-    expect(isMalSettled(ok, now, now)).toBe(true);
-    expect(isMalSettled(ok, now, new Date(now.getTime() + 1))).toBe(true);
-  });
-
-  it('tries a no-match again when the matcher has improved since', () => {
+    ],
+    [
+      'keeps an airing show for 1 day',
+      { airing: 'currently_airing', fetched: DAY - 1 },
+      true,
+    ],
+    [
+      'refreshes an airing show after 1 day',
+      { airing: 'currently_airing', fetched: DAY },
+      false,
+    ],
+    [
+      'fetches a row saved without an airing status once more',
+      { airing: null, fetched: 20 * MINUTE },
+      false,
+    ],
+    [
+      'fetches a row saved before start dates were stored once more',
+      { airing: 'finished_airing', fetched: 20 * MINUTE, datesKnown: false },
+      false,
+    ],
+    [
+      'waits 10 minutes after a refresh that failed',
+      {
+        airing: 'finished_airing',
+        fetched: 8 * DAY,
+        attempted: 10 * MINUTE - 1,
+      },
+      true,
+    ],
+    [
+      'tries a failed refresh again after 10 minutes',
+      { airing: 'finished_airing', fetched: 8 * DAY, attempted: 10 * MINUTE },
+      false,
+    ],
+  ] as const)('%s', (_, row, settled) => {
     expect(
       isMalSettled(
-        row({
-          status: 'none',
-          fetchedAt: null,
-          matcherVersion: MAL_MATCHER_VERSION - 1,
-        }),
+        {
+          status: 'ok',
+          matcherVersion: 3,
+          airing: row.airing,
+          datesKnown: 'datesKnown' in row ? row.datesKnown : true,
+          fetchedAt: ago(row.fetched),
+          attemptedAt: ago('attempted' in row ? row.attempted : row.fetched),
+        },
         now,
       ),
-    ).toBe(false);
+    ).toBe(settled);
+  });
+
+  it.each([
+    ['keeps a failure for 10 minutes', 'failed', 3, 10 * MINUTE - 1, true],
+    ['tries a failure again after 10 minutes', 'failed', 3, 10 * MINUTE, false],
+    ['keeps a no-match for 7 days', 'none', 3, 7 * DAY - 1, true],
+    ['tries a no-match again after 7 days', 'none', 3, 7 * DAY, false],
+    [
+      'tries a no-match from an older matcher again at once',
+      'none',
+      2,
+      MINUTE,
+      false,
+    ],
+  ] as const)('%s', (_, status, matcherVersion, attempted, settled) => {
+    expect(
+      isMalSettled(
+        {
+          status,
+          matcherVersion,
+          fetchedAt: null,
+          attemptedAt: ago(attempted),
+        },
+        now,
+      ),
+    ).toBe(settled);
+  });
+
+  it('tries a miss again when the source’s other names arrived after its last try, and never a match', () => {
+    const miss = {
+      status: 'none' as const,
+      matcherVersion: 3,
+      fetchedAt: null,
+      attemptedAt: ago(1000),
+    };
+    const match = {
+      status: 'ok' as const,
+      matcherVersion: 3,
+      airing: 'finished_airing' as const,
+      datesKnown: true,
+      fetchedAt: ago(1000),
+      attemptedAt: ago(1000),
+    };
+
+    expect(isMalSettled(miss, now, ago(1000))).toBe(true);
+    expect(isMalSettled(miss, now, ago(999))).toBe(false);
+    expect(isMalSettled(match, now, ago(999))).toBe(true);
   });
 });

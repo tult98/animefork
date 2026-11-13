@@ -1,40 +1,39 @@
-import { describe, expect, it, vi } from 'vitest';
-import { RESEND_API_URL, ResendMailer } from '../../src/auth/mailer.ts';
-
-const MESSAGE = { to: 'a@b.test', subject: 'Hi', text: 'link' };
+import fetchMock from '@fetch-mock/vitest';
+import { describe, expect, it } from 'vitest';
+import { ResendMailer } from '../../src/auth/mailer.ts';
 
 describe('ResendMailer', () => {
-  it('posts the message to Resend with the key', async () => {
-    const fetchFn = vi.fn(async () => new Response('{}', { status: 200 }));
-    await new ResendMailer(
-      're_key',
-      'Animefork <no-reply@mail.test>',
-      fetchFn as unknown as typeof fetch,
-    ).send(MESSAGE);
+  it('posts the message to Resend with the API key', async () => {
+    fetchMock.post('https://api.resend.com/emails', { id: 'mail-1' });
+    const mailer = new ResendMailer('re_key', 'Animefork <no-reply@mail.test>');
 
-    const [url, init] = fetchFn.mock.calls[0] as unknown as [
-      string,
-      RequestInit,
-    ];
-    expect(url).toBe(RESEND_API_URL);
-    expect((init.headers as Record<string, string>).Authorization).toBe(
-      'Bearer re_key',
-    );
-    expect(JSON.parse(init.body as string)).toEqual({
-      from: 'Animefork <no-reply@mail.test>',
-      to: ['a@b.test'],
-      subject: 'Hi',
-      text: 'link',
+    await mailer.send({
+      to: 'ana@example.test',
+      subject: 'Confirm your email',
+      text: 'https://web.test/verify-email#token=abc',
+    });
+
+    expect(fetchMock).toHavePosted('https://api.resend.com/emails', {
+      headers: { Authorization: 'Bearer re_key' },
+      body: {
+        from: 'Animefork <no-reply@mail.test>',
+        to: ['ana@example.test'],
+        subject: 'Confirm your email',
+        text: 'https://web.test/verify-email#token=abc',
+      },
     });
   });
 
-  it('throws without echoing the body when Resend refuses', async () => {
-    const fetchFn = vi.fn(async () => new Response('secret', { status: 403 }));
-    const mailer = new ResendMailer(
-      're_key',
-      'x@mail.test',
-      fetchFn as unknown as typeof fetch,
-    );
-    await expect(mailer.send(MESSAGE)).rejects.toThrow('Resend answered 403');
+  it('fails with the status when Resend refuses the message', async () => {
+    fetchMock.post('https://api.resend.com/emails', 403);
+    const mailer = new ResendMailer('re_key', 'Animefork <no-reply@mail.test>');
+
+    const sent = mailer.send({
+      to: 'ana@example.test',
+      subject: 'Confirm your email',
+      text: 'https://web.test/verify-email#token=abc',
+    });
+
+    await expect(sent).rejects.toThrow('Resend answered 403');
   });
 });

@@ -1,10 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
-import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
 import { PG_POOL } from '../database/migration-runner.ts';
 import type { TitleInput } from './contract.ts';
 import {
-  isStale,
   MATCHED_REFRESH_BELOW,
   MATCHER_VERSION,
   type MissStatus,
@@ -45,14 +43,6 @@ export type OverviewResult =
   | { status: 'ok'; text: string; lang: OverviewLang; translated: boolean }
   | { status: 'none' | 'failed' };
 
-const NO_OVERVIEW = {
-  overview: null,
-  overviewLang: null,
-  overviewTranslated: false,
-  overviewStatus: null,
-  overviewAttemptedAt: null,
-} as const;
-
 export type TitleSource = Pick<
   TitleInput,
   'slug' | 'name' | 'year' | 'episodeCount'
@@ -76,120 +66,6 @@ export interface ArtStore {
     tmdbId: number,
     result: OverviewResult,
   ): Promise<void>;
-}
-
-@Injectable()
-export class MemoryArtStore implements ArtStore {
-  readonly titles = new Map<string, StoredTitle>();
-  readonly stills = new Map<string, Map<number, string>>();
-  private readonly now: Clock;
-
-  constructor(@Inject(CLOCK) now: Clock = systemClock) {
-    this.now = now;
-  }
-
-  async find(slugs: string[]): Promise<Map<string, StoredTitle>> {
-    const found = new Map<string, StoredTitle>();
-    for (const slug of slugs) {
-      const row = this.titles.get(slug);
-      if (row) found.set(slug, { ...row });
-    }
-    return found;
-  }
-
-  async episodes(slug: string): Promise<Map<number, string>> {
-    return new Map(this.stills.get(slug));
-  }
-
-  async saveMatched({ title, episodes }: MatchedArt): Promise<void> {
-    const existing = this.titles.get(title.source_slug);
-    if (existing?.status === 'matched' && !isStale(existing)) return;
-    this.titles.set(title.source_slug, {
-      slug: title.source_slug,
-      status: 'matched',
-      tmdbId: title.tmdb_id,
-      tmdbSeason: title.tmdb_season,
-      matchScope: title.match_scope,
-      backdropPath: title.backdrop_path,
-      backdropLang: title.backdrop_lang,
-      posterPath: title.poster_path,
-      posterLang: title.poster_lang,
-      reason: null,
-      matcherVersion: MATCHER_VERSION,
-      attemptedAt: this.now(),
-      sourceName: title.source_name,
-      sourceYear: title.source_year,
-      sourceEpisodeCount: title.source_episode_count,
-      matchedBy: title.matched_by,
-      ...(existing?.tmdbId === title.tmdb_id
-        ? overviewOf(existing)
-        : NO_OVERVIEW),
-    });
-    this.stills.set(
-      title.source_slug,
-      new Map(episodes.map((e) => [e.episode_number, e.still_path])),
-    );
-  }
-
-  async saveMiss(
-    source: TitleSource,
-    status: MissStatus,
-    reason: string,
-  ): Promise<void> {
-    const { slug } = source;
-    if (this.titles.get(slug)?.status === 'matched') return;
-    this.titles.set(slug, {
-      slug,
-      status,
-      tmdbId: null,
-      tmdbSeason: null,
-      matchScope: null,
-      backdropPath: null,
-      backdropLang: null,
-      posterPath: null,
-      posterLang: null,
-      reason,
-      matcherVersion: MATCHER_VERSION,
-      attemptedAt: this.now(),
-      sourceName: source.name,
-      sourceYear: source.year ?? null,
-      sourceEpisodeCount: source.episodeCount ?? null,
-      matchedBy: null,
-      ...NO_OVERVIEW,
-    });
-  }
-
-  async saveOverview(
-    slug: string,
-    tmdbId: number,
-    result: OverviewResult,
-  ): Promise<void> {
-    const row = this.titles.get(slug);
-    if (row?.status !== 'matched' || row.tmdbId !== tmdbId) return;
-    if (row.overviewStatus === 'ok') return;
-    this.titles.set(slug, {
-      ...row,
-      ...overviewColumns(result),
-      overviewAttemptedAt: this.now(),
-    });
-  }
-}
-
-function overviewOf(row: StoredTitle) {
-  const {
-    overview,
-    overviewLang,
-    overviewTranslated,
-    overviewStatus,
-    overviewAttemptedAt,
-  } = row;
-  return {
-    overview,
-    overviewLang,
-    overviewTranslated,
-    overviewStatus,
-    overviewAttemptedAt,
-  };
 }
 
 function overviewColumns(result: OverviewResult) {

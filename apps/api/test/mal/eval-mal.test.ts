@@ -1,7 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import { evalCells, evalInput, formatRow } from '../../scripts/eval-mal.ts';
+import type { MalCandidate } from '../../src/mal/mal.client.ts';
 import type { MalJevVerdict } from '../../src/mal/mal.jev.ts';
-import { TENKEN_1, TENKEN_2 } from './helpers.ts';
+
+const TENKEN_2: MalCandidate = {
+  id: 53913,
+  title: 'Tensei shitara Ken deshita II',
+  english: 'Reincarnated as a Sword Season 2',
+  synonyms: ['I became the sword by transmigrating 2nd Season', 'TenKen 2'],
+  year: 2026,
+  episodes: 12,
+  mediaType: 'tv',
+  score: 7.55,
+  voters: 69596,
+  rank: 2006,
+  popularity: 1762,
+  members: 157000,
+  airing: 'currently_airing',
+  startDate: null,
+  startSeason: { year: 2026, season: 'winter' },
+};
+
+const TENKEN_1: MalCandidate = {
+  ...TENKEN_2,
+  id: 52347,
+  title: 'Tensei shitara Ken deshita',
+  english: 'Reincarnated as a Sword',
+  synonyms: ['I became the sword by transmigrating', 'TenKen'],
+  year: 2022,
+  airing: 'finished_airing',
+  startDate: '2022-10-05',
+  startSeason: { year: 2022, season: 'fall' },
+};
 
 const verdict = (over: Partial<MalJevVerdict> = {}): MalJevVerdict => ({
   choice: TENKEN_2,

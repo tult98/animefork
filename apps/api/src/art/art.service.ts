@@ -3,18 +3,9 @@ import { CLOCK, type Clock } from '../common/clock.ts';
 import type { MalFiller } from '../mal/mal.filler.ts';
 import { MAL_FILLER } from '../mal/mal.module.ts';
 import { isMalSettled } from '../mal/mal.retry.ts';
-import {
-  MAL_STORE,
-  MemoryMalStore,
-  type MalStore,
-  type StoredMal,
-} from '../mal/mal.store.ts';
+import { MAL_STORE, type MalStore, type StoredMal } from '../mal/mal.store.ts';
 import { isAvsStale } from '../ratings/ratings.ts';
-import {
-  MemoryRatingsStore,
-  RATINGS_STORE,
-  type RatingsStore,
-} from '../ratings/ratings.store.ts';
+import { RATINGS_STORE, type RatingsStore } from '../ratings/ratings.store.ts';
 import type {
   ArtEntry,
   LookupRequest,
@@ -26,7 +17,6 @@ import { isOverviewSettled, isSettled, isStale } from './retry.ts';
 import { ART_STORE, type ArtStore, type StoredTitle } from './art.store.ts';
 import { ART_SYNC, ArtFiller } from './art.filler.ts';
 import {
-  MemoryTitleNamesStore,
   TITLE_NAMES_STORE,
   type StoredNames,
   type TitleNamesStore,
@@ -49,12 +39,11 @@ export class ArtService {
     @Inject(ART_STORE) store: ArtStore,
     @Inject(ArtFiller) filler: ArtFiller,
     @Inject(CLOCK) clock: Clock,
-    @Inject(RATINGS_STORE) ratings: RatingsStore = new MemoryRatingsStore(),
-    @Inject(MAL_STORE) mal: MalStore = new MemoryMalStore(),
+    @Inject(RATINGS_STORE) ratings: RatingsStore,
+    @Inject(MAL_STORE) mal: MalStore,
     @Inject(MAL_FILLER) malFiller: MalFiller | null = null,
     @Inject(ART_SYNC) sync: SyncDeps | null = null,
-    @Inject(TITLE_NAMES_STORE)
-    names: TitleNamesStore = new MemoryTitleNamesStore(),
+    @Inject(TITLE_NAMES_STORE) names: TitleNamesStore,
   ) {
     this.store = store;
     this.filler = filler;
