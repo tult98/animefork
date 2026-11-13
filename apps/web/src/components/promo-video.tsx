@@ -9,7 +9,5 @@ export function PromoVideo({ youtubeId }: { youtubeId: string }) {
   ) {
     return null;
   }
-  return (
-    <Trailer youtubeId={youtubeId} muted loop testId="card:promo-video" />
-  );
+  return <Trailer youtubeId={youtubeId} muted loop testId="card:promo-video" />;
 }
