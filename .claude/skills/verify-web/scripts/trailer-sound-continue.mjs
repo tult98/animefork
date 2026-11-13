@@ -2,9 +2,9 @@
 import { start } from './rec.mjs';
 const r = await start('trailer-sound-continue', {
   ev: process.env.EV,
-  actions: 2,
+  actions: 3,
   proves:
-    'home (session and watch history mocked from live titles): a continue watching card plays its trailer with a round sound button over the video; turning sound on there unmutes the hero, and muting the hero mutes the next card trailer',
+    'home (session and watch history mocked from live titles): a continue watching card plays its trailer with a round sound button over the video; turning sound on there unmutes the hero, and muting the hero mutes the next card trailer; only one video plays at a time; the details modal of a continue title plays its trailer',
 });
 const { page } = r;
 await page.goto(r.url('/'));
@@ -192,7 +192,41 @@ if (again >= 0) {
     'its button offers to turn sound on',
     (await sound.getAttribute('aria-label')) === 'Bật tiếng',
   );
+  const videos = await page
+    .locator('[data-testid="trailer"], [data-testid="card:promo-video"]')
+    .count();
+  r.check(
+    `only the card video plays while its popover is open (${videos} video)`,
+    videos === 1 &&
+      (await page
+        .locator('[data-testid="hero"] [data-testid="trailer"]')
+        .count()) === 0,
+  );
   await r.shot('4-next-card-follows-muted');
+
+  await r.click(
+    page.getByTestId(`card:continue:${rows[again].slug}:details`),
+    'Open the details of the continue watching title',
+  );
+  const modalPlays = await page
+    .waitForSelector(
+      '[data-testid="details"] [data-testid="trailer"][data-phase="playing"]',
+      { timeout: 30000 },
+    )
+    .then(() => true)
+    .catch(() => false);
+  r.check(
+    'the details modal of a continue watching title plays its trailer',
+    modalPlays,
+  );
+  if (modalPlays) {
+    await page.waitForTimeout(1200);
+    const open = await page
+      .locator('[data-testid="trailer"], [data-testid="card:promo-video"]')
+      .count();
+    r.check(`only the modal video plays (${open} video)`, open === 1);
+    await r.shot('5-continue-details-trailer');
+  }
 }
 
 const res = await r.finish();
