@@ -68,6 +68,7 @@ export async function syncEpisodes(
         number: episode.number,
         title: episode.title,
         titleVi: null,
+        aired: episode.aired,
         synopsis: null,
         synopsisVi: null,
         synopsisFetched: false,

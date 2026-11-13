@@ -9,6 +9,7 @@ export interface StoredEpisode {
   number: number;
   title: string;
   titleVi: string | null;
+  aired: string | null;
   synopsis: string | null;
   synopsisVi: string | null;
   // False until the episode page was fetched, so an empty synopsis is fetched once, not every run.
@@ -73,7 +74,7 @@ export class MemoryEpisodeStore implements EpisodeStore {
   }
 
   async saveListed(malId: number, episodes: ListedEpisode[]): Promise<void> {
-    for (const { number, title } of episodes) {
+    for (const { number, title, aired } of episodes) {
       const row = this.rows.get(this.key(malId, number));
       this.rows.set(this.key(malId, number), {
         malId,
@@ -83,6 +84,7 @@ export class MemoryEpisodeStore implements EpisodeStore {
         synopsisFetched: false,
         ...row,
         title,
+        aired,
         titleVi: row && row.title === title ? row.titleVi : null,
       });
     }
@@ -119,6 +121,7 @@ interface EpisodeRow {
   episode_number: number;
   title: string;
   title_vi: string | null;
+  aired: string | null;
   synopsis: string | null;
   synopsis_vi: string | null;
   synopsis_fetched_at: Date | null;
@@ -142,8 +145,8 @@ export class PostgresEpisodeStore implements EpisodeStore {
 
   async find(malId: number): Promise<Map<number, StoredEpisode>> {
     const { rows } = await this.pool.query<EpisodeRow>(
-      `select mal_id, episode_number, title, title_vi, synopsis, synopsis_vi,
-              synopsis_fetched_at
+      `select mal_id, episode_number, title, title_vi, to_char(aired, 'YYYY-MM-DD') as aired,
+              synopsis, synopsis_vi, synopsis_fetched_at
          from episode_info where mal_id = $1`,
       [malId],
     );
@@ -155,6 +158,7 @@ export class PostgresEpisodeStore implements EpisodeStore {
           number: row.episode_number,
           title: row.title,
           titleVi: row.title_vi,
+          aired: row.aired,
           synopsis: row.synopsis,
           synopsisVi: row.synopsis_vi,
           synopsisFetched: row.synopsis_fetched_at !== null,
