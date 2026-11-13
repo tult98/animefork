@@ -13,6 +13,7 @@ const ep = (title: string) => ({
   title,
   titleAlt: null,
   aired: '2026-10-03',
+  synopsis: 'He opens it.',
 });
 
 describe.skipIf(!url)('PostgresEpisodeStore against DATABASE_URL', () => {
@@ -44,12 +45,30 @@ describe.skipIf(!url)('PostgresEpisodeStore against DATABASE_URL', () => {
       title: 'The Door to Hell',
       titleVi: 'Cánh cửa địa ngục',
       aired: '2026-10-03',
+      synopsis: 'He opens it.',
+      synopsisVi: null,
     });
 
     await store.saveListed(malId, [ep('The Door to Heaven')]);
     expect((await store.find(malId)).get(1)).toMatchObject({
       title: 'The Door to Heaven',
       titleVi: null,
+    });
+  });
+
+  it('keeps a translated synopsis across a repeat listing and drops it when the synopsis changes', async () => {
+    await store.saveListed(malId, [ep('The Door')]);
+    await store.saveSynopsisTranslation(malId, 1, 'Anh mở nó.');
+
+    await store.saveListed(malId, [ep('The Door')]);
+    expect((await store.find(malId)).get(1)?.synopsisVi).toBe('Anh mở nó.');
+
+    await store.saveListed(malId, [
+      { ...ep('The Door'), synopsis: 'She runs.' },
+    ]);
+    expect((await store.find(malId)).get(1)).toMatchObject({
+      synopsis: 'She runs.',
+      synopsisVi: null,
     });
   });
 

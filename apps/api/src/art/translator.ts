@@ -57,6 +57,15 @@ export const TITLE_BATCH_PROMPT = [
   batchRules('title', 'title'),
 ].join('\n');
 
+// A batch holds a few synopses, not fifty, so its answer fits in one completion.
+export const SYNOPSIS_BATCH_SIZE = 5;
+
+export const SYNOPSIS_BATCH_PROMPT = [
+  TRANSLATION_PROMPT.split('\n').slice(0, 2).join('\n'),
+  'Do not add, remove or explain anything.',
+  batchRules('synopsis', 'synopsis'),
+].join('\n');
+
 const SENTENCE_END = /[.!?…。！？]["'”’)\]]*(?=\s|$)/g;
 
 export function truncateAtSentence(text: string, max: number): string {

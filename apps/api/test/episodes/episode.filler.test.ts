@@ -18,9 +18,13 @@ const INPUT = {
   episodeCount: 170,
 };
 
-const row = (n: number, title: string) =>
-  `<tr class="episode-list-data"><td class="episode-number nowrap" data-raw="${n}">${n}</td><td class="episode-title"><a href="x">${title}</a></td></tr>`;
-const listPage = `<table class="episode_list">${row(1, 'The Boy')}${row(2, 'The Door')}</table>`;
+const listPage = {
+  pagination: { has_next_page: false },
+  data: [
+    { mal_id: 1, title: 'The Boy', synopsis: 'A boy wakes.' },
+    { mal_id: 2, title: 'The Door', synopsis: 'He opens it.' },
+  ],
+};
 
 function setup(
   airing: 'finished_airing' | 'currently_airing' = 'finished_airing',
@@ -29,8 +33,8 @@ function setup(
   const now = () => new Date(t);
   const malStore = new MemoryMalStore(now);
   const episodeStore = new MemoryEpisodeStore();
-  const fetch = vi.fn<typeof globalThis.fetch>(
-    async () => new Response(listPage),
+  const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+    Response.json(listPage),
   );
   const site = createEpisodeSiteClient({
     fetch,
@@ -41,7 +45,7 @@ function setup(
   const episodes = new EpisodeFiller(
     episodeStore,
     site,
-    { title: { translate } },
+    { title: { translate }, synopsis: { translate } },
     now,
   );
   const client: MalClient = {
@@ -62,15 +66,20 @@ function setup(
 }
 
 describe('episode names on a MAL fill', () => {
-  it('asks MAL for one list page and stores the translated titles', async () => {
+  it('asks Tenrai for one list page and stores the translated titles and synopses', async () => {
     const { filler, episodeStore, urls } = setup();
 
     await filler.fill(INPUT);
+    await filler.idle();
 
-    expect(urls()).toEqual(['https://myanimelist.net/anime/7/x/episode']);
+    expect(urls()).toEqual([
+      'https://api.tenrai.org/v1/anime/7/episodes?page=1',
+    ]);
     expect(episodeStore.rows.get('7:2')).toMatchObject({
       title: 'The Door',
       titleVi: 'vi The Door',
+      synopsis: 'He opens it.',
+      synopsisVi: 'vi He opens it.',
     });
   });
 

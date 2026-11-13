@@ -10,6 +10,7 @@ const titles = (count: number) =>
     title: `Title ${i + 1}`,
     titleAlt: null,
     aired: null,
+    synopsis: null,
   }));
 
 const reply = (content: string) =>
@@ -58,7 +59,7 @@ function setup(
   const filler = new EpisodeFiller(
     store,
     { list },
-    { title: translator },
+    { title: translator, synopsis: translator },
     () => new Date('2026-01-01T00:00:00Z'),
   );
   const target = (malId: number) => ({
@@ -149,7 +150,7 @@ describe('episode title translation', () => {
     const later = new EpisodeFiller(
       first.store,
       { list: async () => titles(3) },
-      { title: translator },
+      { title: translator, synopsis: translator },
       () => new Date('2026-01-03T00:00:00Z'),
     );
     await later.fill(first.target(1));

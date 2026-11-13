@@ -1,5 +1,5 @@
 import type pg from 'pg';
-import type { ListedEpisode } from './episode.parser.ts';
+import type { ListedEpisode } from './episode.client.ts';
 import type { EpisodeListAttempt } from './episode.retry.ts';
 
 export interface StoredEpisode {
@@ -8,6 +8,8 @@ export interface StoredEpisode {
   title: string;
   titleVi: string | null;
   aired: string | null;
+  synopsis: string | null;
+  synopsisVi: string | null;
 }
 
 export const EPISODE_STORE = Symbol('EpisodeStore');
@@ -17,12 +19,17 @@ export interface EpisodeStore {
   // When the list page of each entry was last read, for the entries that were.
   listAttempts(malIds: number[]): Promise<Map<number, EpisodeListAttempt>>;
   saveListAttempt(attempt: EpisodeListAttempt): Promise<void>;
-  // Adds new episodes and refreshes the listed fields. A changed title drops its stale translation.
+  // Adds new episodes and refreshes the listed fields. A changed title or synopsis drops its stale translation.
   saveListed(malId: number, episodes: ListedEpisode[]): Promise<void>;
   saveTranslation(
     malId: number,
     number: number,
     titleVi: string,
+  ): Promise<void>;
+  saveSynopsisTranslation(
+    malId: number,
+    number: number,
+    synopsisVi: string,
   ): Promise<void>;
 }
 
@@ -56,7 +63,7 @@ export class MemoryEpisodeStore implements EpisodeStore {
   }
 
   async saveListed(malId: number, episodes: ListedEpisode[]): Promise<void> {
-    for (const { number, title, aired } of episodes) {
+    for (const { number, title, aired, synopsis } of episodes) {
       const row = this.rows.get(this.key(malId, number));
       this.rows.set(this.key(malId, number), {
         malId,
@@ -64,7 +71,9 @@ export class MemoryEpisodeStore implements EpisodeStore {
         ...row,
         title,
         aired,
+        synopsis,
         titleVi: row && row.title === title ? row.titleVi : null,
+        synopsisVi: row && row.synopsis === synopsis ? row.synopsisVi : null,
       });
     }
   }
@@ -77,6 +86,15 @@ export class MemoryEpisodeStore implements EpisodeStore {
     const row = this.rows.get(this.key(malId, number));
     if (row) this.rows.set(this.key(malId, number), { ...row, titleVi });
   }
+
+  async saveSynopsisTranslation(
+    malId: number,
+    number: number,
+    synopsisVi: string,
+  ): Promise<void> {
+    const row = this.rows.get(this.key(malId, number));
+    if (row) this.rows.set(this.key(malId, number), { ...row, synopsisVi });
+  }
 }
 
 interface EpisodeRow {
@@ -85,6 +103,8 @@ interface EpisodeRow {
   title: string;
   title_vi: string | null;
   aired: string | null;
+  synopsis: string | null;
+  synopsis_vi: string | null;
 }
 
 export class PostgresEpisodeStore implements EpisodeStore {
@@ -96,7 +116,8 @@ export class PostgresEpisodeStore implements EpisodeStore {
 
   async find(malId: number): Promise<Map<number, StoredEpisode>> {
     const { rows } = await this.pool.query<EpisodeRow>(
-      `select mal_id, episode_number, title, title_vi, to_char(aired, 'YYYY-MM-DD') as aired
+      `select mal_id, episode_number, title, title_vi, to_char(aired, 'YYYY-MM-DD') as aired,
+              synopsis, synopsis_vi
          from episode_info where mal_id = $1`,
       [malId],
     );
@@ -109,6 +130,8 @@ export class PostgresEpisodeStore implements EpisodeStore {
           title: row.title,
           titleVi: row.title_vi,
           aired: row.aired,
+          synopsis: row.synopsis,
+          synopsisVi: row.synopsis_vi,
         },
       ]),
     );
@@ -156,21 +179,25 @@ export class PostgresEpisodeStore implements EpisodeStore {
   async saveListed(malId: number, episodes: ListedEpisode[]): Promise<void> {
     if (episodes.length === 0) return;
     await this.pool.query(
-      `insert into episode_info (mal_id, episode_number, title, title_alt, aired)
-       select $1::int, n, t, a, d::date
-         from unnest($2::int[], $3::text[], $4::text[], $5::text[]) as e(n, t, a, d)
+      `insert into episode_info (mal_id, episode_number, title, title_alt, aired, synopsis)
+       select $1::int, n, t, a, d::date, y
+         from unnest($2::int[], $3::text[], $4::text[], $5::text[], $6::text[]) as e(n, t, a, d, y)
        on conflict (mal_id, episode_number) do update set
          title_vi = case when episode_info.title = excluded.title
                          then episode_info.title_vi end,
+         synopsis_vi = case when episode_info.synopsis is not distinct from excluded.synopsis
+                            then episode_info.synopsis_vi end,
          title = excluded.title,
          title_alt = excluded.title_alt,
-         aired = excluded.aired`,
+         aired = excluded.aired,
+         synopsis = excluded.synopsis`,
       [
         malId,
         episodes.map((e) => e.number),
         episodes.map((e) => e.title),
         episodes.map((e) => e.titleAlt),
         episodes.map((e) => e.aired),
+        episodes.map((e) => e.synopsis),
       ],
     );
   }
@@ -186,6 +213,18 @@ export class PostgresEpisodeStore implements EpisodeStore {
          translated_at = now()
        where mal_id = $1 and episode_number = $2`,
       [malId, number, titleVi],
+    );
+  }
+
+  async saveSynopsisTranslation(
+    malId: number,
+    number: number,
+    synopsisVi: string,
+  ): Promise<void> {
+    await this.pool.query(
+      `update episode_info set synopsis_vi = $3
+       where mal_id = $1 and episode_number = $2`,
+      [malId, number, synopsisVi],
     );
   }
 }
