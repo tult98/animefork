@@ -14,6 +14,15 @@ Vitest, `supertest` against the Nest app, and `@fetch-mock/vitest` for the calls
 - Test a job that has no endpoint, such as a filler, by calling its public method and reading the store afterwards.
 - Test a pure function directly only when it holds real logic a reader would want to see as a table of inputs and outputs, such as a matcher or a query builder.
 - Do not test plumbing that has no behavior of its own: a Zod schema in a `contract.ts`, a cookie helper, a config parser or a provider binding that an endpoint test already runs.
+- Replace only what the service does not own: other servers (fetch-mock), the clock, the mailer and the database. Do not replace a service, a guard, a pipe or a controller of this codebase with `vi.fn`, `vi.mock` or `overrideProvider`. A test that replaces them passes while the real wiring is broken.
+
+## Shape of a test
+
+- Write three blocks with a blank line between them: set up the state and the routes, make one call, assert.
+- Assert every outcome the caller or the next request depends on. That is the response (status and body together), the rows the store holds afterwards, the requests sent to other servers, and the mail sent.
+- Assert an error by its status and its body (`401` and `{ error: 'invalid_credentials' }`). The web app branches on that code, so it is part of the contract.
+- A guarded endpoint gets one test without a session (`401`). An endpoint with a body gets one test with an invalid body (`400`). One each is enough, because every endpoint goes through the same guard and pipe.
+- Each test builds its own app and writes its own data. No test depends on another test's rows or on the order the tests run in. Do not seed data in `beforeAll` or in a shared file.
 
 ## Write the test so it reads on its own
 
@@ -23,7 +32,7 @@ A reader should understand a test from top to bottom without opening another fil
 - Do not make constants for values a test asserts on or routes by. The test shows them.
 - Do not hide a test's steps in helpers such as `signUp()`, `signedIn()` or `setup()`. Repeating two or three requests is fine. When a test needs state that takes a long flow to reach, such as a verified account, write that state to the memory store in the test instead of replaying the flow.
 - No `helpers.ts`, no `fixtures.ts`, no `*-mock.ts`. A shared file of named entities (`TONIKAWA`, `TENKEN_2`) or a shared table of routes makes the reader open it to learn what the test received.
-- The one shared helper is the app builder in `test/test-app.ts`. It boots `AppModule` with the memory stores and returns `{ app, http, advance }`. A test passes it only what differs, such as an env value or one provider. Do not write a second `Test.createTestingModule` chain in a test file.
+- The one shared helper is the app builder in `test/test-app.ts`. It boots the real `AppModule` through `Test.createTestingModule`, binds the memory stores with `overrideProvider`, applies `configureApp` so the pipes, filters and CORS match production, and closes the app after the test. It returns `{ app, http, advance }`. A test passes it only what differs, such as an env value or one provider. Do not write a second `Test.createTestingModule` chain in a test file.
 
 ## Choose the scenarios
 
