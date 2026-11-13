@@ -2,7 +2,7 @@
 import fetchMock from '@fetch-mock/vitest';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '../../../test/test-utils.tsx';
+import { render, screen } from '../../../test/test-utils.tsx';
 import { AccountMenu } from '../../account-menu.tsx';
 import { SignInForm } from '../sign-in-form.tsx';
 
