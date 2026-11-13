@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "eval-matcher": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/eval-matcher.ts",
-    "eval-mal": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/eval-mal.ts"
+    "eval-mal": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/eval-mal.ts",
+    "backfill-trailers": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/backfill-trailers.ts"
   },
   "nx": {
     "targets": {
@@ -70,6 +71,9 @@
         "cache": false
       },
       "eval-mal": {
+        "cache": false
+      },
+      "backfill-trailers": {
         "cache": false
       }
     }
