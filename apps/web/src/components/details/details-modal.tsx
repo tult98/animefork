@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { episodeProgress } from '../../lib/titles/episode-progress.ts';
 import { titleWatchLink, watchLink } from '../../lib/titles/link.ts';
 import type { Title } from '../../lib/titles/title.ts';
+import { useEpisodeInfo } from '../../lib/titles/use-episode-info.ts';
 import { useWatchPage } from '../../lib/titles/use-watch-page.ts';
 import type { Episode } from '../../lib/titles/watch.ts';
+import { useListWindow } from '../../lib/ui/use-list-window.ts';
 import { Check, ChevronDown, Play, Star, X } from '../ui/icons.ts';
-
-const EPISODES_SHOWN = 12;
 
 const number = new Intl.NumberFormat('vi-VN');
 
@@ -106,9 +106,16 @@ function Episodes({
   const firstSlug = titleWatchLink(title).params.slug;
   const [slug, setSlug] = useState(firstSlug);
   const [menu, setMenu] = useState(false);
-  const [all, setAll] = useState(false);
   const watch = useWatchPage(slug);
-  const page = watch.data;
+  const total = watch.data?.episodes.length ?? 0;
+  const { end, bottomRef } = useListWindow(total, {
+    anchor: 0,
+    before: 0,
+    size: 12,
+    step: 50,
+    resetKey: slug,
+  });
+  const page = useEpisodeInfo(slug, watch.data, { start: 0, end });
   const seasons = page?.seasons ?? [];
 
   useEffect(() => {
@@ -123,7 +130,6 @@ function Episodes({
   }, [menu]);
 
   const episodes = page?.episodes ?? [];
-  const shown = all ? episodes : episodes.slice(0, EPISODES_SHOWN);
 
   return (
     <section
@@ -160,7 +166,6 @@ function Episodes({
                     data-testid={`details:season:${season.slug}`}
                     onClick={() => {
                       setSlug(season.slug);
-                      setAll(false);
                       setMenu(false);
                     }}
                   >
@@ -196,7 +201,7 @@ function Episodes({
       ) : (
         <>
           <ol className="details-eps">
-            {shown.map((episode) => (
+            {episodes.slice(0, end).map((episode) => (
               <li key={episode.id}>
                 <Link
                   {...watchLink(slug, episode.id)}
@@ -228,21 +233,9 @@ function Episodes({
               </li>
             ))}
           </ol>
+          {end < total ? <div ref={bottomRef} aria-hidden="true" /> : null}
           <p className="details-note">
-            Hiển thị {shown.length} / {episodes.length} tập
-            {episodes.length > shown.length ? (
-              <>
-                {' · '}
-                <button
-                  type="button"
-                  className="details-link"
-                  data-testid="details:more-episodes"
-                  onClick={() => setAll(true)}
-                >
-                  Xem tất cả
-                </button>
-              </>
-            ) : null}
+            Hiển thị {end} / {episodes.length} tập
           </p>
         </>
       )}

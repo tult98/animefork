@@ -41,6 +41,10 @@ if (typeof document !== 'undefined') {
       addEventListener: () => {},
       removeEventListener: () => {},
     }) as unknown as MediaQueryList;
+  const { StubIntersectionObserver } =
+    await import('./intersection-observer.ts');
+  globalThis.IntersectionObserver =
+    StubIntersectionObserver as unknown as typeof IntersectionObserver;
   globalThis.ResizeObserver = class {
     observe() {}
     unobserve() {}

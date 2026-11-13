@@ -1,7 +1,9 @@
-import { Controller, Get, Inject, Param } from '@nestjs/common';
+import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
 import {
   EPISODES_PATH,
+  EpisodesQuerySchema,
   EpisodesSlugSchema,
+  type EpisodesQuery,
   type EpisodesResponse,
 } from '../art/contract.ts';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.ts';
@@ -18,7 +20,8 @@ export class EpisodeInfoController {
   @Get(`${EPISODES_PATH}/:slug`)
   get(
     @Param('slug', new ZodValidationPipe(EpisodesSlugSchema)) slug: string,
+    @Query(new ZodValidationPipe(EpisodesQuerySchema)) query: EpisodesQuery,
   ): Promise<EpisodesResponse> {
-    return this.info.get(slug);
+    return this.info.get(slug, query);
   }
 }

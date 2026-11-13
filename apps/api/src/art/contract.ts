@@ -177,6 +177,21 @@ export const EPISODES_PATH = '/v1/episodes';
 
 export const EpisodesSlugSchema = z.string().regex(SLUG_PATTERN);
 
+export const EPISODES_PAGE_MAX = 100;
+
+// A page holds the stored episodes numbered `from` or higher, at most `limit` of them.
+export const EpisodesQuerySchema = z.object({
+  from: z.coerce.number().int().positive().default(1),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(EPISODES_PAGE_MAX)
+    .default(EPISODES_PAGE_MAX),
+});
+
+export type EpisodesQuery = z.infer<typeof EpisodesQuerySchema>;
+
 // Numbers, titles, synopses and air dates come from MyAnimeList's episode list. `titleVi` and `synopsisVi` are null
 // until translated. The synopsis fields are optional so a web build still parses an answer from an API that predates them.
 export const EpisodeInfoSchema = z.object({
@@ -195,6 +210,7 @@ export const EpisodeInfoSchema = z.object({
 export type EpisodeInfo = z.infer<typeof EpisodeInfoSchema>;
 
 export const EpisodesResponseSchema = z.object({
+  // Describes the title, not the page: a page past the last episode of a ready title is `ready` and empty.
   status: z.enum(['ready', 'pending', 'none']),
   // Sorted by number. Empty unless the status is `ready`.
   episodes: z.array(EpisodeInfoSchema),

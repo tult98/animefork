@@ -12,7 +12,9 @@ import {
   type Episode,
   type WatchPage,
 } from '../../lib/titles/watch.ts';
+import { useEpisodeInfo } from '../../lib/titles/use-episode-info.ts';
 import { useWatchPage } from '../../lib/titles/use-watch-page.ts';
+import { useListWindow } from '../../lib/ui/use-list-window.ts';
 import { ErrorScreen } from '../error-screen.tsx';
 import { LoaderCircle } from '../ui/icons.ts';
 import {
@@ -79,7 +81,29 @@ export function WatchScreen({
       startS: point?.positionS ?? 0,
     };
   }, [watch.data, episodeId, basis]);
-  const page = resolved?.page;
+  const page = useEpisodeInfo(slug, resolved?.page);
+
+  const playingId = resolved?.page.currentEpisode.id;
+  const browsedEpisodes = browsedQuery.data?.episodes ?? [];
+  const panelList = useListWindow(browsedEpisodes.length, {
+    anchor:
+      browseSlug === slug
+        ? Math.max(
+            0,
+            browsedEpisodes.findIndex((e) => e.id === playingId),
+          )
+        : 0,
+    before: 5,
+    size: 50,
+    step: 50,
+    resetKey: `${browseSlug}\n${playingId}`,
+  });
+  // Until the playing episode is known the window is not anchored yet, and its rows would ask for the wrong page.
+  const browsedPage = useEpisodeInfo(
+    browseSlug,
+    browsedQuery.data,
+    resolved ? panelList : { start: 0, end: 0 },
+  );
 
   if (watch.error) {
     return (
@@ -132,8 +156,8 @@ export function WatchScreen({
     void navigate({ ...watchLink(targetSlug, episode.id), replace: true });
   };
 
-  const browsed: BrowsedEpisodes = browsedQuery.data
-    ? { status: 'success', episodes: browsedQuery.data.episodes }
+  const browsed: BrowsedEpisodes = browsedPage
+    ? { status: 'success', episodes: browsedPage.episodes }
     : browsedQuery.error
       ? { status: 'error' }
       : { status: 'pending' };
@@ -161,6 +185,10 @@ export function WatchScreen({
           seasons={page.seasons}
           browseSlug={browseSlug}
           browsed={browsed}
+          start={panelList.start}
+          end={panelList.end}
+          topRef={panelList.topRef}
+          bottomRef={panelList.bottomRef}
           playingSlug={slug}
           playingEpisodeId={page.currentEpisode.id}
           playingProgress={progress}

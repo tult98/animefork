@@ -100,7 +100,7 @@ Each scenario is one script, one run of the persistent profile, one recorded pag
 EV=$(cat apps/web/artifacts/verify-web/latest) node .claude/skills/verify-web/scripts/<scenario>.mjs
 ```
 
-Exit 0 means every check passed and the clip is paced. Scenarios: `home-live`, `listing-sort-page`, `watch-player`. To write a new one copy `scripts/listing-sort-page.mjs`: `start(name, { ev, actions, proves })`, then `r.title()`, `r.click(locator, 'label')`, `r.type(locator, value, 'label')`, `r.check(name, bool)`, `r.shot(name)`, `r.url(path)`, `r.finish()`.
+Exit 0 means every check passed and the clip is paced. Scenarios: `home-live`, `listing-sort-page`, `watch-player`, `watch-episodes-scroll`, `watch-episodes-anchor`. To write a new one copy `scripts/listing-sort-page.mjs`: `start(name, { ev, actions, proves })`, then `r.title()`, `r.click(locator, 'label')`, `r.type(locator, value, 'label')`, `r.check(name, bool)`, `r.shot(name)`, `r.url(path)`, `r.finish()`.
 
 Handles: `data-testid` first (listed per feature), ARIA roles second, never coordinates. Dev-only hook `window.__app` (`route()`, `queryKeys()`, `shelves()`, `transport`) is for reading state, never for causing it.
 

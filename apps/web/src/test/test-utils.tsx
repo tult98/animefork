@@ -82,6 +82,7 @@ export function renderHook<Result, Props>(
 }
 
 export * from '@testing-library/react';
+export { intersectAll } from './intersection-observer.ts';
 
 declare module 'vitest' {
   interface Assertion {

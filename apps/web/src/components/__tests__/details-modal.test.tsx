@@ -3,7 +3,13 @@ import fetchMock from '@fetch-mock/vitest';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockWatchHtml } from '../../lib/titles/__mockData__/index.ts';
-import { render, screen, waitFor, within } from '../../test/test-utils.tsx';
+import {
+  intersectAll,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '../../test/test-utils.tsx';
 import { homeHtml, newEpisodesHtml, seasonHtml } from '../__mockData__/home.ts';
 import { Home } from '../home.tsx';
 
@@ -73,7 +79,9 @@ describe('the details modal', () => {
 
     await userEvent.click(cover('/phim/fresh-1-a1/'));
     const modal = await screen.findByTestId('details');
-    await expect(fetchMock).toBeFetched('path:/v1/episodes/fresh-1-a1');
+    await expect(fetchMock).toBeFetched('path:/v1/episodes/fresh-1-a1', {
+      query: { from: '1', limit: '100' },
+    });
 
     expect(
       within(modal).getByTestId('details:episode:72839'),
@@ -93,6 +101,84 @@ describe('the details modal', () => {
     expect(
       within(modal).queryByTestId('details:episode:73386:synopsis'),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows 12 episodes, then more as the list is scrolled to its end, with the names of the shown ones', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://api.test');
+    const episodes = Array.from(
+      { length: 120 },
+      (_, i) =>
+        `<li class="episode"><a data-id="${i + 1}" title="Tập ${i + 1}" data-play="api" data-hash="h${i + 1}">${i + 1}</a></li>`,
+    ).join('');
+    fetchMock
+      .get(
+        'path:/phim/hero-1-a1/xem-phim.html',
+        mockWatchHtml.replace(
+          /<ul class="list-episode">.*?<\/ul>/s,
+          `<ul class="list-episode">${episodes}</ul>`,
+        ),
+      )
+      .post('path:/v1/art/lookup', { art: {} })
+      .get(
+        'path:/v1/episodes/hero-1-a1',
+        {
+          status: 'ready',
+          episodes: [{ number: 1, title: 'One', titleVi: null, aired: null }],
+        },
+        { query: { from: '1', limit: '100' } },
+      )
+      .get(
+        'path:/v1/episodes/hero-1-a1',
+        {
+          status: 'ready',
+          episodes: [
+            { number: 101, title: 'Hundred', titleVi: null, aired: null },
+          ],
+        },
+        { query: { from: '101', limit: '100' } },
+      );
+    render(<Home />, { path: '/' });
+    await expect(fetchMock).toBeFetched(
+      'path:/danh-sach/all/all/autumn/2026/all/all/jp/',
+    );
+
+    await userEvent.click(
+      within(screen.getByTestId('hero:slide:0')).getByTestId('hero:info'),
+    );
+    const modal = await screen.findByTestId('details');
+    await expect(fetchMock).toBeFetched('path:/v1/episodes/hero-1-a1', {
+      query: { from: '1' },
+    });
+
+    expect(within(modal).getByTestId('details:episode:1')).toHaveTextContent(
+      'One',
+    );
+    expect(within(modal).getByTestId('details:episode:12')).toBeVisible();
+    expect(
+      within(modal).queryByTestId('details:episode:13'),
+    ).not.toBeInTheDocument();
+    expect(modal).toHaveTextContent('Hiển thị 12 / 120 tập');
+    expect(
+      within(modal).queryByTestId('details:more-episodes'),
+    ).not.toBeInTheDocument();
+
+    intersectAll();
+    expect(within(modal).getByTestId('details:episode:62')).toBeVisible();
+    expect(
+      within(modal).queryByTestId('details:episode:63'),
+    ).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveFetched('path:/v1/episodes/hero-1-a1', {
+      query: { from: '101' },
+    });
+
+    intersectAll();
+    await expect(fetchMock).toBeFetched('path:/v1/episodes/hero-1-a1', {
+      query: { from: '101' },
+    });
+    expect(within(modal).getByTestId('details:episode:101')).toHaveTextContent(
+      'Hundred',
+    );
+    expect(modal).toHaveTextContent('Hiển thị 112 / 120 tập');
   });
 
   it('opens from the info button of a hero slide', async () => {

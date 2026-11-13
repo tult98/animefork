@@ -28,6 +28,8 @@ A card or hero slide does not show the source image first and swap it later. `Ho
 
 The watch screen and the details modal both read the watch page through `useWatchPage`, and its lookup also carries `otherNames`, the titles the page lists under its heading in `h2.SubTitle` (English, romaji or pinyin). `parseOtherNames` in `src/lib/titles/watch.ts` splits that text on commas, semicolons and a slash with a space on each side, drops a trailing year such as `(2018)` and a trailing `Tập 228` or `Full`, drops repeats and the page title, and keeps at most 5 names of at most 120 characters. A page without a subtitle sends no `otherNames`. The service stores the names and uses them to find the show on MyAnimeList and TMDB, also for later lookups from listing cards, which carry none (see `apps/api/README.md`). No extra request is made for them.
 
+Episode names and synopses come from `GET /v1/episodes/:slug` through `useEpisodeInfo` (`src/lib/titles/use-episode-info.ts`), not `useWatchPage`. It asks for fixed pages of 100 episodes (`from=1`, `from=101`, ...) that cover the rows on screen, the playing episode and the next one, so the name of episode 900 costs one request. The details modal shows 12 episodes and the player's episodes panel 50. Both add 50 more when the end of the list nears the viewport (`useShownCount` in `src/lib/ui/use-shown-count.ts`).
+
 ## Transport
 
 Routes never fetch directly. They call the `upstream` client (a `ky` instance) from `src/lib/transport/`, which sends every request through one of two `Transport` implementations, chosen on first use.
