@@ -1,0 +1,71 @@
+name: Release extension
+
+# To release: bump "version" in apps/extension/package.json, merge it, then
+#   git tag v1.0.51 && git push origin v1.0.51
+# The tag must match the version, or the run stops before publishing.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-extension-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check the tag matches the extension version
+        id: version
+        run: |
+          version=$(node -p "require('./apps/extension/package.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match apps/extension/package.json version ${version}"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Lint and test
+        run: pnpm nx run-many -t lint test -p extension-animevsub-helper
+
+      - name: Zip for Chrome and Firefox
+        working-directory: apps/extension
+        run: |
+          pnpm exec wxt zip
+          pnpm exec wxt zip -b firefox
+
+      - name: Name the files for people
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p release
+          cp "apps/extension/dist/extension-animevsub-helper-${VERSION}-chrome.zip" "release/animefork-helper-${VERSION}-chrome.zip"
+          cp "apps/extension/dist/extension-animevsub-helper-${VERSION}-firefox.zip" "release/animefork-helper-${VERSION}-firefox.zip"
+          ls -l release
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" release/*.zip \
+            --title "Animefork Helper ${VERSION}" \
+            --generate-notes \
+            --verify-tag

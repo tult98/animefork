@@ -1,109 +1,117 @@
-# New Nx Repository
+# Animefork
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Animefork is a fast, Netflix-style way to browse and watch anime from AnimeVsub: shelves of new episodes, a Top 10, what is airing this season and what is coming next.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+Live site: **https://animefork.com**
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/docs/technologies/typescript/introduction?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+> [!IMPORTANT]
+> The website reads anime pages through a small browser add-on, **Animefork Helper**. Without it the site shows an error screen. Installing it takes about two minutes and is described below.
 
-🚀 If you haven't connected to Nx Cloud yet, [complete your setup here](https://cloud.nx.app/get-started). Get faster builds with remote caching, distributed task execution, and self-healing CI. [See how your workspace can benefit](#nx-cloud).
+## What it looks like
 
-## Generate a library
+**Home.** A hero carousel, then shelves for new episodes, today's Top 10, airing this season and upcoming titles.
+
+![Home page](docs/screenshots/home.png)
+
+**Airing this season.** Every show of the current season, sortable by latest episode or rating.
+
+![Airing this season](docs/screenshots/airing-this-season.png)
+
+**New episodes.** Everything that just got a new episode.
+
+![New episodes](docs/screenshots/new-episodes.png)
+
+**Upcoming.** Shows that are coming soon, with release dates where known.
+
+![Upcoming](docs/screenshots/upcoming.png)
+
+## Install the extension (Chrome, Edge, Brave, Opera)
+
+Chrome-based browsers let you add an extension by hand. This is called "developer mode". It is safe: you are only telling the browser to load a folder you downloaded yourself. You do not need to know how to code.
+
+### 1. Download it
+
+1. Open the [Releases page](https://github.com/tult98/animefork/releases).
+2. Under the newest release, click the file ending in **`-chrome.zip`** (for example `animefork-helper-1.0.50-chrome.zip`) to download it.
+
+### 2. Unzip it
+
+- **Mac:** double-click the zip file.
+- **Windows:** right-click the zip file, then **Extract All…**
+
+You get a folder. **Move it somewhere permanent** such as your Documents folder. The browser reads the extension from that folder every time it starts, so if you delete or move the folder, the extension stops working.
+
+Inside the folder you should see a file called `manifest.json`. If you only see another folder, open it and use that one.
+
+### 3. Turn on developer mode and load it
+
+1. In the address bar, type `chrome://extensions` and press Enter. (Edge: `edge://extensions`. Brave: `brave://extensions`. Opera: `opera://extensions`.)
+2. Switch on **Developer mode**. It is a toggle in the top right (Edge: bottom left).
+3. Click **Load unpacked**.
+4. Choose the folder from step 2, the one that contains `manifest.json`, and confirm.
+
+**Animefork Helper** now appears in your list of extensions.
+
+### 4. Use the site
+
+Open **https://animefork.com**. The home page should fill with shelves. If you opened the site before installing the extension, refresh the page.
+
+Tip: click the puzzle-piece icon in the toolbar and pin Animefork Helper if you want to see that it is on.
+
+### Troubleshooting
+
+| What you see                                                  | What to do                                                                                                  |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| The site says the extension is missing                        | Check it is switched on at `chrome://extensions`, then refresh the page.                                    |
+| "Manifest file is missing or unreadable" when loading         | You picked the wrong folder. Pick the one that directly contains `manifest.json`.                           |
+| The extension disappeared after you restarted or tidied files | The folder was moved or deleted. Put it back, or unzip again and use **Load unpacked** once more.           |
+| A banner says "Disable developer mode extensions"             | Chrome shows this on every start for hand-loaded extensions. Dismiss it, do not click **Disable**.          |
+| Videos do not play                                            | Make sure you are on the `https://` address. Some networks block the video host, so try another connection. |
+
+### Firefox
+
+Download the file ending in **`-firefox.zip`** from the Releases page. Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…** and pick the zip. Firefox forgets temporary add-ons when it closes, so you have to load it again each time.
+
+### Updating
+
+When a new release comes out, download and unzip it, then replace the contents of your old folder with the new files. Open `chrome://extensions` and click the circular **reload** arrow on Animefork Helper.
+
+## For developers
+
+This is an [Nx](https://nx.dev) monorepo managed with pnpm.
+
+| Folder             | What it is                                                                |
+| ------------------ | ------------------------------------------------------------------------- |
+| `apps/web`         | The website (React 19, Vite, TanStack Router and Query, Tailwind 4)       |
+| `apps/extension`   | Animefork Helper, built with [WXT](https://wxt.dev)                       |
+| `apps/api`         | Service for artwork lookups and accounts                                  |
+| `apps/desktop-web` | The older Vue version of the site, kept until the rebuild replaces it     |
+| `deploy`           | Docker Compose setup for the server, see [docs/deploy.md](docs/deploy.md) |
+
+Setup needs the Node version in `.nvmrc` and pnpm (the version is pinned in `package.json`).
 
 ```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
+pnpm install
+pnpm nx dev web                              # site on http://localhost:5180
+pnpm nx build extension-animevsub-helper     # builds apps/extension/dist/chrome-mv3
 ```
 
-## Run tasks
+To run the local site you also need the extension: load `apps/extension/dist/chrome-mv3` with **Load unpacked** as described above. Run checks with `pnpm nx run-many -t lint typecheck test build`. More detail is in [apps/web/README.md](apps/web/README.md).
 
-To build the library use:
+### Releasing the extension
 
-```sh
-npx nx run pkg1:build
-```
+Releases are built by [`.github/workflows/release-extension.yml`](.github/workflows/release-extension.yml) and published to [GitHub Releases](https://github.com/tult98/animefork/releases).
 
-To run any task with Nx use:
+1. Bump `version` in `apps/extension/package.json` and merge it to `main`.
+2. Tag that commit and push the tag:
 
-```sh
-npx nx run <project-name>:<target>
-```
+   ```sh
+   git tag v1.0.51
+   git push origin v1.0.51
+   ```
 
-These targets are either [inferred automatically](https://nx.dev/docs/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+The workflow checks that the tag matches the version, runs lint and tests, builds the Chrome and Firefox zips, and creates the release with generated notes. The two files attached are `animefork-helper-<version>-chrome.zip` and `animefork-helper-<version>-firefox.zip`.
 
-[More about running tasks in the docs &raquo;](https://nx.dev/docs/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## License
 
-## Versioning and releasing
-
-To version and release the library use
-
-```
-npx nx release
-```
-
-Pass `--dry-run` to see what would happen without actually releasing the library.
-
-[Learn more about Nx release &raquo;](https://nx.dev/docs/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Keep TypeScript project references up to date
-
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
-
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
-
-```sh
-npx nx sync
-```
-
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
-
-```sh
-npx nx sync:check
-```
-
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
-
-## Nx Cloud
-
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/docs/features/ci-features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/docs/features/ci-features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/docs/features/ci-features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/docs/features/ci-features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Set up CI (non-Github Actions CI)
-
-**Note:** This is only required if your CI provider is not GitHub Actions.
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/docs/features/ci-features?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/docs/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## 🔗 Learn More
-
-- [Nx Documentation](https://nx.dev/docs)
-- [Crafting Your Workspace Tutorial](https://nx.dev/docs/getting-started/tutorials/crafting-your-workspace)
-- [Module Boundaries](https://nx.dev/docs/features/enforce-module-boundaries)
-- [Releasing Packages](https://nx.dev/docs/features/manage-releases)
-- [Nx Plugins](https://nx.dev/docs/concepts/nx-plugins)
-- [Nx Cloud](https://nx.dev/nx-cloud)
-
-## 💬 Community
-
-Join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [X (Twitter)](https://twitter.com/nxdevtools)
-- [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [YouTube](https://www.youtube.com/@nxdevtools)
-- [Blog](https://nx.dev/blog)
+MIT, see [apps/extension/LICENSE](apps/extension/LICENSE).
