@@ -445,4 +445,28 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
       ),
     ).rejects.toThrow(/title_art_matched_has_tmdb/);
   });
+
+  it('writes episode text without touching the title and keeps the sync status per slug', async () => {
+    const s = slug('backfill');
+    await store.saveMatched({ title: title(s, '/b.jpg'), episodes: [] });
+
+    await store.saveEpisodeInfo(s, [
+      {
+        source_slug: s,
+        episode_number: 1,
+        name: 'One',
+        overview: 'First.',
+        overview_lang: 'en',
+      },
+    ]);
+    await store.saveEpisodeInfoSync(s, 'failed');
+    await store.saveEpisodeInfoSync(s, 'ok');
+
+    expect((await store.tmdbEpisodes(s)).get(1)).toMatchObject({
+      name: 'One',
+      overviewVi: null,
+    });
+    expect((await store.episodeInfoSync([s])).get(s)?.status).toBe('ok');
+    expect((await store.find([s])).get(s)?.backdropPath).toBe('/b.jpg');
+  });
 });

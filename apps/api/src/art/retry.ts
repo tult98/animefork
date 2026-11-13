@@ -72,3 +72,28 @@ export function isOverviewSettled(row: OverviewRetryRow, now: Date): boolean {
     OVERVIEW_RETRY_AFTER_MS[row.overviewStatus]
   );
 }
+
+// | episode info status | settled for | then                       |
+// | ------------------- | ----------- | -------------------------- |
+// | (none stored)       | not at all  | fetched on its next lookup |
+// | ok                  | forever     | never fetched again        |
+// | none                | 7 days      | fetched on its next lookup |
+// | failed              | 10 minutes  | fetched on its next lookup |
+export type EpisodeInfoStatus = 'ok' | 'none' | 'failed';
+
+export const EPISODE_INFO_RETRY_AFTER_MS: Record<EpisodeInfoStatus, number> = {
+  ok: Number.POSITIVE_INFINITY,
+  none: 7 * DAY,
+  failed: 10 * MINUTE,
+};
+
+export function isEpisodeInfoSettled(
+  row: { status: EpisodeInfoStatus; attemptedAt: Date } | undefined,
+  now: Date,
+): boolean {
+  if (!row) return false;
+  return (
+    now.getTime() - row.attemptedAt.getTime() <
+    EPISODE_INFO_RETRY_AFTER_MS[row.status]
+  );
+}
