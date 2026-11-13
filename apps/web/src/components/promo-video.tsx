@@ -17,17 +17,20 @@ export function PromoVideo({ youtubeId }: { youtubeId: string }) {
     return null;
   }
   return (
-    <iframe
-      src={promoVideoSrc(youtubeId)}
-      title=""
+    <div
       aria-hidden="true"
-      tabIndex={-1}
-      allow="autoplay; encrypted-media"
-      referrerPolicy="strict-origin-when-cross-origin"
-      onLoad={() => setLoaded(true)}
-      // The click belongs to the link under it.
-      className={`pointer-events-none absolute inset-0 size-full border-0 transition-opacity ${loaded ? 'opacity-100' : 'opacity-0'}`}
-      data-testid="card:promo-video"
-    />
+      data-loaded={loaded ? '' : undefined}
+      className="video-cover promo-video"
+    >
+      <iframe
+        src={promoVideoSrc(youtubeId)}
+        title=""
+        tabIndex={-1}
+        allow="autoplay; encrypted-media"
+        referrerPolicy="strict-origin-when-cross-origin"
+        onLoad={() => setLoaded(true)}
+        data-testid="card:promo-video"
+      />
+    </div>
   );
 }

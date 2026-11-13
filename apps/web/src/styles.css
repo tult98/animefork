@@ -260,12 +260,15 @@ body {
 }
 
 @layer components {
-  .trailer {
+  .video-cover {
     position: absolute;
     inset: 0;
     overflow: hidden;
     container-type: size;
     pointer-events: none;
+  }
+
+  .trailer {
     opacity: 0;
     transition: opacity 0.6s ease;
   }
@@ -274,6 +277,17 @@ body {
   .trailer[data-phase='playing'] {
     opacity: 1;
     transition-delay: var(--trailer-reveal-delay);
+  }
+
+  .promo-video {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  /* The plain embed reports only its page load, and YouTube's start overlay covers a card-sized video until about 4.5s after that. */
+  .promo-video[data-loaded] {
+    opacity: 1;
+    transition-delay: 5s;
   }
 
   .trailer-toggle {
@@ -288,7 +302,7 @@ body {
   }
 
   /* Covers its box like object-fit: cover, scaled past the edges so YouTube's title bar and logo fall outside. */
-  .trailer iframe {
+  .video-cover iframe {
     position: absolute;
     top: 50%;
     left: 50%;

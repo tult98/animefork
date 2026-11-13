@@ -101,7 +101,7 @@ export function Trailer({
       aria-hidden="true"
       data-phase={phase}
       data-testid="trailer"
-      className="trailer"
+      className="video-cover trailer"
     />
   );
 }
