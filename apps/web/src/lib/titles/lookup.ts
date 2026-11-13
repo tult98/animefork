@@ -2,7 +2,10 @@ import {
   TitleInputSchema,
   type TitleInput,
 } from '../../../../api/src/art/contract.ts';
-import { seasonMarker } from '../../../../api/src/art/tmdb/titles.ts';
+import {
+  seasonMarker,
+  stripSeasonMarker,
+} from '../../../../api/src/art/tmdb/titles.ts';
 import { titleWatchLink } from './link.ts';
 import type { HomeShelves } from './shelves.ts';
 import type { WatchPage } from './watch.ts';
@@ -61,5 +64,15 @@ export function watchLookupTitle(page: WatchPage): TitleInput | undefined {
     slug: page.slug,
     name: page.title,
     otherNames: page.otherNames,
+  });
+}
+
+// A sibling season is only a slug and a label, so the current title's name stands in for it and the API matches by slug.
+// The name drops the page's own season marker, which would otherwise pin every sibling to that season.
+export function seasonLookupTitles(page: WatchPage): TitleInput[] {
+  const name = stripSeasonMarker(page.title) || page.title;
+  return page.seasons.flatMap((season) => {
+    const input = toInput({ slug: season.slug, name });
+    return input ? [input] : [];
   });
 }
