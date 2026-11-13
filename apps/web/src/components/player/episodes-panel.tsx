@@ -136,7 +136,7 @@ function EpisodeRow({
         </span>
         {episode.synopsis ? (
           <span
-            className="line-clamp-2 text-badge text-muted"
+            className="line-clamp-3 text-badge text-muted"
             data-testid={`episode:${n}:synopsis`}
           >
             {episode.synopsis}

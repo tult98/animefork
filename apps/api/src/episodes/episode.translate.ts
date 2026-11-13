@@ -3,7 +3,7 @@ import {
   SYNOPSIS_BATCH_PROMPT,
   TITLE_BATCH_PROMPT,
   TITLE_TRANSLATION_PROMPT,
-  TRANSLATION_PROMPT,
+  EPISODE_SYNOPSIS_PROMPT,
   type OverviewTranslator,
 } from '../art/translator.ts';
 import type { DeepSeekConfig } from '../art/art.config.ts';
@@ -25,7 +25,7 @@ export function createEpisodeTranslators(
     }),
     synopsis: new DeepSeekTranslator({
       ...config,
-      prompt: TRANSLATION_PROMPT,
+      prompt: EPISODE_SYNOPSIS_PROMPT,
       batchPrompt: SYNOPSIS_BATCH_PROMPT,
       tag: 'synopsis',
     }),
