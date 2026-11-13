@@ -60,9 +60,11 @@ export function useWatchPage(slug: string) {
     if (!watch.data || artSettling) return undefined;
     const arted = art.data ? applyArt(watch.data, art.data) : watch.data;
     const informed = info.data ? applyEpisodeInfo(arted, info.data) : arted;
-    if (!seasonOrder.data) return informed;
     const startDates = new Map(
-      [...seasonOrder.data.ratings].map(([key, r]) => [key, r.mal?.startDate]),
+      [...(seasonOrder.data?.ratings ?? [])].map(([key, r]) => [
+        key,
+        r.mal?.startDate,
+      ]),
     );
     return {
       ...informed,
