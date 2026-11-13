@@ -1,10 +1,7 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import type { EpisodesResponse } from '../../../../api/src/art/contract.ts';
-import { api } from '../api/client.ts';
 import { upstream } from '../transport/index.ts';
 import { applyArt, artPollDelay, fetchArt, fetchHomeArt } from './art.ts';
-import { applyEpisodeInfo } from './episode-info.ts';
 import { seasonLookupTitles, watchLookupTitle } from './lookup.ts';
 import { sortSeasons } from './season-order.ts';
 import { parseWatchPage } from './watch.ts';
@@ -30,16 +27,6 @@ export function useWatchPage(slug: string) {
     refetchInterval: (query) =>
       artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
   });
-  const info = useQuery({
-    queryKey: ['watch-episode-info', slug],
-    queryFn: ({ signal }) =>
-      api.get(`v1/episodes/${slug}`, { signal }).json<EpisodesResponse>(),
-    refetchInterval: (query) =>
-      artPollDelay(
-        query.state.data?.status === 'pending',
-        query.state.dataUpdateCount,
-      ),
-  });
   const seasonCount = watch.data?.seasons.length ?? 0;
   const seasonOrder = useQuery({
     queryKey: ['watch-season-order', slug],
@@ -59,17 +46,13 @@ export function useWatchPage(slug: string) {
   const data = useMemo(() => {
     if (!watch.data || artSettling) return undefined;
     const arted = art.data ? applyArt(watch.data, art.data) : watch.data;
-    const informed = info.data ? applyEpisodeInfo(arted, info.data) : arted;
     const startDates = new Map(
       [...(seasonOrder.data?.ratings ?? [])].map(([key, r]) => [
         key,
         r.mal?.startDate,
       ]),
     );
-    return {
-      ...informed,
-      seasons: sortSeasons(informed.seasons, startDates),
-    };
-  }, [watch.data, art.data, info.data, seasonOrder.data, artSettling]);
+    return { ...arted, seasons: sortSeasons(arted.seasons, startDates) };
+  }, [watch.data, art.data, seasonOrder.data, artSettling]);
   return { data, error: watch.error, refetch: watch.refetch };
 }

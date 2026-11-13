@@ -1,3 +1,4 @@
+import type { RefCallback } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import { episodeRowText } from '../../lib/player/episode-row.ts';
 import { episodeTitle } from '../../lib/player/format.ts';
@@ -22,6 +23,8 @@ interface EpisodesPanelProps {
   seasons: Season[];
   browseSlug: string;
   browsed: BrowsedEpisodes;
+  shown: number;
+  sentinelRef: RefCallback<HTMLDivElement>;
   playingSlug: string;
   playingEpisodeId: string;
   playingProgress: number;
@@ -165,6 +168,8 @@ function EpisodesView({
   seasons,
   browseSlug,
   browsed,
+  shown,
+  sentinelRef,
   playingSlug,
   playingEpisodeId,
   playingProgress,
@@ -210,7 +215,7 @@ function EpisodesView({
             {PLAYER_COPY.failed}
           </p>
         ) : (
-          browsed.episodes.map((episode, index) => {
+          browsed.episodes.slice(0, shown).map((episode, index) => {
             const current =
               browseSlug === playingSlug && episode.id === playingEpisodeId;
             // The playing episode shows the live position once it moves, and what was saved until then.
@@ -233,6 +238,9 @@ function EpisodesView({
             );
           })
         )}
+        {browsed.status === 'success' && shown < browsed.episodes.length ? (
+          <div ref={sentinelRef} aria-hidden="true" />
+        ) : null}
       </div>
     </div>
   );

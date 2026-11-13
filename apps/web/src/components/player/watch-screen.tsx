@@ -12,7 +12,9 @@ import {
   type Episode,
   type WatchPage,
 } from '../../lib/titles/watch.ts';
+import { useEpisodeInfo } from '../../lib/titles/use-episode-info.ts';
 import { useWatchPage } from '../../lib/titles/use-watch-page.ts';
+import { useShownCount } from '../../lib/ui/use-shown-count.ts';
 import { ErrorScreen } from '../error-screen.tsx';
 import { LoaderCircle } from '../ui/icons.ts';
 import {
@@ -44,6 +46,16 @@ export function WatchScreen({
   const [view, setView] = useState<EpisodesView>('episodes');
   const browseSlug = browse ?? slug;
   const browsedQuery = useWatchPage(browseSlug);
+  const panelList = useShownCount(browsedQuery.data?.episodes.length ?? 0, {
+    initial: 50,
+    step: 50,
+    resetKey: browseSlug,
+  });
+  const browsedPage = useEpisodeInfo(
+    browseSlug,
+    browsedQuery.data,
+    { shown: panelList.shown },
+  );
 
   const slugRows = useProgressRows(slug);
   const browsedRows = useProgressRows(browseSlug);
@@ -79,7 +91,7 @@ export function WatchScreen({
       startS: point?.positionS ?? 0,
     };
   }, [watch.data, episodeId, basis]);
-  const page = resolved?.page;
+  const page = useEpisodeInfo(slug, resolved?.page);
 
   if (watch.error) {
     return (
@@ -132,8 +144,8 @@ export function WatchScreen({
     void navigate({ ...watchLink(targetSlug, episode.id), replace: true });
   };
 
-  const browsed: BrowsedEpisodes = browsedQuery.data
-    ? { status: 'success', episodes: browsedQuery.data.episodes }
+  const browsed: BrowsedEpisodes = browsedPage
+    ? { status: 'success', episodes: browsedPage.episodes }
     : browsedQuery.error
       ? { status: 'error' }
       : { status: 'pending' };
@@ -161,6 +173,8 @@ export function WatchScreen({
           seasons={page.seasons}
           browseSlug={browseSlug}
           browsed={browsed}
+          shown={panelList.shown}
+          sentinelRef={panelList.sentinelRef}
           playingSlug={slug}
           playingEpisodeId={page.currentEpisode.id}
           playingProgress={progress}

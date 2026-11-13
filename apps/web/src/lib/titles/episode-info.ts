@@ -1,7 +1,7 @@
-import type { EpisodesResponse } from '../../../../api/src/art/contract.ts';
+import type { EpisodeInfo } from '../../../../api/src/art/contract.ts';
 import type { WatchPage } from './watch.ts';
 
-function episodeNumber(label: string): number | undefined {
+export function episodeNumber(label: string): number | undefined {
   const match = /^Tập (\d+)(?![\d.])/.exec(label);
   return match?.[1] ? Number.parseInt(match[1], 10) : undefined;
 }
@@ -10,17 +10,17 @@ function episodeNumber(label: string): number | undefined {
 // The synopsis follows the same rule: the Vietnamese one, or MAL's English one until it is translated.
 export function applyEpisodeInfo(
   page: WatchPage,
-  info: EpisodesResponse,
+  info: EpisodeInfo[],
 ): WatchPage {
-  if (info.status !== 'ready') return page;
+  if (info.length === 0) return page;
   const names = new Map(
-    info.episodes.flatMap((e) => {
+    info.flatMap((e) => {
       const name = e.titleVi ?? e.title;
       return name ? [[e.number, name] as const] : [];
     }),
   );
   const synopses = new Map(
-    info.episodes.flatMap((e) => {
+    info.flatMap((e) => {
       const text = e.synopsisVi ?? e.synopsis;
       return text ? [[e.number, text] as const] : [];
     }),

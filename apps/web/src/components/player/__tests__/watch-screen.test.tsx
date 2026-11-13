@@ -6,7 +6,7 @@ import {
   MOCK_WATCH_SLUG,
   mockWatchHtml,
 } from '../../../lib/titles/__mockData__/index.ts';
-import { render, screen } from '../../../test/test-utils.tsx';
+import { intersectAll, render, screen } from '../../../test/test-utils.tsx';
 import { WatchScreen } from '../watch-screen.tsx';
 
 // The watch page has 3 episodes: "Tập 1" (72839), "Tập 2" (73010) and "Tập 3" (73386).
@@ -104,5 +104,56 @@ describe('the watch screen', () => {
     await expect(fetchMock).toBeFetched(
       'https://api.test/v1/skip-times/tonikaku-kawaii-a3860/2',
     );
+  });
+
+  it('names the playing episode past the 100th from its page of episode info, and lists 50 episodes and more on scroll', async () => {
+    const episodes = Array.from(
+      { length: 150 },
+      (_, i) =>
+        `<li class="episode"><a data-id="${i + 1}" title="Tập ${i + 1}" data-play="api" data-hash="h${i + 1}">${i + 1}</a></li>`,
+    ).join('');
+    fetchMock
+      .get(
+        'path:/phim/long-show-a1/xem-phim.html',
+        mockWatchHtml.replace(
+          /<ul class="list-episode">.*?<\/ul>/s,
+          `<ul class="list-episode">${episodes}</ul>`,
+        ),
+      )
+      .get(
+        'path:/v1/episodes/long-show-a1',
+        {
+          status: 'ready',
+          episodes: [{ number: 2, title: 'Two', titleVi: null, aired: null }],
+        },
+        { query: { from: '1', limit: '100' } },
+      )
+      .get(
+        'path:/v1/episodes/long-show-a1',
+        {
+          status: 'ready',
+          episodes: [
+            { number: 120, title: 'The Last', titleVi: null, aired: null },
+          ],
+        },
+        { query: { from: '101', limit: '100' } },
+      );
+    render(<WatchScreen slug="long-show-a1" episodeId="120" />, {
+      path: '/',
+    });
+    await expect(fetchMock).toBeFetched('path:/v1/episodes/long-show-a1', {
+      query: { from: '101' },
+    });
+
+    expect(await screen.findByTestId('player:episode-name')).toHaveTextContent(
+      'The Last',
+    );
+    expect(screen.getByTestId('episode:50')).toBeInTheDocument();
+    expect(screen.queryByTestId('episode:51')).not.toBeInTheDocument();
+    expect(screen.getByTestId('episode:2')).toHaveTextContent('Two');
+
+    intersectAll();
+    expect(screen.getByTestId('episode:100')).toBeInTheDocument();
+    expect(screen.queryByTestId('episode:101')).not.toBeInTheDocument();
   });
 });

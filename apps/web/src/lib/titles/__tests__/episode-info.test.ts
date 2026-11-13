@@ -16,27 +16,24 @@ const page = {
 
 describe('applyEpisodeInfo', () => {
   it('gives each episode its Vietnamese synopsis, or the English one until it is translated', () => {
-    const out = applyEpisodeInfo(page, {
-      status: 'ready',
-      episodes: [
-        {
-          number: 1,
-          title: 'The Boy',
-          titleVi: null,
-          aired: null,
-          synopsis: 'A boy wakes.',
-          synopsisVi: 'Một cậu bé thức dậy.',
-        },
-        {
-          number: 2,
-          title: 'The Door',
-          titleVi: null,
-          aired: null,
-          synopsis: 'He opens it.',
-          synopsisVi: null,
-        },
-      ],
-    });
+    const out = applyEpisodeInfo(page, [
+      {
+        number: 1,
+        title: 'The Boy',
+        titleVi: null,
+        aired: null,
+        synopsis: 'A boy wakes.',
+        synopsisVi: 'Một cậu bé thức dậy.',
+      },
+      {
+        number: 2,
+        title: 'The Door',
+        titleVi: null,
+        aired: null,
+        synopsis: 'He opens it.',
+        synopsisVi: null,
+      },
+    ]);
 
     expect(out.episodes.map((e) => e.synopsis)).toEqual([
       'Một cậu bé thức dậy.',
