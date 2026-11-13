@@ -7,6 +7,7 @@ import type { Title } from '../../lib/titles/title.ts';
 import {
   act,
   fireEvent,
+  intersectAll,
   render,
   screen,
   within,
@@ -192,5 +193,28 @@ describe('the hero', () => {
     expect(screen.queryByTestId('hero:mute')).not.toBeInTheDocument();
     expect(within(modal).getByTestId('trailer')).toBeInTheDocument();
     expect(screen.getAllByTestId('trailer')).toHaveLength(1);
+  });
+
+  it('stops the trailer and the slide timer while the hero is scrolled out of view, and resumes both when it returns', async () => {
+    const players = stubYouTube();
+    render(
+      <Hero items={[withTrailer(items[0]!, 'psyren'), items[1]!, items[2]!]} />,
+      { path: '/' },
+    );
+    const first = await vi.waitUntil(() => players[0]);
+    first.play();
+
+    intersectAll(false);
+    expect(first.destroy).toHaveBeenCalled();
+    expect(screen.queryByTestId('trailer')).not.toBeInTheDocument();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    act(() => void vi.advanceTimersByTime(30_000));
+    expect(screen.getByTestId('hero:counter')).toHaveTextContent('1 trên 3');
+    vi.useRealTimers();
+
+    intersectAll(true);
+    const again = await vi.waitUntil(() => players[1]);
+    expect(again.videoId).toBe('psyren');
+    expect(screen.getByTestId('trailer')).toBeInTheDocument();
   });
 });
