@@ -5,7 +5,7 @@ const r = await start('watch-season-order', {
   ev: process.env.EV,
   actions: 1,
   proves:
-    'season picker order follows the start dates the art lookup returned, undated seasons keep their place',
+    'season picker lists the main line by start date first, then movie/special/OVA entries',
 });
 const { page } = r;
 const bad = [];
@@ -14,6 +14,8 @@ page.on(
   (res) =>
     res.status() >= 400 &&
     !res.url().includes(':3100') &&
+    // The autoplaying stream is not under test here, and its host rate-limits repeated runs.
+    !res.url().includes('stream.googleapiscdn.com') &&
     bad.push(`${res.status()} ${new URL(res.url()).host}`),
 );
 const lookups = [];
@@ -28,19 +30,7 @@ async function openEpisodesPanel() {
 }
 
 const pad = (d) => `${d}${'-01-01'.slice(Math.max(0, d.length - 4))}`;
-function expectedOrder(upstream, dates) {
-  const dated = upstream.flatMap((slug, i) =>
-    dates[slug] ? [{ slug, i, d: pad(dates[slug]) }] : [],
-  );
-  const ordered = [...dated].sort((a, b) =>
-    a.d < b.d ? -1 : a.d > b.d ? 1 : a.i - b.i,
-  );
-  const out = [...upstream];
-  dated.forEach((slot, k) => {
-    out[slot.i] = ordered[k].slug;
-  });
-  return out;
-}
+const SIDE = /\b(movie|special|ova|ona)\b/i;
 
 await page.goto(r.url('/'));
 await page.waitForSelector('[data-testid^="card:/phim/"]', { timeout: 60000 });
@@ -116,7 +106,7 @@ for (let i = 0; i < 30; i++) {
 await page.waitForTimeout(1500);
 const final = await read();
 await r.shot('2-picker-after-lookup');
-const upstreamOrder = first.length === final.length ? first : final;
+const finalLabels = await labels();
 console.log('slug', found);
 console.log('labels', JSON.stringify(await labels()));
 console.log('first paint', JSON.stringify(first));
@@ -133,16 +123,17 @@ r.check(
   'the picker keeps the same seasons',
   [...final].sort().join() === [...first].sort().join(),
 );
+const isSide = finalLabels.map((l) => SIDE.test(l));
 r.check(
-  'the picker order equals the dated order with undated seasons in place',
-  JSON.stringify(final) ===
-    JSON.stringify(expectedOrder(upstreamOrder, dates)) ||
-    JSON.stringify(final) === JSON.stringify(expectedOrder(first, dates)),
+  `main-line seasons come before side entries (${finalLabels.join(' | ')})`,
+  isSide.every((side, i) => !side || isSide.slice(i).every(Boolean)),
 );
-const datesInPicker = final.flatMap((s) => (dates[s] ? [pad(dates[s])] : []));
+const mainDates = final.flatMap((slug, i) =>
+  !isSide[i] && dates[slug] ? [pad(dates[slug])] : [],
+);
 r.check(
-  `dated seasons read oldest to newest (${datesInPicker.join(' < ')})`,
-  datesInPicker.every((d, i) => i === 0 || datesInPicker[i - 1] <= d),
+  `main-line seasons read oldest to newest (${mainDates.join(' < ') || 'no dates'})`,
+  mainDates.every((d, i) => i === 0 || mainDates[i - 1] <= d),
 );
 r.check(
   `no failing upstream requests (${bad.join(', ') || 'none'})`,
