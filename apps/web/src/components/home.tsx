@@ -19,35 +19,46 @@ import {
 } from '../lib/titles/art.ts';
 import { useAvsSubmit } from '../lib/titles/use-avs-submit.ts';
 import {
-  fetchHome,
-  fetchNewEpisodes,
-  fetchSeason,
+  NEW_EPISODES_PATH,
   japaneseSeasonPath,
+  parseHome,
+  parseNewEpisodes,
+  parseSeason,
 } from '../lib/titles/home.ts';
 import { lookupTitles } from '../lib/titles/lookup.ts';
 import { buildHome } from '../lib/titles/shelves.ts';
 import { useContinueRows } from '../lib/watch-progress/use-continue-rows.ts';
-import { useTransport } from '../lib/transport/index.ts';
+import { upstream, upstreamPath } from '../lib/transport/index.ts';
 
 const NO_SLUGS: readonly string[] = [];
 
 export function Home() {
-  const transport = useTransport();
   const home = useQuery({
     queryKey: ['home'],
-    queryFn: ({ signal }) => fetchHome(transport, signal),
+    queryFn: ({ signal }) =>
+      upstream
+        .get('', { signal })
+        .text()
+        .then((html) => parseHome(html)),
   });
   // Started with the home page, not after it. A failed list only drops the shelf.
   const newEpisodes = useQuery({
     queryKey: ['new-episodes'],
-    queryFn: ({ signal }) => fetchNewEpisodes(transport, signal),
+    queryFn: ({ signal }) =>
+      upstream
+        .get(upstreamPath(NEW_EPISODES_PATH), { signal })
+        .text()
+        .then(parseNewEpisodes),
   });
   const seasonPath = home.data?.seasonPath ?? null;
   const season = useQuery({
     queryKey: ['season', seasonPath],
     queryFn: seasonPath
       ? ({ signal }) =>
-          fetchSeason(transport, japaneseSeasonPath(seasonPath), signal)
+          upstream
+            .get(upstreamPath(japaneseSeasonPath(seasonPath)), { signal })
+            .text()
+            .then(parseSeason)
       : skipToken,
   });
 

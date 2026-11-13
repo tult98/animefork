@@ -30,7 +30,7 @@ The watch screen and the details modal both read the watch page through `useWatc
 
 ## Transport
 
-Routes never fetch directly. They call `useTransport()` from `src/lib/transport/`, which returns one of two implementations.
+Routes never fetch directly. They call the `upstream` client (a `ky` instance) from `src/lib/transport/`, which sends every request through one of two `Transport` implementations, chosen on first use.
 
 - `ExtensionTransport` calls `Http` from `client-ext-animevsub-helper`, so the Animefork Helper extension does the fetching with the site's cookies. Relative URLs get the upstream origin (`VITE_UPSTREAM_ORIGIN`) and the `#animevsub-vsub` suffix. It throws `ExtensionMissingError` when the extension is absent.
 - `ReplayTransport` serves files from `public/fixtures/<set>/`, mapped from the URL path (`/` is `index.html`, `/a/b/` is `a/b.html`).

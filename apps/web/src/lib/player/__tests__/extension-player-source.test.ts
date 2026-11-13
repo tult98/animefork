@@ -1,7 +1,6 @@
 import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it } from 'vitest';
-import { FetchTransport } from '../../../test/fetch-transport.ts';
-import { TransportStatusError } from '../../transport/index.ts';
+import { HTTPError } from 'ky';
 import { StreamUnavailableError } from '../errors.ts';
 import { ExtensionPlayerSource } from '../extension-player-source.ts';
 
@@ -14,14 +13,12 @@ describe('the extension player source', () => {
       playTech: 'api',
     });
 
-    await expect(
-      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
-        episode,
-      ),
-    ).resolves.toEqual({
-      url: 'https://cdn.example/a.m3u8',
-      kind: 'hls',
-    });
+    await expect(new ExtensionPlayerSource().resolve(episode)).resolves.toEqual(
+      {
+        url: 'https://cdn.example/a.m3u8',
+        kind: 'hls',
+      },
+    );
     expect(fetchMock).toHavePosted('path:/ajax/player');
   });
 
@@ -36,9 +33,7 @@ describe('the extension player source', () => {
         '<script src="/static/avs-loader.min.js?v=1.35.2"></script><script>var id = "pl9"; var avsToken = "tok.en";</script>',
       );
 
-    const stream = await new ExtensionPlayerSource({
-      transport: new FetchTransport(),
-    }).resolve(episode);
+    const stream = await new ExtensionPlayerSource({}).resolve(episode);
 
     const url = new URL(stream.url);
     expect(stream.kind).toBe('hls');
@@ -58,28 +53,20 @@ describe('the extension player source', () => {
       })
       .get('path:/embed/1', '<p>none</p>');
 
-    await expect(
-      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
-        episode,
-      ),
-    ).rejects.toThrow(
+    await expect(new ExtensionPlayerSource().resolve(episode)).rejects.toThrow(
       new StreamUnavailableError('Player page has no id or avsToken.'),
     );
   });
 
   it('fails clearly when the server has no stream or sends a page instead of JSON', async () => {
     fetchMock.post('path:/ajax/player', { link: '' }, { repeat: 1 });
-    await expect(
-      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
-        episode,
-      ),
-    ).rejects.toThrow('This server has no stream.');
+    await expect(new ExtensionPlayerSource().resolve(episode)).rejects.toThrow(
+      'This server has no stream.',
+    );
 
     fetchMock.post('path:/ajax/player', '<html>blocked</html>');
     await expect(
-      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
-        episode,
-      ),
+      new ExtensionPlayerSource().resolve(episode),
     ).rejects.toBeInstanceOf(StreamUnavailableError);
   });
 
@@ -87,9 +74,7 @@ describe('the extension player source', () => {
     fetchMock.post('path:/ajax/player', 403);
 
     await expect(
-      new ExtensionPlayerSource({ transport: new FetchTransport() }).resolve(
-        episode,
-      ),
-    ).rejects.toBeInstanceOf(TransportStatusError);
+      new ExtensionPlayerSource().resolve(episode),
+    ).rejects.toBeInstanceOf(HTTPError);
   });
 });

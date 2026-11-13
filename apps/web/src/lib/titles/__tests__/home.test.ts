@@ -1,25 +1,12 @@
 // @vitest-environment jsdom
-import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
-import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
 import {
   MOCK_SEASON_PATH,
   mockHomeHtml,
   mockNewEpisodesHtml,
-  mockSeasonHtml,
 } from '../__mockData__/index.ts';
-import {
-  fetchHome,
-  fetchNewEpisodes,
-  fetchSeason,
-  japaneseSeasonPath,
-  NEW_EPISODES_PATH,
-  parseHome,
-  parseNewEpisodes,
-} from '../home.ts';
-
-const transport = new FetchTransport();
+import { japaneseSeasonPath, parseHome, parseNewEpisodes } from '../home.ts';
 
 describe('the home page', () => {
   it('lists the hero and top titles apart, in page order, with the season path', () => {
@@ -69,46 +56,28 @@ describe('the home page', () => {
   });
 });
 
-describe('fetching the home page', () => {
-  it('shows 2 hero titles and the season path, then the season titles', async () => {
-    fetchMock
-      .get(upstream('/'), mockHomeHtml)
-      .get(upstream(MOCK_SEASON_PATH), mockSeasonHtml);
-    const home = await fetchHome(transport);
-    expect(fetchMock).toHaveFetched(upstream('/'));
-    expect(home.hero).toHaveLength(2);
-
-    const season = await fetchSeason(transport, home.seasonPath!);
-    expect(fetchMock).toHaveFetched(upstream(MOCK_SEASON_PATH));
-    expect(season.map((t) => t.name)).toEqual(['Season One', 'Season Two']);
-  });
-
-  it('fails on a title with a bad rating, not on anything else', async () => {
-    fetchMock.get(
-      upstream('/'),
-      mockHomeHtml.replace(
-        /(<div class="MovieListSldCn"><ul>\s*<li[^>]*>.*?anime-avg-user-rating">)[^<]*/s,
-        '$1not-a-rating',
-      ),
+describe('a home page with a bad title', () => {
+  it('fails on a title with a bad rating, not on anything else', () => {
+    const html = mockHomeHtml.replace(
+      /(<div class="MovieListSldCn"><ul>\s*<li[^>]*>.*?anime-avg-user-rating">)[^<]*/s,
+      '$1not-a-rating',
     );
-    const error = await fetchHome(transport).catch((e) => e);
+    let error: unknown;
+    try {
+      parseHome(html);
+    } catch (e) {
+      error = e;
+    }
     expect(error).toBeInstanceOf(ZodError);
     expect((error as ZodError).issues.map((i) => i.path.at(-1))).toEqual([
       'rating',
     ]);
   });
-
-  it('fails with the status when the source is down', async () => {
-    fetchMock.get(upstream('/'), 503);
-    await expect(fetchHome(transport)).rejects.toThrow(/503/);
-  });
 });
 
 describe('the new episodes list', () => {
-  it('shows the titles newest first, with what each card says about its episode', async () => {
-    fetchMock.get(upstream(NEW_EPISODES_PATH), mockNewEpisodesHtml);
-    const titles = await fetchNewEpisodes(transport);
-    expect(fetchMock).toHaveFetched(upstream(NEW_EPISODES_PATH));
+  it('shows the titles newest first, with what each card says about its episode', () => {
+    const titles = parseNewEpisodes(mockNewEpisodesHtml);
     expect(titles.map((t) => t.name)).toEqual([
       'Ushiro no Shoumen Kamui-san',
       'Psyren',

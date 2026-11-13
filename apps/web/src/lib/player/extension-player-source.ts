@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { expectOk, type Transport } from '../transport/index.ts';
+import { upstream } from '../transport/index.ts';
 import { noteLoaderVersion } from './avs-playlist.ts';
 import { StreamUnavailableError } from './errors.ts';
 import type {
@@ -31,7 +31,6 @@ const PlayerResponseSchema = z.object({
 });
 
 export interface ExtensionPlayerSourceOptions {
-  transport: Transport;
   fetchImpl?: typeof fetch;
   decryptM3u8?: (encrypted: string) => Promise<string>;
 }
@@ -45,16 +44,13 @@ async function loadDecryptor(): Promise<
 }
 
 export class ExtensionPlayerSource implements PlayerSource {
-  private readonly transport: Transport;
   private readonly fetchImpl: typeof fetch;
   private readonly decryptM3u8: (encrypted: string) => Promise<string>;
 
   constructor({
-    transport,
     fetchImpl = (...args) => fetch(...args),
     decryptM3u8,
-  }: ExtensionPlayerSourceOptions) {
-    this.transport = transport;
+  }: ExtensionPlayerSourceOptions = {}) {
     this.fetchImpl = fetchImpl;
     this.decryptM3u8 = decryptM3u8 ?? decryptLazily;
   }
@@ -63,14 +59,14 @@ export class ExtensionPlayerSource implements PlayerSource {
     { id, play, hash }: StreamRequest,
     signal?: AbortSignal,
   ): Promise<ResolvedStream> {
-    const res = await this.transport.post({
-      url: '/ajax/player',
-      data: { id, play, link: hash, backuplinks: '1' },
-      signal,
-    });
-    expectOk(res, '/ajax/player');
+    const text = await upstream
+      .post('ajax/player', {
+        body: new URLSearchParams({ id, play, link: hash, backuplinks: '1' }),
+        signal,
+      })
+      .text();
 
-    const parsed = PlayerResponseSchema.safeParse(safeJson(res.data));
+    const parsed = PlayerResponseSchema.safeParse(safeJson(text));
     if (!parsed.success || !parsed.data.link) {
       throw new StreamUnavailableError('This server has no stream.');
     }
