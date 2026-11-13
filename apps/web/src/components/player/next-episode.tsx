@@ -1,7 +1,9 @@
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
+import { episodeTitle } from '../../lib/player/format.ts';
 import type { Episode } from '../../lib/titles/watch.ts';
-import { Play, SkipForward } from '../ui/icons.ts';
+import { SkipForward } from '../ui/icons.ts';
 import { IconButton } from './icon-button.tsx';
+import { NextThumb } from './next-thumb.tsx';
 
 export interface NextEpisodeInfo {
   episode: Episode;
@@ -26,43 +28,23 @@ export function NextEpisode({ next, image, onNext }: NextEpisodeProps) {
         <SkipForward aria-hidden="true" />
       </IconButton>
       {next ? (
-        <div className="pl-pop" style={{ width: 520 }}>
+        <div className="pl-pop" style={{ width: 344 }}>
           <div
             className="overflow-hidden rounded-lg bg-surface text-ink shadow-card"
             data-testid="player:next-card"
           >
-            <div className="bg-surface-alt px-6 py-4 text-title-sm">
+            <div className="border-b border-border-strong px-6 py-4 text-body-strong font-semibold">
               {PLAYER_COPY.nextEpisode}
             </div>
             <button
               type="button"
-              className="pl-item items-start! gap-6 p-6"
+              className="pl-item flex-col items-stretch! gap-2 p-4"
               onClick={onNext}
               tabIndex={-1}
             >
-              <span className="relative grid h-28 w-50 flex-none place-items-center overflow-hidden rounded-md bg-surface-alt">
-                {next.episode.thumbnail || image ? (
-                  <img
-                    src={next.episode.thumbnail ?? image}
-                    alt=""
-                    className="absolute inset-0 size-full object-cover opacity-60"
-                  />
-                ) : null}
-                <span className="relative grid size-11 place-items-center rounded-full bg-hero-overlay shadow-[inset_0_0_0_2px_var(--ink)]">
-                  <Play
-                    aria-hidden="true"
-                    className="ml-0.5 size-5 fill-current"
-                  />
-                </span>
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col gap-2">
-                <span className="flex items-baseline gap-4 text-lg font-semibold">
-                  <span className="tabular-nums">{next.number}</span>
-                  <span>{next.episode.name ?? next.episode.label}</span>
-                </span>
-                {next.episode.synopsis ? (
-                  <span className="text-sm">{next.episode.synopsis}</span>
-                ) : null}
+              <NextThumb episode={next.episode} image={image} />
+              <span className="truncate text-body-strong leading-[1.35] font-semibold">
+                {episodeTitle(next.episode)}
               </span>
             </button>
           </div>

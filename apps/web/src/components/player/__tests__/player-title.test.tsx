@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import fetchMock from '@fetch-mock/vitest';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '../../../test/test-utils.tsx';
 import { Player } from '../player.tsx';
@@ -50,5 +51,40 @@ describe('the title block at the top of the player', () => {
     expect(screen.getByTestId('player:title').nextSibling).toHaveTextContent(
       /^Tập 3$/,
     );
+  });
+});
+
+describe('the next-episode popover', () => {
+  it('names the next episode and plays it when the card is clicked', async () => {
+    const onNext = vi.fn();
+    render(
+      <Player
+        slug="black-clover"
+        seasonSlug="black-clover"
+        title="Black Clover"
+        episode={{ id: '1', hash: 'h', play: 'api', label: 'Tập 3' }}
+        nextEpisode={{
+          episode: {
+            id: '2',
+            hash: 'h',
+            play: 'api',
+            label: 'Tập 4',
+            name: 'Ngày Chuộc Tội',
+          },
+          number: 4,
+        }}
+        onNext={onNext}
+        startS={0}
+        onBack={() => {}}
+        episodesPanel={() => null}
+      />,
+    );
+
+    const card = screen.getByTestId('player:next-card');
+    expect(card).toHaveTextContent('Tập tiếp theo');
+    expect(card).toHaveTextContent('Tập 4: Ngày Chuộc Tội');
+
+    await userEvent.click(card.querySelector('button')!);
+    expect(onNext).toHaveBeenCalledOnce();
   });
 });
