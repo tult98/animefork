@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
-import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
 import { PG_POOL } from '../database/migration-runner.ts';
 import type { MalAiring, MalSeason, MalStartSeason } from '../art/contract.ts';
 import type { MalStatus } from './mal.retry.ts';
@@ -40,34 +39,6 @@ export interface MalStore {
   save(row: StoredMal): Promise<void>;
   // Records a failed refresh without touching the stored numbers, so it is not retried on every lookup.
   touch(slug: string): Promise<void>;
-}
-
-@Injectable()
-export class MemoryMalStore implements MalStore {
-  readonly rows = new Map<string, StoredMal>();
-  private readonly now: Clock;
-
-  constructor(@Inject(CLOCK) now: Clock = systemClock) {
-    this.now = now;
-  }
-
-  async find(slugs: string[]): Promise<Map<string, StoredMal>> {
-    const found = new Map<string, StoredMal>();
-    for (const slug of slugs) {
-      const row = this.rows.get(slug);
-      if (row) found.set(slug, { ...row });
-    }
-    return found;
-  }
-
-  async save(row: StoredMal): Promise<void> {
-    this.rows.set(row.slug, { ...row });
-  }
-
-  async touch(slug: string): Promise<void> {
-    const row = this.rows.get(slug);
-    if (row) this.rows.set(slug, { ...row, attemptedAt: this.now() });
-  }
 }
 
 interface MalRow {

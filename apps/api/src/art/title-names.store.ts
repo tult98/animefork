@@ -14,27 +14,6 @@ export interface TitleNamesStore {
   saveIfAbsent(slug: string, names: string[], now: Date): Promise<void>;
 }
 
-@Injectable()
-export class MemoryTitleNamesStore implements TitleNamesStore {
-  readonly rows = new Map<string, StoredNames>();
-
-  async find(slugs: string[]): Promise<Map<string, StoredNames>> {
-    const found = new Map<string, StoredNames>();
-    for (const slug of slugs) {
-      const row = this.rows.get(slug);
-      if (row)
-        found.set(slug, { names: [...row.names], updatedAt: row.updatedAt });
-    }
-    return found;
-  }
-
-  async saveIfAbsent(slug: string, names: string[], now: Date): Promise<void> {
-    if (!this.rows.has(slug)) {
-      this.rows.set(slug, { names: [...names], updatedAt: now });
-    }
-  }
-}
-
 interface NamesRow {
   source_slug: string;
   names: string[];
