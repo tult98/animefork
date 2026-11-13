@@ -8,6 +8,7 @@ import type {
   EpisodeTarget,
 } from '../episodes/episode.filler.ts';
 import type { MalCandidate, MalClient } from './mal.client.ts';
+import type { TrailerClient } from './trailer.client.ts';
 import { jevCandidates, type MalJudge } from './mal.jev.ts';
 import { matchMal, type MalMatch } from './mal.matcher.ts';
 import { sourceQueries } from './mal.queries.ts';
@@ -32,6 +33,7 @@ export class MalFiller {
   private readonly now: Clock;
   private readonly judge: MalJudge | null;
   private readonly episodes: EpisodeFiller | null;
+  private readonly trailers: TrailerClient | null;
 
   constructor(
     store: MalStore,
@@ -39,12 +41,14 @@ export class MalFiller {
     now: Clock,
     judge: MalJudge | null = null,
     episodes: EpisodeFiller | null = null,
+    trailers: TrailerClient | null = null,
   ) {
     this.store = store;
     this.client = client;
     this.now = now;
     this.judge = judge;
     this.episodes = episodes;
+    this.trailers = trailers;
   }
 
   has(slug: string): boolean {
@@ -136,6 +140,7 @@ export class MalFiller {
       episodes: stats.episodes,
       startDate: stats.startDate,
       startSeason: stats.startSeason,
+      trailerYoutubeId: await this.trailerFor(current.malId),
       datesKnown: true,
       attemptedAt: now,
       fetchedAt: now,
@@ -216,6 +221,7 @@ export class MalFiller {
       episodes: candidate.episodes ?? null,
       startDate: candidate.startDate,
       startSeason: candidate.startSeason,
+      trailerYoutubeId: await this.trailerFor(candidate.id),
       datesKnown: true,
       matchedTitle: candidate.title,
       matchScore: Math.round(score * 1000) / 1000,
@@ -227,6 +233,10 @@ export class MalFiller {
     };
     await this.store.save(row);
     return row;
+  }
+
+  private async trailerFor(malId: number): Promise<string | null> {
+    return (await this.trailers?.youtubeId(malId)) ?? null;
   }
 
   private async saveMiss(
@@ -247,6 +257,7 @@ export class MalFiller {
       episodes: null,
       startDate: null,
       startSeason: null,
+      trailerYoutubeId: null,
       datesKnown: false,
       matchedTitle: null,
       matchScore: null,

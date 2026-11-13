@@ -259,11 +259,18 @@ describe('loadMalConfig', () => {
     expect(loadMalConfig({ MAL_CLIENT_ID: 'abc' })).toEqual({
       clientId: 'abc',
       baseUrl: 'https://api.myanimelist.net/v2',
+      trailerBaseUrl: 'https://api.tenrai.org/v1',
     });
     expect(
       loadMalConfig({ MAL_CLIENT_ID: 'abc', MAL_API_BASE: 'https://m.test/v2' })
         ?.baseUrl,
     ).toBe('https://m.test/v2');
+    expect(
+      loadMalConfig({
+        MAL_CLIENT_ID: 'abc',
+        TENRAI_API_BASE: 'https://t.test/v1',
+      })?.trailerBaseUrl,
+    ).toBe('https://t.test/v1');
   });
 });
 

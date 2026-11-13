@@ -53,6 +53,7 @@ const malRow = (over: Partial<StoredMal> = {}): StoredMal => ({
   episodes: null,
   startDate: null,
   startSeason: null,
+  trailerYoutubeId: null,
   datesKnown: true,
   matchedTitle: 'Black Clover',
   matchScore: 0.9,

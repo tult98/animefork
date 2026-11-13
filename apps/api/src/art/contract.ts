@@ -41,6 +41,7 @@ export const MalStatsSchema = z.object({
   // An answer from before these were stored leaves them out, which reads as unknown.
   startDate: z.string().regex(MAL_START_DATE_PATTERN).nullable().default(null),
   startSeason: MalStartSeasonSchema.nullable().default(null),
+  trailerYoutubeId: z.string().min(1).nullable().default(null),
 });
 
 export type MalStats = z.infer<typeof MalStatsSchema>;
