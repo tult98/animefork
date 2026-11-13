@@ -115,10 +115,10 @@ describe('the sign-in form', () => {
   });
 
   it('disables the button while sending and sends once on a double submit', async () => {
-    let release: () => void = () => {};
-    const gate = new Promise<void>((resolve) => (release = resolve));
-    fetchMock.post('path:/v1/auth/sign-in', () =>
-      gate.then(() => ({ user: { id: 'u1', email: 'mai@example.com' } })),
+    fetchMock.post(
+      'path:/v1/auth/sign-in',
+      { user: { id: 'u1', email: 'mai@example.com' } },
+      { delay: 200 },
     );
     render(<SignInForm />, { path: '/sign-in' });
     await userEvent.type(
@@ -134,9 +134,7 @@ describe('the sign-in form', () => {
       name: 'Đang đăng nhập...',
     });
     expect(button.hasAttribute('disabled')).toBe(true);
-    release();
-    await waitFor(() =>
-      expect(fetchMock).toHavePostedTimes(1, 'path:/v1/auth/sign-in'),
-    );
+    await screen.findByRole('button', { name: 'Đăng nhập' });
+    expect(fetchMock).toHavePostedTimes(1, 'path:/v1/auth/sign-in');
   });
 });

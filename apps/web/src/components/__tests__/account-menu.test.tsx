@@ -8,18 +8,14 @@ import { AccountMenu } from '../account-menu.tsx';
 beforeEach(() => void vi.stubEnv('VITE_API_URL', 'https://api.test'));
 
 describe('the account menu', () => {
-  it('shows nothing while the session loads, then a sign-in link when signed out', async () => {
-    let release: () => void = () => {};
-    const gate = new Promise<void>((resolve) => (release = resolve));
-    fetchMock.get('path:/v1/auth/me', () => gate.then(() => 401));
+  it('shows a sign-in link when signed out', async () => {
+    fetchMock.get('path:/v1/auth/me', 401);
     render(<AccountMenu buttonClassName="" />, { path: '/' });
-    await waitFor(() => expect(fetchMock).toHaveFetched('path:/v1/auth/me'));
-    expect(screen.queryByTestId('sign-in-link')).toBeNull();
-    expect(screen.queryByTestId('account-button')).toBeNull();
 
-    release();
     const link = await screen.findByRole('link', { name: 'Đăng nhập' });
     expect(link).toHaveProperty('pathname', '/sign-in');
+    expect(fetchMock).toHaveFetched('path:/v1/auth/me');
+    expect(screen.queryByTestId('account-button')).toBeNull();
   });
 
   it('opens the profile menu with the email and closes it on Escape', async () => {

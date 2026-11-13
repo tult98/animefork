@@ -10,18 +10,13 @@ afterEach(() => window.history.replaceState(null, '', '/'));
 // The component reads the token from the fragment of the emailed link in the address bar.
 describe('the email verification status', () => {
   it('shows progress, then success with a sign-in link, and removes the token from the address bar', async () => {
-    let release: () => void = () => {};
-    const gate = new Promise<void>((resolve) => (release = resolve));
-    fetchMock.post('path:/v1/auth/verify-email', () =>
-      gate.then(() => ({ ok: true })),
-    );
+    fetchMock.post('path:/v1/auth/verify-email', { ok: true }, { delay: 200 });
     window.history.replaceState(null, '', '/verify-email#token=abc123');
     render(<VerifyEmailStatus />, { path: '/verify-email' });
     expect((await screen.findByRole('status')).textContent).toContain(
       'Đang xác nhận',
     );
 
-    release();
     await screen.findByRole('heading', { name: 'Email đã được xác nhận' });
     expect(fetchMock).toHavePosted('path:/v1/auth/verify-email', {
       body: { token: 'abc123' },
