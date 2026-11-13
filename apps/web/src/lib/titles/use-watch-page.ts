@@ -23,19 +23,16 @@ export function useWatchPage(slug: string) {
   );
   const art = useQuery({
     queryKey: ['watch-art', title],
-    queryFn:
-      title && import.meta.env.VITE_API_URL
-        ? ({ signal }) => fetchArt(title, { env: import.meta.env, signal })
-        : skipToken,
+    queryFn: title
+      ? ({ signal }) => fetchArt(title, { env: import.meta.env, signal })
+      : skipToken,
     refetchInterval: (query) =>
       artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
   });
   const info = useQuery({
     queryKey: ['watch-episode-info', slug],
-    queryFn: import.meta.env.VITE_API_URL
-      ? ({ signal }) =>
-          api.get(`v1/episodes/${slug}`, { signal }).json<EpisodesResponse>()
-      : skipToken,
+    queryFn: ({ signal }) =>
+      api.get(`v1/episodes/${slug}`, { signal }).json<EpisodesResponse>(),
     refetchInterval: (query) =>
       artPollDelay(
         query.state.data?.status === 'pending',

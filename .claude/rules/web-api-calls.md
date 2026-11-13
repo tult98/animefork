@@ -16,7 +16,7 @@ Never call `fetch` or build the URL by hand. Call the `api` client (a `ky` insta
 - **Write the endpoint as a literal** at the call site, without a leading slash (ky rejects one). A reader should see which API the code calls without opening another file. Do not use the path helpers from the API `contract.ts` files for this.
 - **Reshape a response in the `queryFn`** (`.then((body) => body.user)`), not with `select`. Callers that write to the cache with `setQueryData` write the mapped shape, so the cache has to hold it.
 - **`api` does not validate the body.** When a call needs validation or its own error type, wrap the call in a domain hook. `apps/web/src/lib/auth/use-auth-calls.ts` parses the body with Zod and returns an `AuthResult`. `apps/web/src/lib/progress/save-outcome.ts` turns the result into a `SaveOutcome`.
-- **Failures throw `ApiError`** (a ky `HTTPError`), which holds `status`, `code` and `retryAfterSeconds`. An unset `VITE_API_URL` or a network failure throws a plain `Error`.
+- **Failures throw `ApiError`** (a ky `HTTPError`), which holds `status`, `code` and `retryAfterSeconds`. A network failure throws a plain `Error`. `VITE_API_URL` is required: `main.tsx` throws at startup without it, so a call site never checks it. Tests clear it in `setup.ts`, so an unstubbed call there throws a plain `Error` too.
 - **Query keys:** export a constant or a key function when another file reads or writes that cache entry, like `SESSION_KEY` and `progressKey(slug)`.
 - **Use the types from the API** `contract.ts` files for request and response shapes.
 
