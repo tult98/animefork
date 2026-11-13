@@ -111,7 +111,7 @@ Rules a proof run taught:
 - "Has not happened yet" is one read taken while the request is in flight, never a polling wait.
 - Pick a title from the live home page (first card of `shelf:new-episodes`) instead of hard-coding a slug, because slugs rotate.
 - Mock by intercepting on the page (`page.route`) before the action, delay the mocked response to hold a loading state, and say in the proof that it was mocked.
-- Episode rows expand first: click `episode:<n>:toggle`, then `episode:<n>:play` exists. A title may have only one episode.
+- An episode row plays on one click: open the panel by hovering `player:episodes`, then click `episode:<n>`. A title may have only one episode.
 - Collect failing upstream responses with `page.on('response')` and assert none. Ignore the `:3100` API host.
 
 ## Evidence

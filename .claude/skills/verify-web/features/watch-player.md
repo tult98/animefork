@@ -6,7 +6,7 @@ The full-screen player for a title: video, controls, episode and season panels, 
 
 - Autoplay, play and pause, back and forward 10s, seek bar (`player:seek`), mute and volume.
 - Speed panel: 0.5, 0.75, 1, 1.25, 1.5, 2 (`speed:<rate>`).
-- Episode panel: rows expand to show a play button. Switching changes the URL to `/watch/<slug>/<episodeId>`.
+- Episode panel: each row is one button (`episode:<n>`, thumbnail, "Tập N · Đang phát/Đã xem", name), and clicking it switches the URL to `/watch/<slug>/<episodeId>`. The current row has the equaliser (`episode:now-playing`). The close button is `player:episodes-close`. With several seasons the header has the season pill `player:seasons`, which opens the seasons view (`player:seasons-panel`, back button `player:seasons-back`).
 - Next-episode popover (`player:next`, `player:next-card`), skip intro, skip outro or the outro next-episode card (`player:skip`, `player:outro-card`, needs skip data from `apps/api`).
 - Fullscreen (`player:fullscreen`), error and retry (`player:error`, `player:retry`), loading overlay.
 
@@ -24,11 +24,11 @@ Proved end to end by `../scripts/watch-player.mjs`: `EV=$(cat apps/web/artifacts
 - Play: `r.click(page.getByTestId('player:play'), ...)` again. Observable: `currentTime` grows by 1.5s.
 - Speed: `r.click(page.getByTestId('player:speed'), ...)` then `r.click(page.getByTestId('speed:2'), ...)`. Observable: `video.playbackRate === 2`.
 - Health: `player:error` count is 0, and no response with status 400 or above from a host other than `:3100`.
-- Switch episode (not scripted): `player:episodes`, `episode:2:toggle`, `episode:2:play`. Observable: the path becomes `/watch/<slug>/<id>`. Needs a title with 2 or more episodes.
+- Switch episode (not scripted): hover `player:episodes`, then click `episode:2`. Observable: the path becomes `/watch/<slug>/<id>`. Needs a title with 2 or more episodes.
 - Title block at the top (`player:title`, `player:episode-label`, `player:episode-name`) follows the idle fade.
 - Timeline: hover `player:seek`, the tooltip is `player:scrub-caption` (time, plus " · Mở đầu" or " · Kết thúc" over a skip segment) and `player:tick` marks the segment edges. `player:time` reads "elapsed / total".
 - Skip: the intro shows a white pill `player:skip` (`data-kind=intro`). In an outro with a next episode, the card `player:outro-card` shows instead ("Phát sau N giây", button `player:skip` "Phát ngay") and the hover popover `player:next-card` is not rendered. With no next episode, `player:skip` is the plain "Bỏ qua phần kết" pill.
-- Other handles: `player:back10`, `player:forward10`, `player:mute`, `player:volume`, `player:seek`, `player:fullscreen`, `player:back`, `episode:now-playing`, `season:<slug>` in `player:seasons-panel`.
+- Other handles: `player:back10`, `player:forward10`, `player:mute`, `player:volume`, `player:seek`, `player:fullscreen`, `player:back`, `season:<slug>` in `player:seasons-panel`.
 
 ## Gotchas
 

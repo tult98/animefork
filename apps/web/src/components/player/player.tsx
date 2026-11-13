@@ -48,7 +48,7 @@ interface PlayerProps {
   nextEpisode?: NextEpisodeInfo;
   onNext?: () => void;
   onBack: () => void;
-  episodesPanel: (progress: number) => ReactNode;
+  episodesPanel: (progress: number, close: () => void) => ReactNode;
 }
 
 function SkipGlyph({ forward }: { forward: boolean }) {
@@ -278,9 +278,9 @@ export function Player({
                 id="episodes"
                 label={PLAYER_COPY.episodes}
                 icon={<ListVideo aria-hidden="true" />}
-                width={440}
+                width={408}
               >
-                {episodesPanel(progress)}
+                {({ close }) => episodesPanel(progress, close)}
               </HoverPopup>
               <HoverPopup
                 id="speed"

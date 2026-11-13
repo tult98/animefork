@@ -25,7 +25,7 @@ export function SpeedPanel({
           <button
             key={speed}
             type="button"
-            className="pl-row min-h-11 justify-between gap-4 px-6 text-body-strong"
+            className="pl-item min-h-11 justify-between gap-4 px-6 text-body-strong"
             data-current={rate === speed}
             aria-pressed={rate === speed}
             data-testid={`speed:${speed}`}

@@ -150,12 +150,13 @@ export function WatchScreen({
       nextEpisode={next ? { episode: next, number: index + 2 } : undefined}
       onNext={next ? () => open(slug, next) : undefined}
       onBack={goBack}
-      episodesPanel={(progress) => (
+      episodesPanel={(progress, close) => (
         <EpisodesPanel
           view={view}
           title={page.title}
           image={page.image}
           onView={setView}
+          onClose={close}
           seasons={page.seasons}
           browseSlug={browseSlug}
           browsed={browsed}

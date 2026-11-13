@@ -125,6 +125,12 @@
   pointer-events: auto;
 }
 
+.pl-pw[data-closed='true'] .pl-pop {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .pl-vtrack {
   position: relative;
   display: flex;
@@ -150,7 +156,7 @@
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
-.pl-row {
+.pl-item {
   display: flex;
   align-items: center;
   width: 100%;
@@ -160,26 +166,42 @@
   text-align: left;
   cursor: pointer;
 }
-.pl-row:hover,
-.pl-row[data-current='true'] {
+.pl-item:hover,
+.pl-item[data-current='true'] {
   background: var(--surface-alt);
 }
-.pl-glyph {
+.pl-thumb-play {
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.12s ease;
 }
-.pl-row:hover .pl-glyph,
-.pl-row[data-current='true'] .pl-glyph {
+.pl-item:hover .pl-thumb-play,
+.pl-item:focus-visible .pl-thumb-play {
   opacity: 1;
 }
-.pl-row[data-current='true'] .pl-glyph {
-  color: var(--brand);
+.pl-eq rect {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: pl-eq 1s ease-in-out infinite;
 }
-.pl-er:not([data-expanded='true']):hover {
-  background: var(--border-strong);
+.pl-eq rect:nth-child(2) {
+  animation-delay: 0.2s;
 }
-.pl-er .pl-row:hover {
-  background: transparent;
+.pl-eq rect:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes pl-eq {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pl-eq rect {
+    animation: none;
+  }
 }
 
 .pl-chrome {

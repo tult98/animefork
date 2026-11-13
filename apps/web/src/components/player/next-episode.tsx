@@ -36,7 +36,7 @@ export function NextEpisode({ next, image, onNext }: NextEpisodeProps) {
             </div>
             <button
               type="button"
-              className="pl-row items-start! gap-6 p-6"
+              className="pl-item items-start! gap-6 p-6"
               onClick={onNext}
               tabIndex={-1}
             >
