@@ -27,7 +27,7 @@ import {
   EPISODE_STORE,
   MemoryEpisodeStore,
 } from '../../src/episodes/episode.store.ts';
-import type { ListedEpisode } from '../../src/episodes/episode.parser.ts';
+import type { ListedEpisode } from '../../src/episodes/episode.client.ts';
 import { MalFiller } from '../../src/mal/mal.filler.ts';
 import {
   MAL_STORE,
@@ -53,6 +53,7 @@ const malRow = (over: Partial<StoredMal> = {}): StoredMal => ({
   episodes: null,
   startDate: null,
   startSeason: null,
+  trailerYoutubeId: null,
   datesKnown: true,
   matchedTitle: 'Black Clover',
   matchScore: 0.9,
@@ -80,7 +81,7 @@ function world() {
 }
 
 describe('EpisodeInfoService', () => {
-  it('answers the MAL episodes sorted by number with no description fields', async () => {
+  it('answers the MAL episodes sorted by number with their synopses', async () => {
     const { mal, episodes, list, service } = world();
     await mal.save(malRow());
     await episodes.saveListAttempt({
@@ -90,18 +91,45 @@ describe('EpisodeInfoService', () => {
       attemptedAt: NOW,
     });
     await episodes.saveListed(7, [
-      { number: 2, title: 'The Door', titleAlt: null, aired: '2026-10-10' },
-      { number: 1, title: 'The Boy', titleAlt: null, aired: '2026-10-03' },
+      {
+        number: 2,
+        title: 'The Door',
+        titleAlt: null,
+        aired: '2026-10-10',
+        synopsis: null,
+      },
+      {
+        number: 1,
+        title: 'The Boy',
+        titleAlt: null,
+        aired: '2026-10-03',
+        synopsis: 'A boy wakes.',
+      },
     ]);
     await episodes.saveTranslation(7, 1, 'Cậu bé');
+    await episodes.saveSynopsisTranslation(7, 1, 'Một cậu bé thức dậy.');
 
     const out = await service.get(SLUG);
 
     expect(out).toEqual({
       status: 'ready',
       episodes: [
-        { number: 1, title: 'The Boy', titleVi: 'Cậu bé', aired: '2026-10-03' },
-        { number: 2, title: 'The Door', titleVi: null, aired: '2026-10-10' },
+        {
+          number: 1,
+          title: 'The Boy',
+          titleVi: 'Cậu bé',
+          aired: '2026-10-03',
+          synopsis: 'A boy wakes.',
+          synopsisVi: 'Một cậu bé thức dậy.',
+        },
+        {
+          number: 2,
+          title: 'The Door',
+          titleVi: null,
+          aired: '2026-10-10',
+          synopsis: null,
+          synopsisVi: null,
+        },
       ],
     });
     expect(list).not.toHaveBeenCalled();
@@ -129,7 +157,15 @@ describe('EpisodeInfoService', () => {
     });
     expect(list).toHaveBeenCalledExactlyOnceWith(7);
 
-    finish([{ number: 1, title: 'The Boy', titleAlt: null, aired: null }]);
+    finish([
+      {
+        number: 1,
+        title: 'The Boy',
+        titleAlt: null,
+        aired: null,
+        synopsis: null,
+      },
+    ]);
     await filler.idle();
     expect((await service.get(SLUG)).status).toBe('ready');
     expect(list).toHaveBeenCalledOnce();

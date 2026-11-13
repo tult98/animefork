@@ -23,6 +23,7 @@ const ok = (s: string, over: Partial<StoredMal> = {}): StoredMal => ({
   episodes: 12,
   startDate: '2027-01',
   startSeason: { year: 2027, season: 'winter' },
+  trailerYoutubeId: null,
   datesKnown: true,
   matchedTitle: 'Black Clover',
   matchScore: 0.987,

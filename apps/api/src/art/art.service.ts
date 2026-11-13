@@ -155,6 +155,7 @@ export class ArtService {
           episodes: mal.episodes,
           startDate: mal.startDate,
           startSeason: mal.startSeason,
+          trailerYoutubeId: mal.trailerYoutubeId,
         };
       }
       const namesAt = names.get(slug)?.updatedAt;

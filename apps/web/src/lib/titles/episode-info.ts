@@ -7,6 +7,7 @@ function episodeNumber(label: string): number | undefined {
 }
 
 // The source page's own name wins. Otherwise the Vietnamese title, or MAL's English one until it is translated.
+// The synopsis follows the same rule: the Vietnamese one, or MAL's English one until it is translated.
 export function applyEpisodeInfo(
   page: WatchPage,
   info: EpisodesResponse,
@@ -18,10 +19,21 @@ export function applyEpisodeInfo(
       return name ? [[e.number, name] as const] : [];
     }),
   );
+  const synopses = new Map(
+    info.episodes.flatMap((e) => {
+      const text = e.synopsisVi ?? e.synopsis;
+      return text ? [[e.number, text] as const] : [];
+    }),
+  );
   const named = (episode: WatchPage['episodes'][number]) => {
     const number = episodeNumber(episode.label);
     const name = number === undefined ? undefined : names.get(number);
-    return !episode.name && name ? { ...episode, name } : episode;
+    const synopsis = number === undefined ? undefined : synopses.get(number);
+    return {
+      ...episode,
+      ...(!episode.name && name ? { name } : {}),
+      ...(!episode.synopsis && synopsis ? { synopsis } : {}),
+    };
   };
   const episodes = page.episodes.map(named);
   return {

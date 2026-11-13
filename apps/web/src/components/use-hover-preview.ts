@@ -6,8 +6,8 @@ import {
 } from '../lib/ui/hover-position.ts';
 
 const OPEN_DELAY_MS = 250;
-const NO_HOVER_QUERY = '(hover: none), (pointer: coarse)';
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+export const NO_HOVER_QUERY = '(hover: none), (pointer: coarse)';
+export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const CLOSE_FALLBACK_MS = 300;
 
 type Opening = Anchor & { height: number };

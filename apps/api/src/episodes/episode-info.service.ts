@@ -43,11 +43,13 @@ export class EpisodeInfoService {
           ]);
     const episodes: EpisodeInfo[] = [...listed.values()]
       .sort((a, b) => a.number - b.number)
-      .map(({ number, title, titleVi, aired }) => ({
+      .map(({ number, title, titleVi, aired, synopsis, synopsisVi }) => ({
         number,
         title,
         titleVi,
         aired,
+        synopsis,
+        synopsisVi,
       }));
     if (episodes.length > 0) return { status: 'ready', episodes };
 

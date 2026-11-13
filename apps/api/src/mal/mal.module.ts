@@ -6,12 +6,14 @@ import type { EpisodeFiller } from '../episodes/episode.filler.ts';
 import { EPISODE_FILLER, EpisodesModule } from '../episodes/episodes.module.ts';
 import { createMalClient, type MalClient } from './mal.client.ts';
 import { MAL_CONFIG, loadMalConfig, type MalConfig } from './mal.config.ts';
+import { createTrailerClient, type TrailerClient } from './trailer.client.ts';
 import { MalFiller } from './mal.filler.ts';
 import { createMalJudge } from './mal.jev.ts';
 import { MAL_STORE, PostgresMalStore, type MalStore } from './mal.store.ts';
 
 export const MAL_CLIENT = Symbol('MalClient');
 export const MAL_FILLER = Symbol('MalFiller');
+export const TRAILER_CLIENT = Symbol('TrailerClient');
 
 @Module({
   imports: [EpisodesModule],
@@ -31,14 +33,28 @@ export const MAL_FILLER = Symbol('MalFiller');
           : null,
     },
     {
+      provide: TRAILER_CLIENT,
+      inject: [MAL_CONFIG],
+      useFactory: (config: MalConfig | undefined): TrailerClient | null =>
+        config ? createTrailerClient({ baseUrl: config.trailerBaseUrl }) : null,
+    },
+    {
       provide: MAL_FILLER,
-      inject: [MAL_STORE, MAL_CLIENT, CLOCK, ENV, EPISODE_FILLER],
+      inject: [
+        MAL_STORE,
+        MAL_CLIENT,
+        CLOCK,
+        ENV,
+        EPISODE_FILLER,
+        TRAILER_CLIENT,
+      ],
       useFactory: (
         store: MalStore,
         client: MalClient | null,
         now: Clock,
         env: Env,
         episodes: EpisodeFiller,
+        trailers: TrailerClient | null,
       ): MalFiller | null =>
         client
           ? new MalFiller(
@@ -47,6 +63,7 @@ export const MAL_FILLER = Symbol('MalFiller');
               now,
               createMalJudge(loadJevConfig(env)),
               episodes,
+              trailers,
             )
           : null,
     },

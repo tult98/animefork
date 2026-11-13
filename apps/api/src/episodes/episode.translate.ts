@@ -1,13 +1,16 @@
 import {
   DeepSeekTranslator,
+  SYNOPSIS_BATCH_PROMPT,
   TITLE_BATCH_PROMPT,
   TITLE_TRANSLATION_PROMPT,
+  EPISODE_SYNOPSIS_PROMPT,
   type OverviewTranslator,
 } from '../art/translator.ts';
 import type { DeepSeekConfig } from '../art/art.config.ts';
 
 export interface EpisodeTranslators {
   title: OverviewTranslator;
+  synopsis: OverviewTranslator;
 }
 
 export function createEpisodeTranslators(
@@ -19,6 +22,12 @@ export function createEpisodeTranslators(
       prompt: TITLE_TRANSLATION_PROMPT,
       batchPrompt: TITLE_BATCH_PROMPT,
       tag: 'title',
+    }),
+    synopsis: new DeepSeekTranslator({
+      ...config,
+      prompt: EPISODE_SYNOPSIS_PROMPT,
+      batchPrompt: SYNOPSIS_BATCH_PROMPT,
+      tag: 'synopsis',
     }),
   };
 }

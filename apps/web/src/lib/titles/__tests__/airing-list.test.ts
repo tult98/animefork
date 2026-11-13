@@ -19,6 +19,7 @@ const mal = (over: Partial<MalStats>): MalStats => ({
   episodes: null,
   startDate: null,
   startSeason: null,
+  trailerYoutubeId: null,
   ...over,
 });
 

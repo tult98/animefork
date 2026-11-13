@@ -41,6 +41,7 @@ export const MalStatsSchema = z.object({
   // An answer from before these were stored leaves them out, which reads as unknown.
   startDate: z.string().regex(MAL_START_DATE_PATTERN).nullable().default(null),
   startSeason: MalStartSeasonSchema.nullable().default(null),
+  trailerYoutubeId: z.string().min(1).nullable().default(null),
 });
 
 export type MalStats = z.infer<typeof MalStatsSchema>;
@@ -176,7 +177,8 @@ export const EPISODES_PATH = '/v1/episodes';
 
 export const EpisodesSlugSchema = z.string().regex(SLUG_PATTERN);
 
-// Numbers, titles and air dates come from MyAnimeList's episode list. `titleVi` is null until translated.
+// Numbers, titles, synopses and air dates come from MyAnimeList's episode list. `titleVi` and `synopsisVi` are null
+// until translated. The synopsis fields are optional so a web build still parses an answer from an API that predates them.
 export const EpisodeInfoSchema = z.object({
   number: z.number().int().positive(),
   title: z.string().min(1).nullable(),
@@ -186,6 +188,8 @@ export const EpisodeInfoSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .nullable(),
+  synopsis: z.string().min(1).nullable().optional(),
+  synopsisVi: z.string().min(1).nullable().optional(),
 });
 
 export type EpisodeInfo = z.infer<typeof EpisodeInfoSchema>;

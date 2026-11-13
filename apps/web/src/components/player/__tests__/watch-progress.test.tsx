@@ -15,7 +15,7 @@ const user = {
   createdAt: '2026-01-01T00:00:00Z',
 };
 
-// The watch page has 3 episodes: "Tập 1_BD_Full" (72839), "Tập 2" (73010) and "Tập 3" (73386).
+// The watch page has 3 episodes: "Tập 1" (72839), "Tập 2" (73010) and "Tập 3" (73386).
 beforeEach(() => {
   vi.stubEnv('VITE_API_URL', 'https://api.test');
   fetchMock
@@ -81,7 +81,7 @@ describe('saving watch progress while watching', () => {
         durationS: 1400,
         titleName: 'Tonikaku Kawaii [BD]',
         image: '/poster.svg',
-        episodeLabel: 'Tập 1_BD_Full',
+        episodeLabel: 'Tập 1',
       },
     });
     expect(screen.getByTestId('episode:1')).toHaveAttribute(
@@ -135,7 +135,7 @@ describe('saving watch progress while watching', () => {
         durationS: 1400,
         titleName: 'Tonikaku Kawaii [BD]',
         image: '/poster.svg',
-        episodeLabel: 'Tập 1_BD_Full',
+        episodeLabel: 'Tập 1',
       },
     });
   });
@@ -193,7 +193,7 @@ describe('saving watch progress while watching', () => {
         durationS: 1400,
         titleName: 'Tonikaku Kawaii [BD]',
         image: '/poster.svg',
-        episodeLabel: 'Tập 1_BD_Full',
+        episodeLabel: 'Tập 1',
       },
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -387,7 +387,7 @@ describe('resuming where the viewer left off', () => {
     );
 
     expect(screen.getByTestId('player:episode-label')).toHaveTextContent(
-      'Tập 1_BD_Full',
+      'Tập 1',
     );
   });
 

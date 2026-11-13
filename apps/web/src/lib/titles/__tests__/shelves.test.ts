@@ -341,6 +341,7 @@ describe('buildHome upcoming shelf with MyAnimeList dates', () => {
       episodes: null,
       startDate: null,
       startSeason: null,
+      trailerYoutubeId: null,
       ...over,
     },
   });

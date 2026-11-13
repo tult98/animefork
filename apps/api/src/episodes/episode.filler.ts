@@ -1,6 +1,10 @@
 import { Logger } from '@nestjs/common';
 import { describeError } from '../art/art.filler.ts';
-import { TITLE_BATCH_SIZE, translateInBatches } from '../art/translator.ts';
+import {
+  SYNOPSIS_BATCH_SIZE,
+  TITLE_BATCH_SIZE,
+  translateInBatches,
+} from '../art/translator.ts';
 import type { MalAiring } from '../art/contract.ts';
 import type { Clock } from '../common/clock.ts';
 import type { EpisodeLister } from './episode.client.ts';
@@ -204,21 +208,22 @@ export class EpisodeFiller {
     }
   }
 
-  // Translates the titles still empty, a batch per request, saving each batch before the next. It stops at the first
-  // failure so a translator that is down is asked once. A later fill of the show reads the rest.
+  // Translates the titles, then the synopses, still empty, a batch per request, saving each batch before the next.
+  // Each kind stops at its first failure so a translator that is down is asked once. A later fill of the show reads
+  // the rest.
   private async translate(slug: string, malId: number): Promise<void> {
     if (!this.translators) return;
+    const { title, synopsis } = this.translators;
     try {
-      const pending = [...(await this.store.find(malId)).values()].filter(
-        (row) => row.titleVi === null,
-      );
+      const rows = [...(await this.store.find(malId)).values()];
+      const titles = rows.filter((row) => row.titleVi === null);
       await translateInBatches(
-        this.translators.title,
-        pending.map((row) => row.title),
+        title,
+        titles.map((row) => row.title),
         TITLE_BATCH_SIZE,
         async (start, translated) => {
           for (const [i, titleVi] of translated.entries()) {
-            const row = pending[start + i];
+            const row = titles[start + i];
             if (row)
               await this.store.saveTranslation(malId, row.number, titleVi);
           }
@@ -227,6 +232,32 @@ export class EpisodeFiller {
     } catch (error) {
       this.logger.warn(
         `episode titles ${slug} failed: ${describeError(error)}`,
+      );
+    }
+    try {
+      const synopses = [...(await this.store.find(malId)).values()].filter(
+        (row) => row.synopsis !== null && row.synopsisVi === null,
+      );
+      await translateInBatches(
+        synopsis,
+        synopses.map((row) => row.synopsis as string),
+        SYNOPSIS_BATCH_SIZE,
+        async (start, translated) => {
+          for (const [i, synopsisVi] of translated.entries()) {
+            const row = synopses[start + i];
+            if (row) {
+              await this.store.saveSynopsisTranslation(
+                malId,
+                row.number,
+                synopsisVi,
+              );
+            }
+          }
+        },
+      );
+    } catch (error) {
+      this.logger.warn(
+        `episode synopses ${slug} failed: ${describeError(error)}`,
       );
     }
   }

@@ -7,6 +7,9 @@ import {
 } from '../art/contract.ts';
 import { DEFAULT_MAL_API } from './mal.config.ts';
 
+// What MAL itself reports; the trailer comes from another service.
+export type MalCounts = Omit<MalStats, 'trailerYoutubeId'>;
+
 export type { MalStats };
 
 export const SEARCH_LIMIT = 10;
@@ -18,7 +21,7 @@ const FIELDS =
 const STATS_FIELDS =
   'mean,num_scoring_users,rank,popularity,num_list_users,status,num_episodes,start_date,start_season';
 
-export interface MalCandidate extends Omit<MalStats, 'episodes'> {
+export interface MalCandidate extends Omit<MalCounts, 'episodes'> {
   title: string;
   english: string | undefined;
   synonyms: string[];
@@ -39,7 +42,7 @@ export class MalError extends Error {
 
 export interface MalClient {
   search(query: string): Promise<MalCandidate[]>;
-  stats(id: number): Promise<MalStats | null>;
+  stats(id: number): Promise<MalCounts | null>;
 }
 
 const NodeSchema = z.object({
@@ -71,12 +74,12 @@ const SearchSchema = z.object({
   data: z.array(z.object({ node: z.unknown() })),
 });
 
-function toStartSeason(raw: Node['start_season']): MalStats['startSeason'] {
+function toStartSeason(raw: Node['start_season']): MalCounts['startSeason'] {
   const season = MalSeasonSchema.safeParse(raw?.season).data;
   return raw && season ? { year: raw.year, season } : null;
 }
 
-function toStats(node: Node): MalStats {
+function toStats(node: Node): MalCounts {
   return {
     id: node.id,
     score: node.mean ?? null,

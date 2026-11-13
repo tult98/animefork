@@ -14,6 +14,7 @@ const row = (slug: string, over: Partial<StoredMal> = {}): StoredMal => ({
   episodes: 12,
   startDate: '2026-01-07',
   startSeason: { year: 2026, season: 'winter' },
+  trailerYoutubeId: null,
   datesKnown: true,
   matchedTitle: 'Tensei shitara Ken deshita II',
   matchScore: 0.912,
