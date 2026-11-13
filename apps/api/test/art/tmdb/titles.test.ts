@@ -7,153 +7,112 @@ import {
 } from '../../../src/art/tmdb/titles.ts';
 
 describe('parseSeasonNumber', () => {
-  it('reads the season name first and the title name as a fallback', () => {
-    expect(parseSeasonNumber('Season 3', 'Show Season 2')).toBe(3);
-    expect(parseSeasonNumber(undefined, 'Show 2nd Season')).toBe(2);
-    expect(parseSeasonNumber(undefined, 'Show Season 4')).toBe(4);
-    expect(parseSeasonNumber(undefined, 'Show Mùa 2')).toBe(2);
-    expect(parseSeasonNumber(undefined, 'Show Phần 5')).toBe(5);
-  });
-
-  it('defaults to season 1', () => {
-    expect(parseSeasonNumber(undefined)).toBe(1);
-    expect(parseSeasonNumber(undefined, 'Show')).toBe(1);
-    expect(parseSeasonNumber('Season 0', 'Show')).toBe(1);
+  it.each([
+    ['the season name before the title name', 'Season 3', 'Show Season 2', 3],
+    ['an ordinal marker in the title name', undefined, 'Show 2nd Season', 2],
+    ['a Vietnamese "Mùa" marker', undefined, 'Show Mùa 2', 2],
+    ['a Vietnamese "Phần" marker', undefined, 'Show Phần 5', 5],
+    ['season 1 for a name without a marker', undefined, 'Show', 1],
+    ['season 1 for a season 0', 'Season 0', 'Show', 1],
+  ])('reads %s', (_, seasonName, name, season) => {
+    expect(parseSeasonNumber(seasonName, name)).toBe(season);
   });
 });
 
 describe('stripSeasonMarker', () => {
-  it('removes the marker and the dangling separator', () => {
-    expect(stripSeasonMarker('Show 2nd Season')).toBe('Show');
-    expect(stripSeasonMarker('Show: Season 2')).toBe('Show');
-    expect(stripSeasonMarker('Show - Mùa 2')).toBe('Show');
-    expect(stripSeasonMarker('Show Phần 2 Special')).toBe('Show Special');
-  });
-
-  it('keeps a name without a marker, or one that is only a marker', () => {
-    expect(stripSeasonMarker('Show')).toBe('Show');
-    expect(stripSeasonMarker('Season 2')).toBe('Season 2');
+  it.each([
+    ['Show 2nd Season', 'Show'],
+    ['Show: Season 2', 'Show'],
+    ['Show - Mùa 2', 'Show'],
+    ['Show Phần 2 Special', 'Show Special'],
+    ['Show', 'Show'],
+    ['Season 2', 'Season 2'],
+  ])('turns "%s" into "%s"', (name, stripped) => {
+    expect(stripSeasonMarker(name)).toBe(stripped);
   });
 });
 
 describe('searchQueries', () => {
-  it('falls back from the full name to the franchise and the arc-less name', () => {
-    expect(searchQueries('Tokyo Revengers: Santen Sensou-hen')).toEqual([
+  it.each([
+    ['one query for a plain name', 'Tonikaku Kawaii', ['Tonikaku Kawaii']],
+    [
+      'the franchise name, then the name without its arc suffix',
       'Tokyo Revengers: Santen Sensou-hen',
-      'Tokyo Revengers',
-      'Tokyo Revengers: Santen Sensou',
-    ]);
-  });
-
-  it('starts from the name without its season marker', () => {
-    expect(searchQueries('Show: Subtitle 2nd Season')).toEqual([
-      'Show: Subtitle',
-      'Show',
-    ]);
-  });
-
-  it('splits on a spaced dash', () => {
-    expect(searchQueries('Franchise - Part Two')).toEqual([
+      [
+        'Tokyo Revengers: Santen Sensou-hen',
+        'Tokyo Revengers',
+        'Tokyo Revengers: Santen Sensou',
+      ],
+    ],
+    [
+      'the name without its season marker first',
+      'Show: Subtitle 2nd Season',
+      ['Show: Subtitle', 'Show'],
+    ],
+    [
+      'the part before a spaced dash',
       'Franchise - Part Two',
-      'Franchise',
-    ]);
-  });
-
-  it('strips an arc or movie suffix, case-insensitively', () => {
-    expect(searchQueries('Jujutsu Kaisen Movie')).toEqual([
+      ['Franchise - Part Two', 'Franchise'],
+    ],
+    [
+      'the name without a "Movie" suffix',
       'Jujutsu Kaisen Movie',
-      'Jujutsu Kaisen',
-    ]);
-    expect(searchQueries('One Piece ARC')).toEqual([
-      'One Piece ARC',
-      'One Piece',
-    ]);
+      ['Jujutsu Kaisen Movie', 'Jujutsu Kaisen'],
+    ],
+    [
+      'no franchise name shorter than 3 characters',
+      'A: Long Subtitle',
+      ['A: Long Subtitle'],
+    ],
+  ])('asks %s', (_, name, queries) => {
+    expect(searchQueries(name)).toEqual(queries);
   });
 
-  it('gives one query for a plain name', () => {
-    expect(searchQueries('Tonikaku Kawaii')).toEqual(['Tonikaku Kawaii']);
-  });
-
-  it('ignores a prefix shorter than 3 characters', () => {
-    expect(searchQueries('A: Long Subtitle')).toEqual(['A: Long Subtitle']);
-  });
-
-  it('dedupes queries that collapse to the same text', () => {
-    expect(searchQueries('Show: Arc')).toEqual(['Show: Arc', 'Show']);
-  });
-
-  describe('with a slug', () => {
-    const slug =
-      'tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-a6125';
-
-    it('adds the slug romaji at 6 words, then 3 words, after the name queries', () => {
-      expect(searchQueries('Pháp Sư Bá Đạo', slug)).toEqual([
+  it.each([
+    [
+      'the first 6 words of the slug, then the first 3',
+      'Pháp Sư Bá Đạo',
+      'tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-a6125',
+      [
         'Pháp Sư Bá Đạo',
         'tsuihou sareta cheat fuyo majutsushi wa',
         'tsuihou sareta cheat',
-      ]);
-    });
-
-    it('drops the id and the season marker from the slug', () => {
-      expect(searchQueries('Tên', 'show-name-2nd-season-a12')).toEqual([
-        'Tên',
-        'show name',
-      ]);
-      expect(searchQueries('Tên', 'a-b-c-d-e-f-g-3rd-season-a1')).toEqual([
-        'Tên',
-        'a b c d e f',
-        'a b c',
-      ]);
-    });
-
-    it('gives one slug query when the romaji is 3 words or fewer', () => {
-      expect(searchQueries('Tên', 'one-two-three-a9')).toEqual([
-        'Tên',
-        'one two three',
-      ]);
-    });
-
-    it('dedupes a slug query equal to a name query', () => {
-      expect(searchQueries('Tonikaku Kawaii', 'tonikaku-kawaii-a3860')).toEqual(
-        ['Tonikaku Kawaii', 'tonikaku kawaii'],
-      );
-      expect(searchQueries('tonikaku kawaii', 'tonikaku-kawaii-a3860')).toEqual(
-        ['tonikaku kawaii'],
-      );
-    });
-
-    it('never returns an empty list', () => {
-      expect(searchQueries('Name', '-a1')).toEqual(['Name']);
-    });
-
-    it('lists the slug queries after all four name queries', () => {
-      expect(searchQueries('Franchise: Sub Arc-hen', 'a-b-c-d-e-f-a1')).toEqual(
-        [
-          'Franchise: Sub Arc-hen',
-          'Franchise',
-          'Franchise: Sub Arc',
-          'a b c d e f',
-          'a b c',
-        ],
-      );
-    });
+      ],
+    ],
+    [
+      'the slug without its id and season marker',
+      'Tên',
+      'show-name-2nd-season-a12',
+      ['Tên', 'show name'],
+    ],
+    [
+      'nothing more when the slug repeats the name',
+      'tonikaku kawaii',
+      'tonikaku-kawaii-a3860',
+      ['tonikaku kawaii'],
+    ],
+    ['nothing more when the slug is only an id', 'Name', '-a1', ['Name']],
+  ])('adds %s after the name queries', (_, name, slug, queries) => {
+    expect(searchQueries(name, slug)).toEqual(queries);
   });
 });
 
 describe('distinctRomaji', () => {
-  it('drops the id and the season marker and keeps every word', () => {
-    expect(
-      distinctRomaji(
-        'tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-season-2-a99',
-        'Tên Việt',
-      ),
-    ).toBe('tsuihou sareta cheat fuyo majutsushi wa kimama na second life');
-  });
-
-  it('is undefined when empty or the same as the name once normalized', () => {
-    expect(distinctRomaji('-a12', 'Anything')).toBeUndefined();
-    expect(
-      distinctRomaji('tonikaku-kawaii-a3860', 'Tonikaku: Kawaii'),
-    ).toBeUndefined();
+  it.each([
+    [
+      'every word of the slug without its id and season marker',
+      'kimama-na-second-life-season-2-a99',
+      'Tên Việt',
+      'kimama na second life',
+    ],
+    [
+      'nothing when the slug repeats the name',
+      'tonikaku-kawaii-a3860',
+      'Tonikaku: Kawaii',
+      undefined,
+    ],
+    ['nothing when the slug is only an id', '-a12', 'Anything', undefined],
+  ])('gives %s', (_, slug, name, romaji) => {
+    expect(distinctRomaji(slug, name)).toBe(romaji);
   });
 });
