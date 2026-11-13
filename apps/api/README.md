@@ -172,11 +172,25 @@ A lookup also carries the MAL score, rank and airing status of each title. `MalF
 
 ## Episode info
 
-`episode_info` holds a name and a synopsis for each episode of every title that has an ok MAL match. Nothing in the lookup API or the web app reads it yet. A later feature joins it through `title_mal.mal_id` where `status = 'ok'`.
+`episode_info` holds a name and a synopsis for each episode of every title that has an ok MAL match. Episode names are filled by the MAL lookup (see **Names on lookup**) and the synopses by the script. Nothing in the lookup API or the web app reads the table yet. A later feature joins it through `title_mal.mal_id` where `status = 'ok'`.
 
 The key is `(mal_id, episode_number)`. MAL lists each season as its own entry, so the numbers match the season in the source slug. The columns are `title`, `title_alt` (the romaji and Japanese name MAL prints under it), `title_vi`, `synopsis`, `synopsis_vi`, `aired`, `synopsis_fetched_at`, `translated_at` and `fetched_at`. `synopsis_fetched_at` is set once the episode page was read, even when it had no synopsis, so an empty one is not fetched again. `title_vi` and `synopsis_vi` are null until translated.
 
-The data comes from MAL's public HTML, because its API has no episode text. `src/episodes/episode.parser.ts` reads the list page at `/anime/<id>/x/episode`, which gives the number, English title, alternate title and air date in pages of 100 (`?offset=100` and on). The synopsis exists only on `/anime/<id>/x/episode/<n>` and is often empty. The parser drops the "(Source: ...)" credit and the bold arc line MAL appends. `src/episodes/episode.client.ts` makes one request a second with the user agent `Mozilla/5.0 (compatible; animefork-episode-sync/1.0)`, retries once after 5 seconds on a 429 or 5xx answer, and then throws.
+The data comes from MAL's public HTML, because its API has no episode text. `src/episodes/episode.parser.ts` reads the list page at `/anime/<id>/x/episode`, which gives the number, English title, alternate title and air date in pages of 100 (`?offset=100` and on). The synopsis exists only on `/anime/<id>/x/episode/<n>` and is often empty. The parser drops the "(Source: ...)" credit and the bold arc line MAL appends. `src/episodes/episode.client.ts` makes one request a second through the limiter with the user agent `Mozilla/5.0 (compatible; animefork-episode-sync/1.0)`, retries once after 5 seconds on a 429 or 5xx answer, and then throws.
+
+**Names on lookup.** When `MalFiller` saves an ok row, in the same background job it hands the MAL id to `EpisodeFiller` (`src/episodes/episode.filler.ts`). That reads the list page once, plus one request per further 100 episodes, stores the rows and translates each new title with the title translator. It never requests a synopsis page. A failure here never fails the MAL fill or changes its row. It logs `episodes <slug> failed: <reason>`, with no key or page text. A translator error stops the translating of that show, so a down translator is asked once. Without `DEEPSEEK_API_KEY` the English names are stored.
+
+`episode_list_sync` (`015_episode_list_sync.sql`) holds one row per MAL id with the status and airing status of the last list attempt. The table in `src/episodes/episode.retry.ts` decides when it is read again.
+
+| Last attempt | Settled for                                               | Then                         |
+| ------------ | --------------------------------------------------------- | ---------------------------- |
+| (none)       | not at all                                                | read in the background       |
+| `ok`         | 1 day, or 1 year when read after the show finished airing | read again in the background |
+| `failed`     | 10 minutes                                                | read again in the background |
+
+A list read while the show was airing is read again after a day even once MAL says it finished, to catch the last episodes. A lookup that finds an ok MAL row with no attempt, or one past its window, schedules the read through `MalFiller.ensureEpisodes`, so existing rows backfill lazily. The cost is one query per lookup. Reads are single-flight per MAL id in process memory.
+
+All MAL page requests of the process go through one limiter (`episode.limiter.ts`, 1 request a second, shared through the `EPISODE_LIMITER` provider of `EpisodesModule`), so a lookup of 50 new titles queues behind it instead of spiking MAL. The script runs in its own process and has its own limiter, so running it while the API is filling can reach 2 requests a second. `MalModule` imports `EpisodesModule` for the filler, a new `mal` to `episodes` dependency that sits beside the existing `mal` to `art/contract` one. `ArtService` still reaches episodes only through `MalFiller`. `episodes/` already imports the translator and config loader from `art/`, which the note under **Layout** does not allow a new feature module.
 
 `pnpm nx run api:sync-episodes` fills the table. It reads every `title_mal` row with status `ok`, lists each show, stores the episodes, fetches the synopsis of each episode not stored yet and translates what is untranslated. It needs `DATABASE_URL`. It is idempotent and resumable. An episode with its synopsis fetched and its translations stored costs no request, so a stopped run continues where it ended. A new run still fetches each show's list page once to find new episodes. A changed English title drops its Vietnamese one so it is translated again.
 

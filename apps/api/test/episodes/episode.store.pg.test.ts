@@ -27,6 +27,9 @@ describe.skipIf(!url)('PostgresEpisodeStore against DATABASE_URL', () => {
 
   afterAll(async () => {
     await pool.query(`delete from episode_info where mal_id = $1`, [malId]);
+    await pool.query(`delete from episode_list_sync where mal_id = $1`, [
+      malId,
+    ]);
     await pool.end();
   });
 
@@ -54,6 +57,29 @@ describe.skipIf(!url)('PostgresEpisodeStore against DATABASE_URL', () => {
       title: 'The Door to Heaven',
       titleVi: null,
       synopsisVi: 'Một cánh cửa mở ra.',
+    });
+  });
+
+  it('keeps the latest list attempt per MAL id', async () => {
+    const attemptedAt = new Date('2026-01-01T00:00:00Z');
+    await store.saveListAttempt({
+      malId,
+      status: 'failed',
+      airing: null,
+      attemptedAt,
+    });
+    await store.saveListAttempt({
+      malId,
+      status: 'ok',
+      airing: 'currently_airing',
+      attemptedAt,
+    });
+
+    expect((await store.listAttempts([malId, malId + 1])).get(malId)).toEqual({
+      malId,
+      status: 'ok',
+      airing: 'currently_airing',
+      attemptedAt,
     });
   });
 });

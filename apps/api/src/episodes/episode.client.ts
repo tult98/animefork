@@ -4,6 +4,7 @@ import {
   parseSynopsis,
   type ListedEpisode,
 } from './episode.parser.ts';
+import { createRateLimiter, type RateLimiter } from './episode.limiter.ts';
 
 export const MAL_SITE = 'https://myanimelist.net';
 // MAL serves this identifiable agent the same pages as a browser.
@@ -36,6 +37,8 @@ export interface EpisodeSiteOptions {
   baseUrl?: string;
   fetch?: typeof fetch;
   gapMs?: number;
+  // Shared by every client in the process so their requests to MAL stay one gap apart. Wins over `gapMs`.
+  limiter?: RateLimiter;
   retryMs?: number;
   timeoutMs?: number;
   now?: () => number;
@@ -47,18 +50,20 @@ export function createEpisodeSiteClient(
 ): EpisodeSiteClient {
   const base = (options.baseUrl ?? MAL_SITE).replace(/\/+$/, '');
   const doFetch = options.fetch ?? fetch;
-  const gap = options.gapMs ?? DEFAULT_GAP_MS;
   const retryMs = options.retryMs ?? DEFAULT_RETRY_MS;
   const timeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const now = options.now ?? Date.now;
   const sleep =
     options.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
-  let lastAt = 0;
+  const limiter =
+    options.limiter ??
+    createRateLimiter({
+      gapMs: options.gapMs ?? DEFAULT_GAP_MS,
+      now: options.now,
+      sleep,
+    });
 
   async function request(url: string): Promise<Response> {
-    const wait = lastAt + gap - now();
-    if (wait > 0) await sleep(wait);
-    lastAt = now();
+    await limiter.wait();
     try {
       return await doFetch(url, {
         headers: { 'user-agent': EPISODE_USER_AGENT, accept: 'text/html' },

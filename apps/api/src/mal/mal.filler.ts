@@ -3,6 +3,10 @@ import type { TitleInput } from '../art/contract.ts';
 import { describeError } from '../art/art.filler.ts';
 import { fmt } from '../art/tmdb/jev.ts';
 import type { Clock } from '../common/clock.ts';
+import type {
+  EpisodeFiller,
+  EpisodeTarget,
+} from '../episodes/episode.filler.ts';
 import type { MalCandidate, MalClient } from './mal.client.ts';
 import { jevCandidates, type MalJudge } from './mal.jev.ts';
 import { matchMal, type MalMatch } from './mal.matcher.ts';
@@ -27,17 +31,20 @@ export class MalFiller {
   private readonly client: MalClient;
   private readonly now: Clock;
   private readonly judge: MalJudge | null;
+  private readonly episodes: EpisodeFiller | null;
 
   constructor(
     store: MalStore,
     client: MalClient,
     now: Clock,
     judge: MalJudge | null = null,
+    episodes: EpisodeFiller | null = null,
   ) {
     this.store = store;
     this.client = client;
     this.now = now;
     this.judge = judge;
+    this.episodes = episodes;
   }
 
   has(slug: string): boolean {
@@ -62,10 +69,23 @@ export class MalFiller {
     return done;
   }
 
+  // Schedules the episode list of each matched title that has none yet or is due a refresh.
+  ensureEpisodes(rows: Iterable<StoredMal>): Promise<void> {
+    if (!this.episodes) return Promise.resolve();
+    const targets: EpisodeTarget[] = [];
+    for (const row of rows) {
+      if (row.status === 'ok' && row.malId !== null) {
+        targets.push({ slug: row.slug, malId: row.malId, airing: row.airing });
+      }
+    }
+    return this.episodes.ensure(targets);
+  }
+
   async idle(): Promise<void> {
     while (this.inFlight.size > 0) {
       await Promise.all([...this.inFlight.values()]);
     }
+    await this.episodes?.idle();
   }
 
   private async run(
@@ -75,29 +95,37 @@ export class MalFiller {
   ): Promise<void> {
     const current = (await this.store.find([input.slug])).get(input.slug);
     if (isMalSettled(current, this.now(), namesAt)) return;
+    let saved: StoredMal | null = null;
     try {
-      if (current?.status === 'ok' && current.malId !== null) {
-        await this.refresh(current);
-      } else {
-        await this.match(input, aliases);
-      }
+      saved =
+        current?.status === 'ok' && current.malId !== null
+          ? await this.refresh(current)
+          : await this.match(input, aliases);
     } catch (error) {
       const reason = describeError(error);
       this.logger.warn(`mal ${input.slug} failed: ${reason}`);
       if (current?.status === 'ok') await this.store.touch(input.slug);
       else await this.saveMiss(input.slug, 'failed', reason);
     }
+    // The MAL row is already stored, so the episode names can only add to it.
+    if (saved?.malId != null) {
+      await this.episodes?.fill({
+        slug: saved.slug,
+        malId: saved.malId,
+        airing: saved.airing,
+      });
+    }
   }
 
-  private async refresh(current: StoredMal): Promise<void> {
-    if (current.malId === null) return;
+  private async refresh(current: StoredMal): Promise<StoredMal | null> {
+    if (current.malId === null) return null;
     const stats = await this.client.stats(current.malId);
     if (!stats) {
       await this.store.touch(current.slug);
-      return;
+      return null;
     }
     const now = this.now();
-    await this.store.save({
+    const row: StoredMal = {
       ...current,
       score: stats.score,
       voters: stats.voters,
@@ -111,10 +139,15 @@ export class MalFiller {
       datesKnown: true,
       attemptedAt: now,
       fetchedAt: now,
-    });
+    };
+    await this.store.save(row);
+    return row;
   }
 
-  private async match(input: TitleInput, aliases?: AliasSource): Promise<void> {
+  private async match(
+    input: TitleInput,
+    aliases?: AliasSource,
+  ): Promise<StoredMal | null> {
     const pages: MalCandidate[][] = [];
     const search = async (query: string) => {
       const results = await this.client.search(query);
@@ -141,37 +174,36 @@ export class MalFiller {
       }
     }
     if (found) {
-      await this.saveMatch(input.slug, found, 'score');
-      return;
+      return this.saveMatch(input.slug, found, 'score');
     }
     const candidates = jevCandidates(pages);
     if (!this.judge || candidates.length === 0) {
       await this.saveMiss(input.slug, 'none', 'no candidate cleared the match');
-      return;
+      return null;
     }
     const verdict = await this.judge.ask(input, candidates);
     if (verdict.accepted) {
-      await this.saveMatch(
+      return this.saveMatch(
         input.slug,
         { candidate: verdict.choice, score: verdict.score },
         'jev',
       );
-      return;
     }
     await this.saveMiss(
       input.slug,
       'none',
       `jev rejected: best ${verdict.choice.id} p=${fmt(verdict.probability)} noul=${fmt(verdict.noul)}`,
     );
+    return null;
   }
 
   private async saveMatch(
     slug: string,
     { candidate, score }: MalMatch,
     by: MalMatchedBy,
-  ): Promise<void> {
+  ): Promise<StoredMal> {
     const now = this.now();
-    await this.store.save({
+    const row: StoredMal = {
       slug,
       status: 'ok',
       malId: candidate.id,
@@ -192,7 +224,9 @@ export class MalFiller {
       reason: null,
       attemptedAt: now,
       fetchedAt: now,
-    });
+    };
+    await this.store.save(row);
+    return row;
   }
 
   private async saveMiss(

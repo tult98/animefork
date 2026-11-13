@@ -1,5 +1,8 @@
+import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
+import { PG_POOL } from '../database/migration-runner.ts';
 import type { ListedEpisode } from './episode.parser.ts';
+import type { EpisodeListAttempt } from './episode.retry.ts';
 
 export interface StoredEpisode {
   malId: number;
@@ -12,10 +15,15 @@ export interface StoredEpisode {
   synopsisFetched: boolean;
 }
 
+export const EPISODE_STORE = Symbol('EpisodeStore');
+
 export interface EpisodeStore {
   // MAL ids of every title with an ok match, lowest first.
   matchedMalIds(): Promise<number[]>;
   find(malId: number): Promise<Map<number, StoredEpisode>>;
+  // When the list page of each entry was last read, for the entries that were.
+  listAttempts(malIds: number[]): Promise<Map<number, EpisodeListAttempt>>;
+  saveListAttempt(attempt: EpisodeListAttempt): Promise<void>;
   // Adds new episodes and refreshes the listed fields. A changed title drops its stale translation.
   saveListed(malId: number, episodes: ListedEpisode[]): Promise<void>;
   saveSynopsis(
@@ -32,6 +40,7 @@ export interface EpisodeStore {
 
 export class MemoryEpisodeStore implements EpisodeStore {
   readonly rows = new Map<string, StoredEpisode>();
+  readonly attempts = new Map<number, EpisodeListAttempt>();
   matched: number[] = [];
 
   private key = (malId: number, number: number) => `${malId}:${number}`;
@@ -46,6 +55,21 @@ export class MemoryEpisodeStore implements EpisodeStore {
       if (row.malId === malId) found.set(row.number, { ...row });
     }
     return found;
+  }
+
+  async listAttempts(
+    malIds: number[],
+  ): Promise<Map<number, EpisodeListAttempt>> {
+    const found = new Map<number, EpisodeListAttempt>();
+    for (const malId of malIds) {
+      const row = this.attempts.get(malId);
+      if (row) found.set(malId, { ...row });
+    }
+    return found;
+  }
+
+  async saveListAttempt(attempt: EpisodeListAttempt): Promise<void> {
+    this.attempts.set(attempt.malId, { ...attempt });
   }
 
   async saveListed(malId: number, episodes: ListedEpisode[]): Promise<void> {
@@ -100,10 +124,11 @@ interface EpisodeRow {
   synopsis_fetched_at: Date | null;
 }
 
+@Injectable()
 export class PostgresEpisodeStore implements EpisodeStore {
   private readonly pool: pg.Pool;
 
-  constructor(pool: pg.Pool) {
+  constructor(@Inject(PG_POOL) pool: pg.Pool) {
     this.pool = pool;
   }
 
@@ -135,6 +160,45 @@ export class PostgresEpisodeStore implements EpisodeStore {
           synopsisFetched: row.synopsis_fetched_at !== null,
         },
       ]),
+    );
+  }
+
+  async listAttempts(
+    malIds: number[],
+  ): Promise<Map<number, EpisodeListAttempt>> {
+    if (malIds.length === 0) return new Map();
+    const { rows } = await this.pool.query<{
+      mal_id: number;
+      status: EpisodeListAttempt['status'];
+      airing: EpisodeListAttempt['airing'];
+      attempted_at: Date;
+    }>(
+      `select mal_id, status, airing, attempted_at
+         from episode_list_sync where mal_id = any($1::int[])`,
+      [malIds],
+    );
+    return new Map(
+      rows.map((row) => [
+        row.mal_id,
+        {
+          malId: row.mal_id,
+          status: row.status,
+          airing: row.airing,
+          attemptedAt: row.attempted_at,
+        },
+      ]),
+    );
+  }
+
+  async saveListAttempt(attempt: EpisodeListAttempt): Promise<void> {
+    await this.pool.query(
+      `insert into episode_list_sync (mal_id, status, airing, attempted_at)
+       values ($1, $2, $3, $4)
+       on conflict (mal_id) do update set
+         status = excluded.status,
+         airing = excluded.airing,
+         attempted_at = excluded.attempted_at`,
+      [attempt.malId, attempt.status, attempt.airing, attempt.attemptedAt],
     );
   }
 
