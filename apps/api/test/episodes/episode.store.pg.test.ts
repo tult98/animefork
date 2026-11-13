@@ -47,6 +47,7 @@ describe.skipIf(!url)('PostgresEpisodeStore against DATABASE_URL', () => {
       number: 1,
       title: 'The Door to Hell',
       titleVi: 'Cánh cửa địa ngục',
+      aired: '2026-10-03',
       synopsis: 'A door opens.',
       synopsisVi: 'Một cánh cửa mở ra.',
       synopsisFetched: true,
