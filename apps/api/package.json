@@ -10,8 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "eval-matcher": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/eval-matcher.ts",
-    "eval-mal": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/eval-mal.ts",
-    "sync-episodes": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/sync-episodes.ts"
+    "eval-mal": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/eval-mal.ts"
   },
   "nx": {
     "targets": {
@@ -71,9 +70,6 @@
         "cache": false
       },
       "eval-mal": {
-        "cache": false
-      },
-      "sync-episodes": {
         "cache": false
       }
     }

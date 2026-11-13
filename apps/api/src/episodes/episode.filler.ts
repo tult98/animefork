@@ -164,7 +164,7 @@ export class EpisodeFiller {
       for (const row of (await this.store.find(malId)).values()) {
         if (row.titleVi !== null) continue;
         const titleVi = await this.translators.title.translate(row.title);
-        await this.store.saveTranslation(malId, row.number, { titleVi });
+        await this.store.saveTranslation(malId, row.number, titleVi);
       }
       return null;
     } catch (error) {

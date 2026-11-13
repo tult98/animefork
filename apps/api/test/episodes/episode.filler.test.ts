@@ -41,7 +41,7 @@ function setup(
   const episodes = new EpisodeFiller(
     episodeStore,
     site,
-    { title: { translate }, synopsis: { translate } },
+    { title: { translate } },
     now,
   );
   const client: MalClient = {
@@ -71,7 +71,6 @@ describe('episode names on a MAL fill', () => {
     expect(episodeStore.rows.get('7:2')).toMatchObject({
       title: 'The Door',
       titleVi: 'vi The Door',
-      synopsisFetched: false,
     });
   });
 

@@ -16,21 +16,19 @@ const fixture = (name: string) =>
 const header = (init: RequestInit | undefined, name: string) =>
   (init?.headers as Record<string, string>)[name];
 
-const page = (text: string) => `<h2 class="fw-b">Synopsis</h2>${text}</div>`;
-
 describe('createEpisodeSiteClient', () => {
-  it('reads one episode page with the identifiable agent', async () => {
+  it('reads the list page with the identifiable agent', async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(
-      async () => new Response(page('A door opens.')),
+      async () => new Response(listPage(1)),
     );
     const client = createEpisodeSiteClient({
       fetch,
       sleep: async () => undefined,
     });
 
-    expect(await client.synopsis(21, 3)).toBe('A door opens.');
+    expect(await client.list(21)).toHaveLength(1);
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([
-      'https://myanimelist.net/anime/21/x/episode/3',
+      'https://myanimelist.net/anime/21/x/episode',
     ]);
     expect(
       (fetch.mock.calls[0]?.[1]?.headers as Record<string, string>)[
@@ -44,7 +42,7 @@ describe('createEpisodeSiteClient', () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce(new Response('slow down', { status: 429 }))
-      .mockResolvedValueOnce(new Response(page('A door opens.')));
+      .mockResolvedValueOnce(new Response(listPage(1)));
     const times: number[] = [];
     const limiter = createRateLimiter({
       gapMs: 1000,
@@ -62,7 +60,7 @@ describe('createEpisodeSiteClient', () => {
       retryMs: 7000,
     });
 
-    expect(await client.synopsis(5, 1)).toBe('A door opens.');
+    expect(await client.list(5)).toHaveLength(1);
     expect(times).toEqual([0, 7000]);
   });
 
@@ -159,7 +157,7 @@ describe('createEpisodeSiteClient', () => {
       fetch,
       sleep: async () => undefined,
     });
-    await expect(client.synopsis(5, 1)).rejects.toThrow('answered 503');
+    await expect(client.list(5)).rejects.toThrow('answered 503');
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 });

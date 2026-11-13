@@ -94,7 +94,7 @@ describe('EpisodeInfoService', () => {
       { number: 2, title: 'The Door', titleAlt: null, aired: '2026-10-10' },
       { number: 1, title: 'The Boy', titleAlt: null, aired: '2026-10-03' },
     ]);
-    await episodes.saveTranslation(7, 1, { titleVi: 'Cậu bé' });
+    await episodes.saveTranslation(7, 1, 'Cậu bé');
     await art.saveMatched({
       title: {
         source_slug: SLUG,

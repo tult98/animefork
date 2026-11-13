@@ -8,45 +8,29 @@ export interface StoredEpisode {
   title: string;
   titleVi: string | null;
   aired: string | null;
-  synopsis: string | null;
-  synopsisVi: string | null;
-  // False until the episode page was fetched, so an empty synopsis is fetched once, not every run.
-  synopsisFetched: boolean;
 }
 
 export const EPISODE_STORE = Symbol('EpisodeStore');
 
 export interface EpisodeStore {
-  // MAL ids of every title with an ok match, lowest first.
-  matchedMalIds(): Promise<number[]>;
   find(malId: number): Promise<Map<number, StoredEpisode>>;
   // When the list page of each entry was last read, for the entries that were.
   listAttempts(malIds: number[]): Promise<Map<number, EpisodeListAttempt>>;
   saveListAttempt(attempt: EpisodeListAttempt): Promise<void>;
   // Adds new episodes and refreshes the listed fields. A changed title drops its stale translation.
   saveListed(malId: number, episodes: ListedEpisode[]): Promise<void>;
-  saveSynopsis(
-    malId: number,
-    number: number,
-    synopsis: string | null,
-  ): Promise<void>;
   saveTranslation(
     malId: number,
     number: number,
-    fields: { titleVi?: string; synopsisVi?: string },
+    titleVi: string,
   ): Promise<void>;
 }
 
 export class MemoryEpisodeStore implements EpisodeStore {
   readonly rows = new Map<string, StoredEpisode>();
   readonly attempts = new Map<number, EpisodeListAttempt>();
-  matched: number[] = [];
 
   private key = (malId: number, number: number) => `${malId}:${number}`;
-
-  async matchedMalIds(): Promise<number[]> {
-    return [...this.matched];
-  }
 
   async find(malId: number): Promise<Map<number, StoredEpisode>> {
     const found = new Map<number, StoredEpisode>();
@@ -77,9 +61,6 @@ export class MemoryEpisodeStore implements EpisodeStore {
       this.rows.set(this.key(malId, number), {
         malId,
         number,
-        synopsis: null,
-        synopsisVi: null,
-        synopsisFetched: false,
         ...row,
         title,
         aired,
@@ -88,29 +69,13 @@ export class MemoryEpisodeStore implements EpisodeStore {
     }
   }
 
-  async saveSynopsis(
-    malId: number,
-    number: number,
-    synopsis: string | null,
-  ): Promise<void> {
-    const row = this.rows.get(this.key(malId, number));
-    if (row) {
-      this.rows.set(this.key(malId, number), {
-        ...row,
-        synopsis,
-        synopsisVi: synopsis === row.synopsis ? row.synopsisVi : null,
-        synopsisFetched: true,
-      });
-    }
-  }
-
   async saveTranslation(
     malId: number,
     number: number,
-    fields: { titleVi?: string; synopsisVi?: string },
+    titleVi: string,
   ): Promise<void> {
     const row = this.rows.get(this.key(malId, number));
-    if (row) this.rows.set(this.key(malId, number), { ...row, ...fields });
+    if (row) this.rows.set(this.key(malId, number), { ...row, titleVi });
   }
 }
 
@@ -120,9 +85,6 @@ interface EpisodeRow {
   title: string;
   title_vi: string | null;
   aired: string | null;
-  synopsis: string | null;
-  synopsis_vi: string | null;
-  synopsis_fetched_at: Date | null;
 }
 
 export class PostgresEpisodeStore implements EpisodeStore {
@@ -132,18 +94,9 @@ export class PostgresEpisodeStore implements EpisodeStore {
     this.pool = pool;
   }
 
-  async matchedMalIds(): Promise<number[]> {
-    const { rows } = await this.pool.query<{ mal_id: number }>(
-      `select distinct mal_id from title_mal
-        where status = 'ok' and mal_id is not null order by mal_id`,
-    );
-    return rows.map((row) => row.mal_id);
-  }
-
   async find(malId: number): Promise<Map<number, StoredEpisode>> {
     const { rows } = await this.pool.query<EpisodeRow>(
-      `select mal_id, episode_number, title, title_vi, to_char(aired, 'YYYY-MM-DD') as aired,
-              synopsis, synopsis_vi, synopsis_fetched_at
+      `select mal_id, episode_number, title, title_vi, to_char(aired, 'YYYY-MM-DD') as aired
          from episode_info where mal_id = $1`,
       [malId],
     );
@@ -156,9 +109,6 @@ export class PostgresEpisodeStore implements EpisodeStore {
           title: row.title,
           titleVi: row.title_vi,
           aired: row.aired,
-          synopsis: row.synopsis,
-          synopsisVi: row.synopsis_vi,
-          synopsisFetched: row.synopsis_fetched_at !== null,
         },
       ]),
     );
@@ -225,34 +175,17 @@ export class PostgresEpisodeStore implements EpisodeStore {
     );
   }
 
-  async saveSynopsis(
-    malId: number,
-    number: number,
-    synopsis: string | null,
-  ): Promise<void> {
-    await this.pool.query(
-      `update episode_info set
-         synopsis_vi = case when synopsis is not distinct from $3
-                            then synopsis_vi end,
-         synopsis = $3,
-         synopsis_fetched_at = now()
-       where mal_id = $1 and episode_number = $2`,
-      [malId, number, synopsis],
-    );
-  }
-
   async saveTranslation(
     malId: number,
     number: number,
-    fields: { titleVi?: string; synopsisVi?: string },
+    titleVi: string,
   ): Promise<void> {
     await this.pool.query(
       `update episode_info set
-         title_vi = coalesce($3, title_vi),
-         synopsis_vi = coalesce($4, synopsis_vi),
+         title_vi = $3,
          translated_at = now()
        where mal_id = $1 and episode_number = $2`,
-      [malId, number, fields.titleVi ?? null, fields.synopsisVi ?? null],
+      [malId, number, titleVi],
     );
   }
 }

@@ -62,7 +62,7 @@ export class EpisodeInfoService {
   }
 }
 
-// MAL's title wins over TMDB's name. The Vietnamese fields fall back to TMDB's only when MAL has none yet.
+// MAL's title wins over TMDB's name, and the Vietnamese title falls back to TMDB's only when MAL has none yet. Both synopses come from TMDB alone.
 function merge(
   listed: Map<number, StoredEpisode>,
   tmdb: Map<number, StoredTmdbEpisode>,
@@ -78,9 +78,8 @@ function merge(
         number,
         title: mal?.title ?? (nameIsVi ? null : (t?.name ?? null)),
         titleVi: mal?.titleVi ?? (nameIsVi ? (t?.name ?? null) : null),
-        synopsis:
-          mal?.synopsis ?? (t?.overviewLang === 'en' ? t.overview : null),
-        synopsisVi: mal?.synopsisVi ?? t?.overviewVi ?? null,
+        synopsis: t?.overviewLang === 'en' ? t.overview : null,
+        synopsisVi: t?.overviewVi ?? null,
         aired: mal?.aired ?? null,
       };
     });

@@ -7,7 +7,6 @@ import type { DeepSeekConfig } from '../art/art.config.ts';
 
 export interface EpisodeTranslators {
   title: OverviewTranslator;
-  synopsis: OverviewTranslator;
 }
 
 export function createEpisodeTranslators(
@@ -19,6 +18,5 @@ export function createEpisodeTranslators(
       prompt: TITLE_TRANSLATION_PROMPT,
       tag: 'title',
     }),
-    synopsis: new DeepSeekTranslator(config),
   };
 }

@@ -35,11 +35,7 @@ describe.skipIf(!url)('PostgresEpisodeStore against DATABASE_URL', () => {
 
   it('keeps a translation across a repeat listing and drops it when the title changes', async () => {
     await store.saveListed(malId, [ep('The Door to Hell')]);
-    await store.saveSynopsis(malId, 1, 'A door opens.');
-    await store.saveTranslation(malId, 1, {
-      titleVi: 'Cánh cửa địa ngục',
-      synopsisVi: 'Một cánh cửa mở ra.',
-    });
+    await store.saveTranslation(malId, 1, 'Cánh cửa địa ngục');
 
     await store.saveListed(malId, [ep('The Door to Hell')]);
     expect((await store.find(malId)).get(1)).toEqual({
@@ -48,16 +44,12 @@ describe.skipIf(!url)('PostgresEpisodeStore against DATABASE_URL', () => {
       title: 'The Door to Hell',
       titleVi: 'Cánh cửa địa ngục',
       aired: '2026-10-03',
-      synopsis: 'A door opens.',
-      synopsisVi: 'Một cánh cửa mở ra.',
-      synopsisFetched: true,
     });
 
     await store.saveListed(malId, [ep('The Door to Heaven')]);
     expect((await store.find(malId)).get(1)).toMatchObject({
       title: 'The Door to Heaven',
       titleVi: null,
-      synopsisVi: 'Một cánh cửa mở ra.',
     });
   });
 

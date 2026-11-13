@@ -1,4 +1,4 @@
-// MAL has no episode API this service may use, so these read the two public HTML pages.
+// MAL has no episode API this service may use, so this reads the public episode list page.
 export interface ListedEpisode {
   number: number;
   title: string;
@@ -93,35 +93,4 @@ export function parseEpisodeList(html: string): ListedEpisode[] | null {
     });
   }
   return episodes;
-}
-
-const SYNOPSIS_HEADING = '<h2 class="fw-b">Synopsis</h2>';
-// MAL appends credit and arc lines to the text, which are not part of the story.
-const NOISE_LINE = /^(?:\(Source:.*\)|\[Written by .*\])$/i;
-const BOLD_LINE = /^<b>[^<]*<\/b>(?:\s*\(\d+\/\d+\))?$/i;
-
-// False for a page that is not an episode page, as with a block or challenge page.
-export const hasSynopsisSection = (html: string) =>
-  html.includes(SYNOPSIS_HEADING);
-
-// Returns null when the episode has no synopsis yet.
-export function parseSynopsis(html: string): string | null {
-  const start = html.indexOf(SYNOPSIS_HEADING);
-  if (start < 0) return null;
-  const body = html.slice(start + SYNOPSIS_HEADING.length);
-  const end = body.indexOf('</div>');
-  const block = end < 0 ? body : body.slice(0, end);
-  if (block.includes('badresult') || /<div/i.test(block)) return null;
-  const lines = block
-    .replace(/<br\s*\/?>/gi, '\n')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => !BOLD_LINE.test(line))
-    .map((line) => clean(line))
-    .filter((line) => !NOISE_LINE.test(line));
-  const text = lines
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  return text || null;
 }

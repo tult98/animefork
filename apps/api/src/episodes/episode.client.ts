@@ -1,8 +1,6 @@
 import {
   LIST_PAGE_SIZE,
-  hasSynopsisSection,
   parseEpisodeList,
-  parseSynopsis,
   type ListedEpisode,
 } from './episode.parser.ts';
 import { createRateLimiter, type RateLimiter } from './episode.limiter.ts';
@@ -33,8 +31,6 @@ export interface EpisodeSiteClient {
   // Every listed episode of one MAL entry, or null when MAL has no such entry. Throws when the page is not
   // the episode list, so a block page is never read as an empty list.
   list(malId: number): Promise<ListedEpisode[] | null>;
-  // The synopsis of one episode, or null while it has none. Throws when the page is not the episode page.
-  synopsis(malId: number, episode: number): Promise<string | null>;
 }
 
 export type EpisodeLister = Pick<EpisodeSiteClient, 'list'>;
@@ -130,16 +126,6 @@ export function createEpisodeSiteClient(
         if (listed.length < LIST_PAGE_SIZE) break;
       }
       return episodes;
-    },
-    async synopsis(malId, episode) {
-      const html = await page(`/anime/${malId}/x/episode/${episode}`);
-      if (html === null) return null;
-      if (!hasSynopsisSection(html)) {
-        throw new EpisodeSiteError(
-          `MAL /anime/${malId}/x/episode/${episode} is not the episode page`,
-        );
-      }
-      return parseSynopsis(html);
     },
   };
 }
