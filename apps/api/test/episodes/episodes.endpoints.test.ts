@@ -2,6 +2,10 @@ import { randomInt, randomUUID } from 'node:crypto';
 import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it, vi } from 'vitest';
 import type { EpisodeFiller } from '../../src/episodes/episode.filler.ts';
+import {
+  EPISODE_STORE,
+  type EpisodeStore,
+} from '../../src/episodes/episode.store.ts';
 import { EPISODE_FILLER } from '../../src/episodes/episodes.module.ts';
 import { MAL_STORE, type MalStore } from '../../src/mal/mal.store.ts';
 import { buildApp } from '../test-app.ts';
@@ -43,7 +47,7 @@ describe('episode info', () => {
           choices: [
             {
               finish_reason: 'stop',
-              message: { content: '["Cánh cửa","Cậu bé"]' },
+              message: { content: '["Cậu bé","Cánh cửa"]' },
             },
           ],
         },
@@ -117,13 +121,50 @@ describe('episode info', () => {
     expect(fetchMock).toHaveFetchedTimes(0);
   });
 
-  it('rejects a slug with characters a title never has', async () => {
+  it('answers a page of episodes from a number on, and an empty ready page past the last one', async () => {
+    const { app, http } = await buildApp();
+    const slug = `one-piece-${randomUUID()}`;
+    const malId = randomInt(1, 2_000_000_000);
+    await app.get<MalStore>(MAL_STORE).save({ ...mockMalMatch, slug, malId });
+    await app.get<EpisodeStore>(EPISODE_STORE).saveListed(
+      malId,
+      [1, 2, 3, 4, 5].map((number) => ({
+        number,
+        title: `Episode ${number}`,
+        titleAlt: null,
+        aired: null,
+        synopsis: null,
+      })),
+    );
+
+    const page = await http().get(`/v1/episodes/${slug}?from=2&limit=2`);
+    const past = await http().get(`/v1/episodes/${slug}?from=6&limit=2`);
+
+    expect(page.status).toBe(200);
+    expect(page.body).toEqual({
+      status: 'ready',
+      episodes: [2, 3].map((number) => ({
+        number,
+        title: `Episode ${number}`,
+        titleVi: null,
+        aired: null,
+        synopsis: null,
+        synopsisVi: null,
+      })),
+    });
+    expect(past.body).toEqual({ status: 'ready', episodes: [] });
+  });
+
+  it('rejects a slug with characters a title never has, and a page longer than 100', async () => {
     const { http } = await buildApp();
 
-    const res = await http().get('/v1/episodes/bad_slug!');
+    const slug = await http().get('/v1/episodes/bad_slug!');
+    const limit = await http().get('/v1/episodes/black-clover?limit=101');
 
-    expect(res.status).toBe(400);
-    expect(res.body).toMatchObject({ error: 'invalid_request' });
+    expect(slug.status).toBe(400);
+    expect(slug.body).toMatchObject({ error: 'invalid_request' });
+    expect(limit.status).toBe(400);
+    expect(limit.body).toMatchObject({ error: 'invalid_request' });
   });
 
   it('answers none when Tenrai has no list for the title, and asks Tenrai again only after 10 minutes', async () => {

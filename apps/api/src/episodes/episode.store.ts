@@ -16,6 +16,12 @@ export const EPISODE_STORE = Symbol('EpisodeStore');
 
 export interface EpisodeStore {
   find(malId: number): Promise<Map<number, StoredEpisode>>;
+  findPage(
+    malId: number,
+    from: number,
+    limit: number,
+  ): Promise<StoredEpisode[]>;
+  hasEpisodes(malId: number): Promise<boolean>;
   // When the list page of each entry was last read, for the entries that were.
   listAttempts(malIds: number[]): Promise<Map<number, EpisodeListAttempt>>;
   saveListAttempt(attempt: EpisodeListAttempt): Promise<void>;
@@ -43,6 +49,18 @@ interface EpisodeRow {
   synopsis_vi: string | null;
 }
 
+function toStored(row: EpisodeRow): StoredEpisode {
+  return {
+    malId: row.mal_id,
+    number: row.episode_number,
+    title: row.title,
+    titleVi: row.title_vi,
+    aired: row.aired,
+    synopsis: row.synopsis,
+    synopsisVi: row.synopsis_vi,
+  };
+}
+
 export class PostgresEpisodeStore implements EpisodeStore {
   private readonly pool: pg.Pool;
 
@@ -54,23 +72,34 @@ export class PostgresEpisodeStore implements EpisodeStore {
     const { rows } = await this.pool.query<EpisodeRow>(
       `select mal_id, episode_number, title, title_vi, to_char(aired, 'YYYY-MM-DD') as aired,
               synopsis, synopsis_vi
-         from episode_info where mal_id = $1`,
+         from episode_info where mal_id = $1
+        order by episode_number`,
       [malId],
     );
-    return new Map(
-      rows.map((row) => [
-        row.episode_number,
-        {
-          malId: row.mal_id,
-          number: row.episode_number,
-          title: row.title,
-          titleVi: row.title_vi,
-          aired: row.aired,
-          synopsis: row.synopsis,
-          synopsisVi: row.synopsis_vi,
-        },
-      ]),
+    return new Map(rows.map((row) => [row.episode_number, toStored(row)]));
+  }
+
+  async findPage(
+    malId: number,
+    from: number,
+    limit: number,
+  ): Promise<StoredEpisode[]> {
+    const { rows } = await this.pool.query<EpisodeRow>(
+      `select mal_id, episode_number, title, title_vi, to_char(aired, 'YYYY-MM-DD') as aired,
+              synopsis, synopsis_vi
+         from episode_info where mal_id = $1 and episode_number >= $2
+        order by episode_number limit $3`,
+      [malId, from, limit],
     );
+    return rows.map(toStored);
+  }
+
+  async hasEpisodes(malId: number): Promise<boolean> {
+    const { rows } = await this.pool.query<{ exists: boolean }>(
+      'select exists(select 1 from episode_info where mal_id = $1)',
+      [malId],
+    );
+    return rows[0]?.exists ?? false;
   }
 
   async listAttempts(
