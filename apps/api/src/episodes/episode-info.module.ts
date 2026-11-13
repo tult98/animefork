@@ -1,0 +1,23 @@
+import { Module } from '@nestjs/common';
+import type pg from 'pg';
+import { CLOCK, systemClock } from '../common/clock.ts';
+import { MalModule } from '../mal/mal.module.ts';
+import { PG_POOL } from '../database/migration-runner.ts';
+import { EpisodeInfoController } from './episode-info.controller.ts';
+import { EpisodeInfoService } from './episode-info.service.ts';
+import { EPISODE_STORE, PostgresEpisodeStore } from './episode.store.ts';
+
+@Module({
+  imports: [MalModule],
+  controllers: [EpisodeInfoController],
+  providers: [
+    { provide: CLOCK, useValue: systemClock },
+    {
+      provide: EPISODE_STORE,
+      inject: [PG_POOL],
+      useFactory: (pool: pg.Pool) => new PostgresEpisodeStore(pool),
+    },
+    EpisodeInfoService,
+  ],
+})
+export class EpisodeInfoModule {}

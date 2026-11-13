@@ -171,3 +171,29 @@ export const AvsSubmitRequestSchema = z.object({
 });
 
 export type AvsSubmitRequest = z.infer<typeof AvsSubmitRequestSchema>;
+
+export const EPISODES_PATH = '/v1/episodes';
+
+export const EpisodesSlugSchema = z.string().regex(SLUG_PATTERN);
+
+// Numbers, titles and air dates come from MyAnimeList's episode list. `titleVi` is null until translated.
+export const EpisodeInfoSchema = z.object({
+  number: z.number().int().positive(),
+  title: z.string().min(1).nullable(),
+  titleVi: z.string().min(1).nullable(),
+  // An ISO date.
+  aired: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable(),
+});
+
+export type EpisodeInfo = z.infer<typeof EpisodeInfoSchema>;
+
+export const EpisodesResponseSchema = z.object({
+  status: z.enum(['ready', 'pending', 'none']),
+  // Sorted by number. Empty unless the status is `ready`.
+  episodes: z.array(EpisodeInfoSchema),
+});
+
+export type EpisodesResponse = z.infer<typeof EpisodesResponseSchema>;

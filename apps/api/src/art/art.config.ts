@@ -74,19 +74,35 @@ export function loadJevConfig(env: Env): JevConfig | undefined {
   return toJevConfig(parseEnv(JevEnvSchema, env));
 }
 
+const DeepSeekEnvSchema = z.object({
+  DEEPSEEK_API_KEY: optionalText,
+  DEEPSEEK_API_BASE: z.preprocess(blankIsUnset, z.url().optional()),
+  DEEPSEEK_MODEL: optionalText,
+});
+
+function toDeepSeekConfig(
+  values: z.infer<typeof DeepSeekEnvSchema>,
+): DeepSeekConfig | undefined {
+  const apiKey = values.DEEPSEEK_API_KEY?.trim();
+  return apiKey
+    ? {
+        apiKey,
+        baseUrl: values.DEEPSEEK_API_BASE ?? DEFAULT_DEEPSEEK_API,
+        model: values.DEEPSEEK_MODEL ?? DEFAULT_DEEPSEEK_MODEL,
+      }
+    : undefined;
+}
+
+export function loadDeepSeekConfig(env: Env): DeepSeekConfig | undefined {
+  return toDeepSeekConfig(parseEnv(DeepSeekEnvSchema, env));
+}
+
 export function loadArtConfig(env: Env): ArtConfig {
   const values = parseEnv(ArtEnvSchema, env);
-  const deepseekKey = values.DEEPSEEK_API_KEY?.trim();
   return {
     tmdbApiKey: values.TMDB_API_KEY,
     tmdbApiBase: values.TMDB_API_BASE || undefined,
     jev: toJevConfig(values),
-    deepseek: deepseekKey
-      ? {
-          apiKey: deepseekKey,
-          baseUrl: values.DEEPSEEK_API_BASE ?? DEFAULT_DEEPSEEK_API,
-          model: values.DEEPSEEK_MODEL ?? DEFAULT_DEEPSEEK_MODEL,
-        }
-      : undefined,
+    deepseek: toDeepSeekConfig(values),
   };
 }

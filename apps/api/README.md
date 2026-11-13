@@ -16,6 +16,7 @@ src/
   art/             the art feature: controller, service, filler, store, retry table, contract, translator
     tmdb/          TMDB client, matchers (baseline, Jev, cascade), backdrop pick, title parsing, syncTitle, fetchOverview
   mal/             MyAnimeList numbers: client, score matcher, Jev judge, filler, store, retry table
+  episodes/        episode lists from MAL, store, title translator, GET /v1/episodes/:slug
   auth/            accounts: contract, controller, service, store, session guard, password, tokens, cookie, mailer, limits
 db/migrations/     numbered SQL files applied at boot
 scripts/           eval-matcher.ts and eval-mal.ts, read-only matcher comparisons
@@ -40,6 +41,8 @@ Errors answer JSON with an `error` code:
 | 413    | `{ error: 'body_too_large' }`              | The body is over 64 KB                                   |
 | 429    | `{ error: 'rate_limited' }`, `Retry-After` | More requests than the per-client limit in a minute      |
 | 503    | `{ error: 'unavailable' }`                 | Anything unexpected, such as a database failure          |
+
+`GET /v1/episodes/:slug` answers `{ status, episodes }` for one source season slug (see **Episode info**). `status` is `ready` with the episodes sorted by number, `pending` while the MAL match or the list is not settled, or `none` once the title has no MAL match or no episodes and that answer is settled. Each episode is `{ number, title, titleVi, aired }`. `title` is MAL's English title. `titleVi` is null until translated. `aired` is an ISO date or null. The zod schemas are `EpisodesResponseSchema` and `EpisodeInfoSchema` in `src/art/contract.ts`, so `apps/web` can import them. The route is rate limited like the art routes and uses the same error shapes. A slug that fails `SLUG_PATTERN` answers 400 `invalid_request`.
 
 `GET /healthz` answers `{ ok: true }` and is not rate limited.
 
@@ -168,6 +171,46 @@ A lookup also carries the MAL score, rank and airing status of each title. `MalF
   A `none` or `failed` row tried before the title's other names were stored is matched again once (see **Other names**).
 
 - **Evaluating.** `pnpm nx run api:eval-mal --status=none --limit=20` reads `title_mal` rows joined to `title_art` on the slug for `source_name`, `source_year` and `source_episode_count`, and `title_names` for the stored other names when the slug has some, re-runs the MAL searches and the score with those names the way the filler does, and asks Jev for every row that has candidates, also the rows the score accepts, so the two can be compared. It skips the TMDB alias queries. It prints the slug, the stored status and id, the score verdict, Jev's choice and verdict, and whether the two agree. `--status` is `none`, `ok` or `all` (the default), and `--limit` defaults to 50. It opens Postgres read-only and writes nothing, but every row costs up to 4 MAL searches (6 with other names) and one Jev request. It needs `DATABASE_URL`, `MAL_CLIENT_ID` and `TYPESAFE_API_KEY` and stops with a message naming the missing ones.
+
+## Episode info
+
+`episode_info` holds a name, a Vietnamese name and an air date for each episode of every title that has an ok MAL match. The MAL episode list fills it when the MAL lookup runs. Episodes carry no description. `GET /v1/episodes/:slug` reads the table (see **Endpoint**). A title joins it through `title_mal.mal_id` where `status = 'ok'`.
+
+The key is `(mal_id, episode_number)`. MAL lists each season as its own entry, so the numbers match the season in the source slug. The columns are `title`, `title_alt` (the romaji or Japanese name), `title_vi`, `aired`, `translated_at` and `fetched_at`. `title_vi` is null until translated.
+
+**Sources.** The list comes from MAL's episode page, `GET https://myanimelist.net/anime/<id>/x/episode?offset=N`. The placeholder slug works. A page holds 100 episodes, so a show costs one request per 100 episodes. `src/episodes/episode.client.ts` asks for offsets 0, 100, 200 and so on until a page has fewer than 100 rows. `src/episodes/episode.parser.ts` maps each row to the episode number, the title, the alternate title (stored as `title_alt`) and the air date. A row with no number or no title is skipped. A date that is not a full day is stored as null. The client uses the user agent `Mozilla/5.0 (compatible; animefork-episode-sync/1.0)`.
+
+**Failed page or empty list.** A list page with the episode table and no rows is an empty list and counts as a successful read. A page with no episode table, such as a Cloudflare challenge, is an error and a failed attempt. A 403, a 404 or a network error is a failed attempt too. The tests use real captures of the list page (`test/episodes/fixtures/list-black-clover-2nd-season.html` and `list-one-piece-offset-1100.html`). The empty table and the challenge page are hand-built, because no live show with an empty table was found.
+
+**Names on lookup.** When `MalFiller` saves an ok row, in the same background job it hands the MAL id to `EpisodeFiller` (`src/episodes/episode.filler.ts`). That reads the MAL list and stores the rows. It reads no other MAL page. The list attempt is recorded when the list is stored, and the one-at-a-time slot is released then. Translation of the titles runs after that, in a separate step with its own cap of 2 shows at once, so a long show never holds up another show's list read. A failure here never fails the MAL fill or changes its row. It logs `episodes <slug> failed: <reason>`, with no key or page text. Without `DEEPSEEK_API_KEY` the English names are stored.
+
+**Title batches.** The title translator sends up to 50 titles in one DeepSeek request (`translateMany` in `src/art/translator.ts`) and asks for a JSON array of strings in the same order. An answer is accepted when it is an array of exactly that size and every item is non-empty, not too long for its title, and not an unchanged copy of a title longer than 60 characters. Otherwise the batch is asked again one title per request with the single-title translator, so one bad answer never loses a title. Each batch is stored before the next request. A translator error stops the step for that show, so a down translator is asked once. The titles still empty are translated by the next list fill of that show. A translator outage is not a list failure, so the list attempt stays `ok` and only a MAL outage, a 403, a 404 or a page that is not the episode list is a `failed` attempt. The step logs `episode titles <slug> failed: <reason>`.
+
+`episode_list_sync` (`015_episode_list_sync.sql`) holds one row per MAL id with the status and airing status of the last list attempt. The table in `src/episodes/episode.retry.ts` decides when it is read again.
+
+| Last attempt | Settled for                                               | Then                         |
+| ------------ | --------------------------------------------------------- | ---------------------------- |
+| (none)       | not at all                                                | read in the background       |
+| `ok`         | 1 day, or 1 year when read after the show finished airing | read again in the background |
+| `failed`     | 10 minutes                                                | read again in the background |
+
+A list read while the show was airing is read again after a day even once MAL says it finished, to catch the last episodes. A lookup that finds an ok MAL row with no attempt, or one past its window, schedules the read through `MalFiller.ensureEpisodes`, so existing rows backfill lazily. The cost is one query per lookup. Reads are single-flight per MAL id in process memory.
+
+**MAL rate limit.** All MAL page requests of the process, which are list reads, go through one limiter (`src/episodes/episode.limiter.ts`, the `EPISODE_LIMITER` provider of `EpisodesModule`).
+
+- **Margin.** Calls are at least 1 second apart (`DEFAULT_GAP_MS`), so a show of 1,000 episodes costs about 10 seconds of list reads.
+- **429 and 5xx.** The client retries once. A 429 pauses the whole limiter for the `Retry-After` seconds, capped at 60 seconds, or 5 seconds without the header, so queued reads wait out the same window. A 5xx waits 5 seconds. A second failure is a failed attempt under the table above, so the list is tried again after 10 minutes. MAL gives no `Retry-After` guarantee.
+- **Queue.** `EpisodeFiller` reads one list at a time, holding the slot only while it reads and stores the list, and keeps at most 20 more waiting (`MAX_QUEUED_LISTS`). A target past that is dropped. Its next lookup or its next `GET /v1/episodes/:slug` schedules it again through `ensureEpisodes`. A lookup of 50 new titles therefore cannot build a long backlog.
+
+`MalModule` imports `EpisodesModule` for the filler, a new `mal` to `episodes` dependency that sits beside the existing `mal` to `art/contract` one. `ArtService` still reaches episodes only through `MalFiller`. `episodes/` already imports the translator and config loader from `art/`, which the note under **Layout** does not allow a new feature module.
+
+## Endpoint
+
+`GET /v1/episodes/:slug` in `src/episodes/episode-info.controller.ts` never calls MAL inside the request. It reads `title_mal`, `episode_info` and `episode_list_sync`, and schedules the MAL list read through `MalFiller.ensureEpisodes` when the list is missing or due.
+
+- **Episodes.** The slug resolves to the ok `title_mal` row and its `mal_id`. The answer is that show's `episode_info` rows sorted by number, as `{ number, title, titleVi, aired }`. `title_alt` is stored and not returned.
+- **Status.** Any stored episode makes it `ready`, even while a refresh runs. With none, the answer is `pending` when the title has no MAL row yet, the row is past its retry window, or no list attempt is settled. It is `none` when the MAL row is a settled miss, or the list attempt is settled and empty.
+- **No MAL row.** The route has the slug and nothing else, so it cannot start a MAL match. It answers `pending` and waits for the art lookup of that title, which creates the row.
 
 ## Migrations
 

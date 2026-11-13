@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { loadJevConfig } from '../art/art.config.ts';
 import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
 import { ENV, type Env } from '../config/app.config.ts';
+import type { EpisodeFiller } from '../episodes/episode.filler.ts';
+import { EPISODE_FILLER, EpisodesModule } from '../episodes/episodes.module.ts';
 import { createMalClient, type MalClient } from './mal.client.ts';
 import { MAL_CONFIG, loadMalConfig, type MalConfig } from './mal.config.ts';
 import { MalFiller } from './mal.filler.ts';
@@ -12,6 +14,7 @@ export const MAL_CLIENT = Symbol('MalClient');
 export const MAL_FILLER = Symbol('MalFiller');
 
 @Module({
+  imports: [EpisodesModule],
   providers: [
     { provide: CLOCK, useValue: systemClock },
     { provide: MAL_CONFIG, inject: [ENV], useFactory: loadMalConfig },
@@ -29,12 +32,13 @@ export const MAL_FILLER = Symbol('MalFiller');
     },
     {
       provide: MAL_FILLER,
-      inject: [MAL_STORE, MAL_CLIENT, CLOCK, ENV],
+      inject: [MAL_STORE, MAL_CLIENT, CLOCK, ENV, EPISODE_FILLER],
       useFactory: (
         store: MalStore,
         client: MalClient | null,
         now: Clock,
         env: Env,
+        episodes: EpisodeFiller,
       ): MalFiller | null =>
         client
           ? new MalFiller(
@@ -42,6 +46,7 @@ export const MAL_FILLER = Symbol('MalFiller');
               client,
               now,
               createMalJudge(loadJevConfig(env)),
+              episodes,
             )
           : null,
     },

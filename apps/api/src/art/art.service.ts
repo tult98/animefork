@@ -132,6 +132,7 @@ export class ArtService {
     const ratings: Record<string, TitleRatings> = {};
     const avsStale: string[] = [];
     let ratingsPending = false;
+    const matched: StoredMal[] = [];
     for (const [slug, title] of titles) {
       const row = stored.get(slug);
       if (isAvsStale(row, now)) avsStale.push(slug);
@@ -142,6 +143,7 @@ export class ArtService {
       if (row?.quality) entry.quality = row.quality;
       const mal = malRows.get(slug);
       if (mal?.status === 'ok' && mal.malId !== null) {
+        matched.push(mal);
         entry.mal = {
           id: mal.malId,
           score: mal.score,
@@ -169,6 +171,8 @@ export class ArtService {
       }
       if (entry.avs || entry.quality || entry.mal) ratings[slug] = entry;
     }
+    // Titles matched before episode names were stored get them from their next lookup.
+    void this.malFiller?.ensureEpisodes(matched);
     return {
       art,
       ratings,
