@@ -75,6 +75,7 @@ describe('saving watch progress while watching', () => {
       body: {
         slug: 'tonikaku-kawaii-a3860',
         seasonSlug: 'tonikaku-kawaii-a3860',
+        seriesKey: 'tonikaku-kawaii-a3860',
         episodeId: '72839',
         positionS: 61.5,
         durationS: 1400,
@@ -128,6 +129,7 @@ describe('saving watch progress while watching', () => {
       body: {
         slug: 'tonikaku-kawaii-a3860',
         seasonSlug: 'tonikaku-kawaii-a3860',
+        seriesKey: 'tonikaku-kawaii-a3860',
         episodeId: '72839',
         positionS: 20,
         durationS: 1400,
@@ -185,6 +187,7 @@ describe('saving watch progress while watching', () => {
       body: {
         slug: 'tonikaku-kawaii-a3860',
         seasonSlug: 'tonikaku-kawaii-a3860',
+        seriesKey: 'tonikaku-kawaii-a3860',
         episodeId: '72839',
         positionS: 30,
         durationS: 1400,

@@ -107,18 +107,6 @@ export function arrangeUpcoming(titles: Title[], now: number): Title[] {
     .map(({ title }) => title);
 }
 
-// Every season of a series has its own slug but shares the title name, so the newest row stands for the series.
-function latestPerTitle(
-  rows: WatchProgressShelfItem[],
-): WatchProgressShelfItem[] {
-  const seen = new Set<string>();
-  return rows.filter((row) => {
-    if (seen.has(row.titleName)) return false;
-    seen.add(row.titleName);
-    return true;
-  });
-}
-
 export function buildHome(
   { hero, newEpisodes, top, upcoming, season, continueRows = [] }: HomeInput,
   now: number = Date.now(),
@@ -146,7 +134,7 @@ export function buildHome(
       kind: 'continue',
       id: 'continue-watching',
       title: 'Tiếp tục xem',
-      items: latestPerTitle(continueRows).map(toContinueItem),
+      items: continueRows.map(toContinueItem),
     });
   }
 

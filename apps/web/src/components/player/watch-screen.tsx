@@ -142,6 +142,7 @@ export function WatchScreen({
     <Player
       slug={slug}
       seasonSlug={page.currentSeason.slug}
+      seriesKey={page.seasons[0]?.slug}
       title={page.title}
       seasonName={page.seasons.length > 1 ? page.currentSeason.name : undefined}
       episode={page.currentEpisode}

@@ -25,6 +25,7 @@ function mergeRow(
 export interface ProgressTarget {
   slug: string;
   seasonSlug: string;
+  seriesKey?: string;
   episodeId: string;
   titleName: string;
   image?: string;
@@ -40,8 +41,15 @@ export function useProgressSaving(
 ) {
   const queryClient = useQueryClient();
   const signedIn = useSession().state === 'signedIn';
-  const { slug, seasonSlug, episodeId, titleName, image, episodeLabel } =
-    target;
+  const {
+    slug,
+    seasonSlug,
+    seriesKey,
+    episodeId,
+    titleName,
+    image,
+    episodeLabel,
+  } = target;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -58,6 +66,7 @@ export function useProgressSaving(
       meta: {
         slug,
         seasonSlug,
+        seriesKey,
         episodeId,
         titleName: titleName.slice(0, MAX_TITLE_NAME_LENGTH),
         image: image && image.length <= MAX_IMAGE_LENGTH ? image : '',
@@ -119,6 +128,7 @@ export function useProgressSaving(
     signedIn,
     slug,
     seasonSlug,
+    seriesKey,
     episodeId,
     titleName,
     image,
