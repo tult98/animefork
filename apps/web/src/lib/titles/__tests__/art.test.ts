@@ -268,6 +268,7 @@ describe('the upcoming shelf once MAL dates its titles', () => {
       episodes: null,
       startDate,
       startSeason: null,
+      trailerYoutubeId: null,
     },
   });
   const upcoming: TitleShelf[] = [

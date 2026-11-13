@@ -27,6 +27,7 @@ const title = (name: string, rating: number, opts: Opts = {}): Title => ({
           episodes: null,
           startDate: null,
           startSeason: null,
+          trailerYoutubeId: null,
           ...opts.mal,
         } satisfies MalStats,
       }

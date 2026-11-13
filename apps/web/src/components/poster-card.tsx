@@ -6,6 +6,7 @@ import { releaseInfo } from '../lib/titles/release.ts';
 import type { Title } from '../lib/titles/title.ts';
 import { DetailsButton } from './details-button.tsx';
 import { useDetails } from './details/details-context.tsx';
+import { PromoVideo } from './promo-video.tsx';
 import { useHoverPreview } from './use-hover-preview.ts';
 import { Play, Star } from './ui/icons.ts';
 import { SHIMMER } from './ui/shimmer.ts';
@@ -167,13 +168,16 @@ export function PosterCard({
             {...watch}
             tabIndex={-1}
             aria-hidden="true"
-            className="block aspect-(--card-art-ratio) bg-surface-alt"
+            className="relative block aspect-(--card-art-ratio) bg-surface-alt"
           >
             <CardImage
               title={title}
               alt=""
               src={title.backdrop ?? title.image}
             />
+            {title.mal?.trailerYoutubeId ? (
+              <PromoVideo youtubeId={title.mal.trailerYoutubeId} />
+            ) : null}
           </Link>
           <div
             className="af-hover-body card-preview-body cursor-pointer hover:bg-surface-alt"
