@@ -71,7 +71,6 @@ body {
   --rkfs: 210px;
   --bb-h: 560px;
   --card-art-ratio: calc(16 / 9);
-  --trailer-reveal-delay: 4s;
 }
 
 @media (max-width: 1099px) {
@@ -260,24 +259,26 @@ body {
 }
 
 @layer components {
-  .trailer {
+  .video-cover {
+    --oversize: 20;
     position: absolute;
     inset: 0;
     overflow: hidden;
     container-type: size;
     pointer-events: none;
+  }
+
+  .trailer {
     opacity: 0;
     transition: opacity 0.6s ease;
   }
 
-  /* YouTube shows a pause button over the first seconds of an autoplaying embed, so the art stays up until it is gone. */
   .trailer[data-phase='playing'] {
     opacity: 1;
-    transition-delay: var(--trailer-reveal-delay);
   }
 
   .trailer-toggle {
-    animation: trailer-toggle-in 0.6s ease var(--trailer-reveal-delay) both;
+    animation: trailer-toggle-in 0.6s ease both;
   }
 
   @keyframes trailer-toggle-in {
@@ -287,15 +288,19 @@ body {
     }
   }
 
-  /* Covers its box like object-fit: cover, scaled past the edges so YouTube's title bar and logo fall outside. */
-  .trailer iframe {
+  /* Covers its box like object-fit: cover. YouTube's start overlay is drawn at a fixed pixel size, so until it is gone the player is laid out 20 times larger and scaled back down: the overlay shrinks to a speck and the extra 6% crop pushes its title bar and logo past the edges. */
+  .video-cover[data-settled] {
+    --oversize: 1;
+  }
+
+  .video-cover iframe {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: max(100cqw, 177.78cqh);
-    height: max(100cqh, 56.25cqw);
+    width: calc(max(100cqw, 177.78cqh) * var(--oversize));
+    height: calc(max(100cqh, 56.25cqw) * var(--oversize));
     border: 0;
-    transform: translate(-50%, -50%) scale(1.2);
+    transform: translate(-50%, -50%) scale(calc(1.06 / var(--oversize)));
   }
 
   .hero-slide {

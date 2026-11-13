@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Title } from '../../lib/titles/title.ts';
 import { render, screen, within } from '../../test/test-utils.tsx';
+import { stubYouTube } from '../../test/youtube-stub.ts';
 import { PosterCard } from '../poster-card.tsx';
 
 const title = (trailerYoutubeId: string | null): Title => ({
@@ -34,19 +35,21 @@ async function openPopover(t: Title) {
 }
 
 describe('the promo video in the card popover', () => {
-  it('plays the muted looping trailer over the backdrop when the title has one', async () => {
+  it('plays the muted trailer over the backdrop and starts it again when it ends', async () => {
+    const players = stubYouTube();
     const preview = await openPopover(title('abc123'));
+    const player = await vi.waitUntil(() => players[0]);
+    expect(player.videoId).toBe('abc123');
+    expect(player.options.playerVars).toMatchObject({ autoplay: 1, mute: 1 });
     const video = within(preview).getByTestId('card:promo-video');
-    const src = new URL(video.getAttribute('src')!);
-    expect(src.origin + src.pathname).toBe(
-      'https://www.youtube-nocookie.com/embed/abc123',
-    );
-    expect(Object.fromEntries(src.searchParams)).toMatchObject({
-      autoplay: '1',
-      mute: '1',
-      loop: '1',
-      playlist: 'abc123',
-    });
+    expect(video).toHaveAttribute('data-phase', 'loading');
+
+    player.play();
+    expect(video).toHaveAttribute('data-phase', 'playing');
+    player.end();
+    expect(player.seekTo).toHaveBeenCalledWith(0, true);
+    expect(player.playVideo).toHaveBeenCalled();
+    expect(video).toHaveAttribute('data-phase', 'playing');
     expect(preview.querySelector('img')).toBeInTheDocument();
   });
 

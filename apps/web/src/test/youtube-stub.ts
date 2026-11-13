@@ -10,6 +10,8 @@ export interface StubPlayer {
   options: YouTubePlayerOptions;
   mute: ReturnType<typeof vi.fn>;
   unMute: ReturnType<typeof vi.fn>;
+  playVideo: ReturnType<typeof vi.fn>;
+  seekTo: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
   play: () => void;
   end: () => void;
@@ -26,6 +28,8 @@ export function stubYouTube(): StubPlayer[] {
       const player = {
         mute: vi.fn(),
         unMute: vi.fn(),
+        playVideo: vi.fn(),
+        seekTo: vi.fn(),
         destroy: vi.fn(),
         getIframe: () => iframe,
       };

@@ -31,18 +31,22 @@ export class StubIntersectionObserver {
     return [];
   }
 
-  fire() {
+  fire(isIntersecting: boolean) {
     const entries = [...this.targets].map(
       (target) =>
-        ({ target, isIntersecting: true }) as IntersectionObserverEntry,
+        ({
+          target,
+          isIntersecting,
+          intersectionRatio: isIntersecting ? 1 : 0,
+        }) as IntersectionObserverEntry,
     );
     if (entries.length > 0)
       this.callback(entries, this as unknown as IntersectionObserver);
   }
 }
 
-export function intersectAll() {
+export function intersectAll(isIntersecting = true) {
   act(() => {
-    for (const observer of [...live]) observer.fire();
+    for (const observer of [...live]) observer.fire(isIntersecting);
   });
 }

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { titleWatchLink } from '../lib/titles/link.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
@@ -50,6 +50,8 @@ export function Hero({ items }: { items: Title[] }) {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [inView, setInView] = useState(true);
+  const sectionRef = useRef<HTMLElement>(null);
   const [trailer, setTrailer] = useState<{
     index: number;
     phase: TrailerPhase;
@@ -57,10 +59,18 @@ export function Hero({ items }: { items: Title[] }) {
 
   const length = items.length;
   const autoplay =
-    !reducedMotion && !userPaused && !hovered && !focused && !details.isOpen;
+    inView &&
+    !reducedMotion &&
+    !userPaused &&
+    !hovered &&
+    !focused &&
+    !details.isOpen;
   // A touch device did not ask for the video, and the open modal plays its own.
   const trailerId =
-    reducedMotion || details.isOpen || window.matchMedia(NO_HOVER_QUERY).matches
+    !inView ||
+    reducedMotion ||
+    details.isOpen ||
+    window.matchMedia(NO_HOVER_QUERY).matches
       ? null
       : (items[index]?.mal?.trailerYoutubeId ?? null);
   const trailerPhase = trailerId
@@ -79,6 +89,19 @@ export function Hero({ items }: { items: Title[] }) {
     return () => window.clearTimeout(id);
   }, [autoplay, index, length, trailerPhase]);
 
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry) setInView(entry.intersectionRatio >= 0.5);
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
   const onTrailerPhase = (phase: TrailerPhase) => {
     setTrailer({ index, phase });
     if (phase === 'ended' && autoplay) setIndex(nextIndex(index, length));
@@ -86,6 +109,7 @@ export function Hero({ items }: { items: Title[] }) {
 
   return (
     <section
+      ref={sectionRef}
       data-testid="hero"
       aria-roledescription="carousel"
       aria-label="Phim nổi bật"
