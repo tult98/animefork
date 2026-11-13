@@ -16,6 +16,7 @@ import {
 import type { CallHistoryFilter, FetchMock, UserRouteConfig } from 'fetch-mock';
 import { expect } from 'vitest';
 import { Fragment, StrictMode, type ReactElement, type ReactNode } from 'react';
+import { DetailsProvider } from '../components/details/details-context.tsx';
 import { PlayerSourceProvider } from '../lib/player/context.tsx';
 import { ReplayPlayerSource } from '../lib/player/replay-player-source.ts';
 import { TransportProvider } from '../lib/transport/index.ts';
@@ -61,15 +62,17 @@ export function render(
   options: Omit<RenderOptions, 'wrapper'> & RenderUiOptions = {},
 ) {
   const { strict, path, ...rest } = options;
+  // The details modal opens from cards and the hero, so every component renders inside its provider.
+  const tree = <DetailsProvider>{ui}</DetailsProvider>;
   const router = createRouter({
     routeTree: createRootRoute({
-      component: () => ui,
+      component: () => tree,
       notFoundComponent: () => null,
     }),
     history: createMemoryHistory({ initialEntries: [path ?? '/'] }),
   });
   const result = rtlRender(
-    path === undefined ? ui : <RouterProvider router={router} />,
+    path === undefined ? tree : <RouterProvider router={router} />,
     { wrapper: providers({ strict }), ...rest },
   );
   return { ...result, router };
