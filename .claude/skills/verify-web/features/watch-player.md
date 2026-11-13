@@ -28,6 +28,7 @@ Proved end to end by `../scripts/watch-player.mjs`: `EV=$(cat apps/web/artifacts
 - Title block at the top (`player:title`, `player:episode-label`, `player:episode-name`) follows the idle fade.
 - Timeline: hover `player:seek`, the tooltip is `player:scrub-caption` (time, plus " · Mở đầu" or " · Kết thúc" over a skip segment) and `player:tick` marks the segment edges. `player:time` reads "elapsed / total".
 - Skip: the intro shows a white pill `player:skip` (`data-kind=intro`). In an outro with a next episode, the card `player:outro-card` shows instead ("Phát sau N giây", button `player:skip` "Phát ngay") and the hover popover `player:next-card` is not rendered. With no next episode, `player:skip` is the plain "Bỏ qua phần kết" pill.
+- Autoplay next: when the video ends and a next episode exists, the player calls `onNext` once and the URL becomes `/watch/<slug>/<nextId>`. Observable: seek to `duration - 4` on a non-last episode and wait for the path to change. The last episode stays on `ended`.
 - Other handles: `player:back10`, `player:forward10`, `player:mute`, `player:volume`, `player:seek`, `player:fullscreen`, `player:back`, `season:<slug>` in `player:seasons-panel`.
 
 ## Gotchas

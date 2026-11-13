@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import { formatClock } from '../../lib/player/format.ts';
 import {
@@ -89,6 +89,14 @@ export function Player({
     image,
     episodeLabel: episode.label,
   });
+  const next = useRef(onNext);
+  useEffect(() => {
+    next.current = onNext;
+  }, [onNext]);
+  // Keyed on the phase alone: the episode switch moves ended to loading, so each ending fires once.
+  useEffect(() => {
+    if (state.phase === 'ended') next.current?.();
+  }, [state.phase]);
   const skipSegments = useSkipSegments(slug, episode.label);
   const fullscreen = useFullscreen(root);
   usePlayerKeys({

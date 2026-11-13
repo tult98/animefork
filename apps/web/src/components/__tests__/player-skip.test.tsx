@@ -117,6 +117,64 @@ describe('skipping the intro and the outro in the player', () => {
     expect(clock.now()).toBe(1350.4);
   });
 
+  it('goes to the next episode when the video ends', async () => {
+    fetchMock
+      .get('path:/v1/auth/me', 401)
+      .get('path:/v1/skip-times/tonikaku-kawaii-a3860/3', { segments });
+    const onNext = vi.fn();
+    render(
+      <Player
+        slug="tonikaku-kawaii-a3860"
+        seasonSlug="tonikaku-kawaii-a3860"
+        title="Tonikaku Kawaii"
+        episode={{ id: '73386', hash: 'h', play: 'api', label: 'Tập 3' }}
+        startS={0}
+        nextEpisode={{
+          episode: { id: '73387', hash: 'h', play: 'api', label: 'Tập 4' },
+          number: 4,
+        }}
+        onNext={onNext}
+        onBack={() => {}}
+        episodesPanel={() => null}
+      />,
+    );
+    await expect(fetchMock).toBeFetched(
+      'path:/v1/skip-times/tonikaku-kawaii-a3860/3',
+    );
+    const video = screen.getByTestId('player:video');
+    const clock = videoClock(video as HTMLVideoElement);
+
+    clock.moveTo(1399);
+    expect(onNext).not.toHaveBeenCalled();
+
+    act(() => void video.dispatchEvent(new Event('ended')));
+    expect(onNext).toHaveBeenCalledOnce();
+  });
+
+  it('stays on the last episode when the video ends', async () => {
+    fetchMock
+      .get('path:/v1/auth/me', 401)
+      .get('path:/v1/skip-times/tonikaku-kawaii-a3860/12', { segments });
+    render(
+      <Player
+        slug="tonikaku-kawaii-a3860"
+        seasonSlug="tonikaku-kawaii-a3860"
+        title="Tonikaku Kawaii"
+        episode={{ id: '74002', hash: 'h', play: 'api', label: 'Tập 12' }}
+        startS={0}
+        onBack={() => {}}
+        episodesPanel={() => null}
+      />,
+    );
+    await expect(fetchMock).toBeFetched(
+      'path:/v1/skip-times/tonikaku-kawaii-a3860/12',
+    );
+    const video = screen.getByTestId('player:video');
+
+    act(() => void video.dispatchEvent(new Event('ended')));
+    expect(screen.getByTestId('player')).toHaveAttribute('data-state', 'ended');
+  });
+
   it('skips the outro of the last episode, which has no next one', async () => {
     fetchMock
       .get('path:/v1/auth/me', 401)
