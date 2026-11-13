@@ -4,6 +4,9 @@ import { loadYouTubeApi, type YouTubePlayer } from '../lib/ui/youtube.ts';
 // An error counts as 'ended': either way the image under the trailer shows again.
 export type TrailerPhase = 'loading' | 'playing' | 'ended';
 
+// YouTube draws its title bar and pause button over a video for about 4s after each start. Measured: gone by 4.1s after PLAYING.
+const START_OVERLAY_MS = 5000;
+
 function playerVars(): Record<string, string | number> {
   return {
     autoplay: 1,
@@ -13,26 +16,33 @@ function playerVars(): Record<string, string | number> {
     rel: 0,
     modestbranding: 1,
     disablekb: 1,
+    fs: 0,
+    cc_load_policy: 0,
     iv_load_policy: 3,
     origin: window.location.origin,
   };
 }
 
-// Plays once over the image it is placed on, which stays visible until the video plays and again once it ends.
+// Plays over the image it is placed on, which stays visible until the video plays and again once it ends, unless it loops.
 export function Trailer({
   youtubeId,
   muted,
+  loop = false,
   onPhase,
+  testId = 'trailer',
 }: {
   youtubeId: string;
   muted: boolean;
+  loop?: boolean;
   onPhase?: (phase: TrailerPhase) => void;
+  testId?: string;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const mutedRef = useRef(muted);
   const onPhaseRef = useRef(onPhase);
   const [phase, setPhase] = useState<TrailerPhase>('loading');
+  const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     mutedRef.current = muted;
@@ -44,12 +54,14 @@ export function Trailer({
     if (!host) return;
     let gone = false;
     let player: YouTubePlayer | undefined;
+    let settleTimer: number | undefined;
     const report = (next: TrailerPhase) => {
       if (gone) return;
       setPhase(next);
       onPhaseRef.current?.(next);
     };
     report('loading');
+    setSettled(false);
     loadYouTubeApi().then(
       (YT) => {
         if (gone) return;
@@ -70,9 +82,22 @@ export function Trailer({
               if (mutedRef.current) ready.mute();
               else ready.unMute();
             },
-            onStateChange: ({ data }) => {
-              if (data === YT.PlayerState.PLAYING) report('playing');
-              else if (data === YT.PlayerState.ENDED) report('ended');
+            onStateChange: ({ data, target: playing }) => {
+              if (data === YT.PlayerState.PLAYING) {
+                report('playing');
+                settleTimer ??= window.setTimeout(
+                  () => setSettled(true),
+                  START_OVERLAY_MS,
+                );
+              } else if (data === YT.PlayerState.ENDED && !loop) {
+                report('ended');
+              } else if (data === YT.PlayerState.ENDED) {
+                window.clearTimeout(settleTimer);
+                settleTimer = undefined;
+                setSettled(false);
+                playing.seekTo(0, true);
+                playing.playVideo();
+              }
             },
             onError: () => report('ended'),
           },
@@ -82,11 +107,12 @@ export function Trailer({
     );
     return () => {
       gone = true;
+      window.clearTimeout(settleTimer);
       playerRef.current = null;
       player?.destroy();
       host.replaceChildren();
     };
-  }, [youtubeId]);
+  }, [youtubeId, loop]);
 
   useEffect(() => {
     const player = playerRef.current;
@@ -100,7 +126,8 @@ export function Trailer({
       ref={hostRef}
       aria-hidden="true"
       data-phase={phase}
-      data-testid="trailer"
+      data-settled={settled ? '' : undefined}
+      data-testid={testId}
       className="video-cover trailer"
     />
   );
