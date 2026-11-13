@@ -26,6 +26,7 @@ export const SaveWatchProgressRequestSchema = z.object({
   image: z.string().max(MAX_IMAGE_LENGTH),
   episodeLabel: z.string().max(MAX_EPISODE_LABEL_LENGTH),
   seasonSlug: SlugSchema.nullish(),
+  seriesKey: SlugSchema.nullish(),
 });
 
 export type SaveWatchProgressRequest = z.infer<

@@ -60,6 +60,7 @@ export class WatchProgressController {
       image: body.image,
       episodeLabel: body.episodeLabel,
       seasonSlug: body.seasonSlug ?? null,
+      seriesKey: body.seriesKey ?? null,
       updatedAt: this.now(),
     });
     return {
