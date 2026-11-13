@@ -34,6 +34,7 @@ useQuery({
 
 - The path has no leading slash. A path taken from the site's own links goes through `upstreamPath(path)`.
 - A non-2xx answer throws a ky `HTTPError`. A missing extension throws `ExtensionMissingError`.
+- Put a single request inline in the `queryFn`, so the path is visible where `useQuery` is called. A call with real logic of its own, such as `fetchSeasonRest` (several pages, a failed page dropped), stays a function that calls `upstream` itself. Do not inline it to show the path: a long `queryFn` reads worse than a named function.
 - Keep the HTML parsing in pure `parse*` functions that take the HTML string, and parse into Zod-validated types.
 - The transport is chosen on first use (`getTransport()`), so no provider or hook is needed. Tests swap it with `setTransport`.
 
