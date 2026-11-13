@@ -1,6 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
-import { PG_POOL } from '../database/migration-runner.ts';
 import type { ListedEpisode } from './episode.parser.ts';
 import type { EpisodeListAttempt } from './episode.retry.ts';
 
@@ -127,11 +125,10 @@ interface EpisodeRow {
   synopsis_fetched_at: Date | null;
 }
 
-@Injectable()
 export class PostgresEpisodeStore implements EpisodeStore {
   private readonly pool: pg.Pool;
 
-  constructor(@Inject(PG_POOL) pool: pg.Pool) {
+  constructor(pool: pg.Pool) {
     this.pool = pool;
   }
 

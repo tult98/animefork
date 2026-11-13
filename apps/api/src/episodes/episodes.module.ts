@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import type pg from 'pg';
 import { loadDeepSeekConfig } from '../art/art.config.ts';
 import { CLOCK, systemClock, type Clock } from '../common/clock.ts';
+import { PG_POOL } from '../database/migration-runner.ts';
 import { ENV, type Env } from '../config/app.config.ts';
 import {
   createEpisodeSiteClient,
@@ -23,7 +25,11 @@ export const EPISODE_FILLER = Symbol('EpisodeFiller');
 @Module({
   providers: [
     { provide: CLOCK, useValue: systemClock },
-    { provide: EPISODE_STORE, useClass: PostgresEpisodeStore },
+    {
+      provide: EPISODE_STORE,
+      inject: [PG_POOL],
+      useFactory: (pool: pg.Pool) => new PostgresEpisodeStore(pool),
+    },
     {
       provide: EPISODE_LIMITER,
       useFactory: (): RateLimiter =>
