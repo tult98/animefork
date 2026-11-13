@@ -36,12 +36,12 @@ describe('parseWatchPage', () => {
     });
   });
 
-  it('strips the leading Xem from the first episode label', () => {
+  it('strips the leading Xem and the release tag from the first episode label', () => {
     expect(parseWatchPage(html, SLUG).episodes[0]).toEqual({
       id: '72839',
       hash: 'hash-72839',
       play: 'api',
-      label: 'Tập 1_BD_Full',
+      label: 'Tập 1',
     });
   });
 

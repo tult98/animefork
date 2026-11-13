@@ -9,7 +9,7 @@ import {
 import { render, screen } from '../../../test/test-utils.tsx';
 import { WatchScreen } from '../watch-screen.tsx';
 
-// The watch page has 3 episodes: "Tập 1_BD_Full" (72839), "Tập 2" (73010) and "Tập 3" (73386).
+// The watch page has 3 episodes: "Tập 1" (72839), "Tập 2" (73010) and "Tập 3" (73386).
 beforeEach(() => {
   vi.stubEnv('VITE_API_URL', 'https://api.test');
   fetchMock
@@ -30,7 +30,7 @@ describe('the watch screen', () => {
       'Tonikaku Kawaii [BD]',
     );
     expect(screen.getByTestId('player:episode-label')).toHaveTextContent(
-      'Tập 1_BD_Full',
+      'Tập 1',
     );
     expect(screen.getByTestId('episode:1')).toHaveAttribute(
       'data-current',

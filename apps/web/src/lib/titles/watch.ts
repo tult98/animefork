@@ -54,8 +54,9 @@ function parseEpisodes(doc: Document): Episode[] {
     if (seen.has(id)) continue;
     seen.add(id);
     const text = (a.textContent ?? '').replace(/^Xem\s+/i, '').trim();
+    // The site tags some episodes with their release, such as "01_BD_Full". The tag is not part of the label.
     const label = /^\d/.test(text)
-      ? `Tập ${text.replace(/^0+(?=\d)/, '')}`
+      ? `Tập ${text.replace(/_.*$/, '').replace(/^0+(?=\d)/, '')}`
       : text;
     const title = a.getAttribute('title')?.trim();
     episodes.push(
