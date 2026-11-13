@@ -10,10 +10,12 @@ import {
   intersectAll,
   render,
   screen,
+  waitForElementToBeRemoved,
   within,
 } from '../../test/test-utils.tsx';
 import { stubYouTube } from '../../test/youtube-stub.ts';
 import { Hero } from '../hero.tsx';
+import { PosterCard } from '../poster-card.tsx';
 
 const items: Title[] = [
   {
@@ -193,6 +195,36 @@ describe('the hero', () => {
     expect(screen.queryByTestId('hero:mute')).not.toBeInTheDocument();
     expect(within(modal).getByTestId('trailer')).toBeInTheDocument();
     expect(screen.getAllByTestId('trailer')).toHaveLength(1);
+  });
+
+  it('stops the hero trailer while a card popover plays its own, and brings it back when the popover closes', async () => {
+    const players = stubYouTube();
+    render(
+      <>
+        <Hero items={[withTrailer(items[0]!, 'psyren')]} />
+        <PosterCard title={withTrailer(items[1]!, 'kamui')} />
+      </>,
+      { path: '/' },
+    );
+    const hero = await vi.waitUntil(() => players[0]);
+    hero.play();
+
+    const card = screen.getByTestId('card:/phim/kamui-san-a2/');
+    await userEvent.hover(card);
+    const preview = await screen.findByTestId(
+      'card:/phim/kamui-san-a2/:preview',
+    );
+    const cardPlayer = await vi.waitUntil(() => players[1]);
+    expect(cardPlayer.videoId).toBe('kamui');
+    expect(hero.destroy).toHaveBeenCalled();
+    expect(screen.queryByTestId('trailer')).not.toBeInTheDocument();
+    expect(within(preview).getByTestId('card:promo-video')).toBeInTheDocument();
+
+    await userEvent.unhover(card);
+    await waitForElementToBeRemoved(preview);
+    const again = await vi.waitUntil(() => players[2]);
+    expect(again.videoId).toBe('psyren');
+    expect(screen.getByTestId('trailer')).toBeInTheDocument();
   });
 
   it('stops the trailer and the slide timer while the hero is scrolled out of view, and resumes both when it returns', async () => {

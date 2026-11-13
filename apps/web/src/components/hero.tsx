@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { titleWatchLink } from '../lib/titles/link.ts';
+import { useCardVideoShowing } from '../lib/ui/card-video.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
   HERO_ADVANCE_MS,
@@ -38,6 +39,7 @@ const CONTROL_CLASS =
 export function Hero({ items }: { items: Title[] }) {
   const reducedMotion = useReducedMotion();
   const details = useDetails();
+  const cardVideoShowing = useCardVideoShowing();
   const [index, setIndex] = useState(0);
   const [userPaused, setUserPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -56,12 +58,14 @@ export function Hero({ items }: { items: Title[] }) {
     !userPaused &&
     !hovered &&
     !focused &&
-    !details.isOpen;
-  // A touch device did not ask for the video, and the open modal plays its own.
+    !details.isOpen &&
+    !cardVideoShowing;
+  // A touch device did not ask for the video, and the open modal or a card popover plays its own.
   const trailerId =
     !inView ||
     reducedMotion ||
     details.isOpen ||
+    cardVideoShowing ||
     window.matchMedia(NO_HOVER_QUERY).matches
       ? null
       : (items[index]?.mal?.trailerYoutubeId ?? null);
