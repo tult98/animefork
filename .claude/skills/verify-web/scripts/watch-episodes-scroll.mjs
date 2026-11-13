@@ -46,27 +46,36 @@ r.check(
   infoRequests.includes('1') && infoRequests.every((f) => f === '1'),
 );
 
-await r.click(page.getByTestId('player:episodes'), 'Scroll to the end of the list');
+await r.click(
+  page.getByTestId('player:episodes'),
+  'Scroll to the end of the list',
+);
 await scrollPanel();
 await page.waitForSelector('[data-testid="episode:100"]', { timeout: 10000 });
-r.check(`one scroll renders 100 rows (${await rows()})`, (await rows()) === 100);
 r.check(
-  'page 101 not asked for yet',
-  !infoRequests.includes('101'),
+  `one scroll renders 100 rows (${await rows()})`,
+  (await rows()) === 100,
 );
+r.check('page 101 not asked for yet', !infoRequests.includes('101'));
 
 await r.click(page.getByTestId('player:episodes'), 'Scroll again');
 await scrollPanel();
 await page.waitForSelector('[data-testid="episode:150"]', { timeout: 10000 });
 await page.waitForTimeout(2000);
 await r.shot('2-scrolled');
-r.check(`second scroll renders 150 rows (${await rows()})`, (await rows()) === 150);
+r.check(
+  `second scroll renders 150 rows (${await rows()})`,
+  (await rows()) === 150,
+);
 r.check(
   `page 101 asked for once rows pass 100 (${JSON.stringify(infoRequests)})`,
   infoRequests.includes('101'),
 );
 const row150 = await page.getByTestId('episode:150').textContent();
-r.check(`episode 150 has a name, not only its label (${row150.slice(0, 60)})`, row150.replace(/Tập 150/, '').trim().length > 0);
+r.check(
+  `episode 150 has a name, not only its label (${row150.slice(0, 60)})`,
+  row150.replace(/Tập 150/, '').trim().length > 0,
+);
 
 await r.click(page.getByTestId('episode:150'), 'Play episode 150');
 await page.waitForURL(/\/watch\/[^/]+\/\d+/, { timeout: 15000 });

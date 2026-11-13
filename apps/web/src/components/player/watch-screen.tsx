@@ -51,11 +51,9 @@ export function WatchScreen({
     step: 50,
     resetKey: browseSlug,
   });
-  const browsedPage = useEpisodeInfo(
-    browseSlug,
-    browsedQuery.data,
-    { shown: panelList.shown },
-  );
+  const browsedPage = useEpisodeInfo(browseSlug, browsedQuery.data, {
+    shown: panelList.shown,
+  });
 
   const slugRows = useProgressRows(slug);
   const browsedRows = useProgressRows(browseSlug);
