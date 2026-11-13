@@ -13,11 +13,11 @@ describe('the account menu', () => {
     render(<AccountMenu buttonClassName="" />, { path: '/' });
     await expect(fetchMock).toBeFetched('path:/v1/auth/me');
 
-    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveProperty(
-      'pathname',
+    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute(
+      'href',
       '/sign-in',
     );
-    expect(screen.queryByTestId('account-button')).toBeNull();
+    expect(screen.queryByTestId('account-button')).not.toBeInTheDocument();
   });
 
   it('opens the profile menu with the email and closes it on Escape', async () => {
@@ -27,19 +27,17 @@ describe('the account menu', () => {
     render(<AccountMenu buttonClassName="" />, { path: '/' });
     await expect(fetchMock).toBeFetched('path:/v1/auth/me');
     const button = screen.getByTestId('account-button');
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
 
     await userEvent.click(button);
-    expect(screen.getByRole('menu').textContent).toContain(
+    expect(screen.getByRole('menu')).toHaveTextContent(
       'Đăng nhập với mai@example.com',
     );
-    expect(document.activeElement).toBe(
-      screen.getByRole('menuitem', { name: 'Đăng xuất' }),
-    );
+    expect(screen.getByRole('menuitem', { name: 'Đăng xuất' })).toHaveFocus();
 
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('menu')).toBeNull();
-    expect(document.activeElement).toBe(button);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
   });
 
   it('signs out, closes the menu, shows the sign-in link and goes home', async () => {
@@ -54,8 +52,8 @@ describe('the account menu', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: 'Đăng xuất' }));
     await expect(fetchMock).toBeFetched('path:/v1/auth/sign-out');
 
-    expect(screen.getByTestId('sign-in-link')).toBeTruthy();
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.getByTestId('sign-in-link')).toBeVisible();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   });
 
@@ -72,7 +70,7 @@ describe('the account menu', () => {
     await waitFor(() =>
       expect(fetchMock).toHaveFetchedTimes(2, 'path:/v1/auth/me'),
     );
-    expect(screen.getByTestId('account-button')).toBeTruthy();
-    expect(screen.queryByTestId('sign-in-link')).toBeNull();
+    expect(screen.getByTestId('account-button')).toBeVisible();
+    expect(screen.queryByTestId('sign-in-link')).not.toBeInTheDocument();
   });
 });

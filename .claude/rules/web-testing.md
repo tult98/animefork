@@ -31,6 +31,22 @@ A reader should understand a test from top to bottom without opening another fil
 - Do not test every branch, and do not split one behavior into several tiny tests. Put the checks that describe one behavior in one test.
 - Skip a case that repeats one already covered, such as a second 404 through the same status check.
 
+## Assert what the user sees
+
+`@testing-library/jest-dom` matchers are loaded for every jsdom test in `src/test/setup.ts`. Use them instead of reading DOM properties by hand.
+
+| To check                            | Use                                                          | Not                               |
+| ----------------------------------- | ------------------------------------------------------------ | --------------------------------- |
+| An element is shown                 | `expect(el).toBeVisible()`                                   | `toBeTruthy()`                    |
+| An element is absent                | `expect(screen.queryByRole('menu')).not.toBeInTheDocument()` | `toBeNull()`                      |
+| Text                                | `expect(el).toHaveTextContent('10 phút')`                    | `el.textContent` with `toContain` |
+| A field is invalid                  | `expect(field).toBeInvalid()`                                | `getAttribute('aria-invalid')`    |
+| A control is disabled               | `expect(button).toBeDisabled()`                              | `hasAttribute('disabled')`        |
+| Focus                               | `expect(item).toHaveFocus()`                                 | `document.activeElement`          |
+| An attribute, such as a link target | `expect(link).toHaveAttribute('href', '/sign-in')`           | `toHaveProperty('pathname', ...)` |
+
+Find the element with `getBy*` (it throws when the element is missing) and assert its state with the matcher. A test written as `expect(getBy...).toBeVisible()` shows the user-facing check on one line.
+
 ## Name tests for the behavior
 
 Say what the feature shows or does, not how the call is answered.

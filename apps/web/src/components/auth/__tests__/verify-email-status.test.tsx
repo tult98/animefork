@@ -13,7 +13,7 @@ describe('the email verification status', () => {
     fetchMock.post('path:/v1/auth/verify-email', { ok: true }, { delay: 200 });
     window.history.replaceState(null, '', '/verify-email#token=abc123');
     render(<VerifyEmailStatus />, { path: '/verify-email' });
-    expect((await screen.findByRole('status')).textContent).toContain(
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Đang xác nhận',
     );
 
@@ -23,9 +23,9 @@ describe('the email verification status', () => {
     });
     expect(
       screen.getByRole('heading', { name: 'Email đã được xác nhận' }),
-    ).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveProperty(
-      'pathname',
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute(
+      'href',
       '/sign-in',
     );
     expect(window.location.hash).toBe('');
@@ -42,10 +42,10 @@ describe('the email verification status', () => {
 
     expect(
       screen.getByRole('heading', { name: 'Liên kết không dùng được' }),
-    ).toBeTruthy();
-    expect(screen.getByRole('alert').textContent).toContain('hết hạn');
-    expect(screen.getByRole('link', { name: 'Đăng ký lại' })).toHaveProperty(
-      'pathname',
+    ).toBeVisible();
+    expect(screen.getByRole('alert')).toHaveTextContent('hết hạn');
+    expect(screen.getByRole('link', { name: 'Đăng ký lại' })).toHaveAttribute(
+      'href',
       '/sign-up',
     );
   });
@@ -66,9 +66,7 @@ describe('the email verification status', () => {
     render(<VerifyEmailStatus />, { path: '/verify-email' });
     await expect(fetchMock).toBeFetched('path:/v1/auth/verify-email');
 
-    expect(screen.getByRole('alert').textContent).toContain(
-      'Không thể xác nhận',
-    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Không thể xác nhận');
   });
 
   it('posts the token once under StrictMode and still succeeds', async () => {
@@ -79,7 +77,7 @@ describe('the email verification status', () => {
 
     expect(
       screen.getByRole('heading', { name: 'Email đã được xác nhận' }),
-    ).toBeTruthy();
+    ).toBeVisible();
     expect(fetchMock).toHavePostedTimes(1, 'path:/v1/auth/verify-email');
   });
 });

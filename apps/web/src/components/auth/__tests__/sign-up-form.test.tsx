@@ -33,15 +33,13 @@ describe('the sign-up form', () => {
     const title = screen.getByRole('heading', {
       name: 'Kiểm tra email của bạn',
     });
-    expect(title.parentElement?.textContent).toContain('mai@example.com');
-    expect(screen.queryByLabelText('Mật khẩu mới')).toBeNull();
+    expect(title.parentElement).toHaveTextContent('mai@example.com');
+    expect(screen.queryByLabelText('Mật khẩu mới')).not.toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole('button', { name: 'Gửi lại email' }),
     );
-    expect((await screen.findByRole('status')).textContent).toContain(
-      'liên kết mới',
-    );
+    expect(await screen.findByRole('status')).toHaveTextContent('liên kết mới');
     expect(fetchMock).toHavePostedTimes(2, 'path:/v1/auth/sign-up');
   });
 
@@ -73,10 +71,8 @@ describe('the sign-up form', () => {
       screen.getByRole('button', { name: 'Gửi lại email' }),
     );
 
-    expect((await screen.findByRole('alert')).textContent).toContain(
-      'quá nhiều',
-    );
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(await screen.findByRole('alert')).toHaveTextContent('quá nhiều');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('tells the visitor the email already has an account and keeps the form', async () => {
@@ -98,8 +94,8 @@ describe('the sign-up form', () => {
     );
     await expect(fetchMock).toBeFetched('path:/v1/auth/sign-up');
 
-    expect(screen.getByRole('alert').textContent).toContain('đã có tài khoản');
-    expect(screen.getByLabelText('Mật khẩu mới')).toBeTruthy();
+    expect(screen.getByRole('alert')).toHaveTextContent('đã có tài khoản');
+    expect(screen.getByLabelText('Mật khẩu mới')).toBeVisible();
   });
 
   it('flags a short password on the field without sending anything', async () => {
@@ -113,7 +109,7 @@ describe('the sign-up form', () => {
       screen.getByRole('button', { name: 'Tạo tài khoản' }),
     );
 
-    expect(screen.getByText('Mật khẩu cần có ít nhất 8 ký tự.')).toBeTruthy();
+    expect(screen.getByText('Mật khẩu cần có ít nhất 8 ký tự.')).toBeVisible();
     expect(fetchMock).not.toHaveFetched('path:/v1/auth/sign-up');
   });
 });

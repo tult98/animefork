@@ -16,6 +16,7 @@ afterEach(() => {
 
 if (typeof document !== 'undefined') {
   const { cleanup, configure } = await import('@testing-library/react');
+  await import('@testing-library/jest-dom/vitest');
   afterEach(cleanup);
   // Whole-app renders parse fixture pages, which a loaded CI machine can stretch past the 1s default.
   configure({ asyncUtilTimeout: 5_000 });

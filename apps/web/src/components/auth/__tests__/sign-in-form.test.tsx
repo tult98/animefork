@@ -32,7 +32,7 @@ describe('the sign-in form', () => {
       body: { email: 'mai@example.com', password: 'correct horse' },
     });
 
-    expect(screen.getByTestId('account-button')).toBeTruthy();
+    expect(screen.getByTestId('account-button')).toBeVisible();
   });
 
   it('shows an alert and marks both fields when the credentials do not match', async () => {
@@ -49,15 +49,11 @@ describe('the sign-in form', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
     await expect(fetchMock).toBeFetched('path:/v1/auth/sign-in');
 
-    expect(screen.getByRole('alert').textContent).toContain(
+    expect(screen.getByRole('alert')).toHaveTextContent(
       'Email hoặc mật khẩu không đúng',
     );
-    expect(
-      screen.getByLabelText('Địa chỉ email').getAttribute('aria-invalid'),
-    ).toBe('true');
-    expect(screen.getByLabelText('Mật khẩu').getAttribute('aria-invalid')).toBe(
-      'true',
-    );
+    expect(screen.getByLabelText('Địa chỉ email')).toBeInvalid();
+    expect(screen.getByLabelText('Mật khẩu')).toBeInvalid();
   });
 
   it('tells a rate-limited visitor how many minutes to wait', async () => {
@@ -75,7 +71,7 @@ describe('the sign-in form', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
     await expect(fetchMock).toBeFetched('path:/v1/auth/sign-in');
 
-    expect(screen.getByRole('alert').textContent).toContain('10 phút');
+    expect(screen.getByRole('alert')).toHaveTextContent('10 phút');
   });
 
   it('asks the visitor to retry when the API cannot be reached', async () => {
@@ -91,7 +87,7 @@ describe('the sign-in form', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
     await expect(fetchMock).toBeFetched('path:/v1/auth/sign-in');
 
-    expect(screen.getByRole('alert').textContent).toContain('Hãy thử lại');
+    expect(screen.getByRole('alert')).toHaveTextContent('Hãy thử lại');
   });
 
   it('flags an invalid email or a short password without sending anything', async () => {
@@ -102,7 +98,7 @@ describe('the sign-in form', () => {
     );
     await userEvent.type(screen.getByLabelText('Mật khẩu'), 'correct horse');
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
-    expect(screen.getByText('Nhập một địa chỉ email hợp lệ.')).toBeTruthy();
+    expect(screen.getByText('Nhập một địa chỉ email hợp lệ.')).toBeVisible();
 
     await userEvent.clear(screen.getByLabelText('Địa chỉ email'));
     await userEvent.clear(screen.getByLabelText('Mật khẩu'));
@@ -112,7 +108,7 @@ describe('the sign-in form', () => {
     );
     await userEvent.type(screen.getByLabelText('Mật khẩu'), 'short');
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
-    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('alert')).toBeVisible();
     expect(fetchMock).not.toHaveFetched('path:/v1/auth/sign-in');
   });
 
@@ -133,12 +129,10 @@ describe('the sign-in form', () => {
     );
 
     expect(
-      screen
-        .getByRole('button', { name: 'Đang đăng nhập...' })
-        .hasAttribute('disabled'),
-    ).toBe(true);
+      screen.getByRole('button', { name: 'Đang đăng nhập...' }),
+    ).toBeDisabled();
     await expect(fetchMock).toBeFetched('path:/v1/auth/sign-in');
-    expect(screen.getByRole('button', { name: 'Đăng nhập' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Đăng nhập' })).toBeVisible();
     expect(fetchMock).toHavePostedTimes(1, 'path:/v1/auth/sign-in');
   });
 });
