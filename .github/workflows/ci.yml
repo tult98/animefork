@@ -18,6 +18,21 @@ jobs:
     name: Code quality
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The api tests run on a real Postgres. These values match apps/api/docker-compose.yml.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: api
+          POSTGRES_USER: api
+          POSTGRES_PASSWORD: local-api
+        ports:
+          - 54330:5432
+        options: >-
+          --health-cmd "pg_isready -U api -d api"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
     steps:
       - uses: actions/checkout@v5
         with:

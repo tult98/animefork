@@ -31,9 +31,15 @@ A reader should understand a test from top to bottom without opening another fil
 
 - Inline small things: the path, the status, the request body, the error body, a title, a row. Write `post('/v1/auth/sign-in')` and `toEqual({ error: 'invalid_token' })`, not `post(SIGN_IN_PATH)` and `toEqual(INVALID_TOKEN)`. Do not import the path constants from a `contract.ts`.
 - Do not make constants for values a test asserts on or routes by. The test shows them.
-- Do not hide a test's steps in helpers such as `signUp()`, `signedIn()` or `setup()`. Repeating two or three requests is fine. When a test needs state that takes a long flow to reach, such as a verified account, write that state through the store in the test (`app.get(AUTH_STORE)`) instead of replaying the flow.
+- Do not hide a test's steps in helpers such as `signUp()`, `signedIn()` or `setup()`. Repeating two or three requests is fine. When a test needs state that takes a long flow to reach, such as a verified account, write that state through the store in the test (`app.get(ART_STORE)`) instead of replaying the flow.
 - No `helpers.ts`, no `fixtures.ts`, no `*-mock.ts`. A shared file of named entities (`TONIKAWA`, `TENKEN_2`) or a shared table of routes makes the reader open it to learn what the test received.
-- The one shared helper is the app builder in `test/test-app.ts`. It boots the real `AppModule` through `Test.createTestingModule`, connects the Postgres stores to the test database, overrides only the env, the clock and the mailer with `overrideProvider`, applies `configureApp` so the pipes, filters and CORS match production, and closes the app after the test. It returns `{ app, http, advance }`. A test passes it only what differs, such as an env value or one provider. Do not write a second `Test.createTestingModule` chain in a test file.
+- The one shared helper is the app builder in `test/test-app.ts`. It boots the real `AppModule` through `Test.createTestingModule`, connects the Postgres stores to the test database, overrides only the env, the clock and the mailer with `overrideProvider`, applies `configureApp` so the pipes, filters and CORS match production, and closes the app after the test. A test passes it only what differs: `buildApp({ env: { RATE_LIMIT_PER_MINUTE: '2' } })`. Do not write a second `Test.createTestingModule` chain in a test file.
+- `buildApp()` returns what a test needs to act as a caller:
+  - `http()` is `supertest` on the app. Write the request in the test: `http().put('/v1/watch-progress').set('Cookie', cookie).send({ ... })`.
+  - `signedIn(email)` creates a user with a session and returns the `Cookie` header. Use it in every test that is not about signing in, because the real sign-in runs scrypt.
+  - `advance(ms)` moves the clock. Pass `now` to `buildApp` when the test asserts a timestamp, so the test shows the date it expects.
+  - `mailer.sent` holds the mail the app sent.
+  - `app.get(TOKEN)` reaches a store or a service for the cases under **Stores and time**.
 
 ## Choose the scenarios
 
@@ -77,7 +83,7 @@ Say what the caller gets, not how the test is built.
 ## Stores and time
 
 - Tests run on real Postgres through the Postgres stores, so a test runs the SQL that ships. Do not write a memory twin of a store, and do not bind a fake store in a test.
-- Tests use a database of their own, never the one the dev server uses. `test/global-setup.ts` runs the migrations and empties the tables once before the run. A test does not truncate or delete between tests, because another file is using the same tables.
+- Tests use a database of their own, never the one the dev server uses. It is `api_test` on the compose Postgres, and `TEST_DATABASE_URL` points the tests elsewhere. `test/global-setup.ts` creates it, runs the migrations and empties the tables once before the run. A test does not truncate or delete between tests, because another file is using the same tables.
 - A test fails when the database is unreachable. Do not skip it with `describe.skipIf`, because a skipped suite looks like a passing one.
 - An endpoint test covers its store. Write a test against a store directly only for what no endpoint reaches, such as the migration runner or two writes that race for one constraint.
 - Read stored state the way a caller would, with the next request (`GET /v1/watch-progress` after the `PUT`). Read the store directly (`app.get(WATCH_PROGRESS_STORE)`) only when no endpoint returns that state.
@@ -85,5 +91,5 @@ Say what the caller gets, not how the test is built.
 
 ## Files
 
-- Tests live in `apps/api/test/<feature>/`, named `<thing>.test.ts`, beside that feature's `__mockData__/`.
+- Tests live in `apps/api/test/<feature>/`, beside that feature's `__mockData__/`. Name an endpoint test `<feature>.endpoints.test.ts` and any other test `<thing>.test.ts`.
 - A model evaluation such as `eval-mal` is not a test of behavior. It keeps its own Nx target and these rules do not apply to it.

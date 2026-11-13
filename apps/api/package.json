@@ -87,6 +87,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@fetch-mock/vitest": "0.2.18",
     "@nestjs/testing": "12.4.2",
     "@types/pg": "8.15.5",
     "@types/supertest": "7.2.1",
