@@ -17,6 +17,7 @@ function detailsTitle(item: ContinueItem): Title {
     rating: 0,
     episodeLabel: item.episodeLabel,
     genres: [],
+    ...(item.mal ? { mal: item.mal } : {}),
   };
 }
 
@@ -113,8 +114,8 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
                 className="size-full object-cover"
               />
             </Link>
-            {item.trailerYoutubeId ? (
-              <PromoVideo youtubeId={item.trailerYoutubeId} />
+            {item.mal?.trailerYoutubeId ? (
+              <PromoVideo youtubeId={item.mal.trailerYoutubeId} />
             ) : null}
           </div>
           <div

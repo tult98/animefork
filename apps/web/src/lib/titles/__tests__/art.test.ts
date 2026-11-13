@@ -294,7 +294,7 @@ describe('the upcoming shelf once MAL dates its titles', () => {
     expect(names(out)).toEqual(['U2-A2', 'U3-A3', 'U4-A4']);
   });
 
-  it('gives a continue row the MyAnimeList trailer of its title and leaves its art alone', () => {
+  it('gives a continue row the MyAnimeList stats of its title and leaves its art alone', () => {
     const continueShelf: Shelf = {
       kind: 'continue',
       id: 'continue-watching',
@@ -309,14 +309,14 @@ describe('the upcoming shelf once MAL dates its titles', () => {
         link: watchLink(slug),
       })),
     };
-    const mal = malOf('2020-01-01').mal;
+    const mal = { ...malOf('2020-01-01').mal, trailerYoutubeId: 'yt-c1' };
     const [out] = applyRatings(
       [continueShelf],
-      new Map([['c1-a1', { mal: { ...mal, trailerYoutubeId: 'yt-c1' } }]]),
+      new Map([['c1-a1', { mal }]]),
       now,
     );
     expect(out?.kind === 'continue' && out.items).toEqual([
-      { ...continueShelf.items[0], trailerYoutubeId: 'yt-c1' },
+      { ...continueShelf.items[0], mal },
       continueShelf.items[1],
     ]);
   });

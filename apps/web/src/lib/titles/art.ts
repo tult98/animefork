@@ -313,8 +313,8 @@ export function applyRatings<S extends Shelf>(
   return shelves.flatMap((shelf) => {
     if (shelf.kind === 'continue') {
       const items = shelf.items.map((item) => {
-        const trailerYoutubeId = ratings.get(item.slug)?.mal?.trailerYoutubeId;
-        return trailerYoutubeId ? { ...item, trailerYoutubeId } : item;
+        const mal = ratings.get(item.slug)?.mal;
+        return mal ? { ...item, mal } : item;
       });
       return [{ ...shelf, items } as S];
     }

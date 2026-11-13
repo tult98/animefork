@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
+import fetchMock from '@fetch-mock/vitest';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Title } from '../../lib/titles/title.ts';
 import { render, screen, within } from '../../test/test-utils.tsx';
 import { stubYouTube } from '../../test/youtube-stub.ts';
+import { mockWatchHtml } from '../../lib/titles/__mockData__/index.ts';
 import { watchLink } from '../../lib/titles/link.ts';
 import { ContinueCard } from '../continue-card.tsx';
 import { PosterCard } from '../poster-card.tsx';
@@ -68,7 +70,7 @@ describe('the promo video in the card popover', () => {
           episodeId: '7',
           state: { kind: 'finished' },
           link: watchLink('alpha'),
-          trailerYoutubeId: 'abc123',
+          mal: title('abc123').mal,
         }}
       />,
       { path: '/' },
@@ -85,6 +87,35 @@ describe('the promo video in the card popover', () => {
       'playing',
     );
     expect(preview.querySelector('img')).toBeInTheDocument();
+  });
+
+  it('plays the trailer of a continue watching title in the details opened from its popover', async () => {
+    const players = stubYouTube();
+    fetchMock.get('path:/phim/alpha-a1/xem-phim.html', mockWatchHtml);
+    render(
+      <ContinueCard
+        item={{
+          slug: 'alpha-a1',
+          titleName: 'Phim alpha',
+          image: 'https://img.test/alpha.jpg',
+          episodeLabel: 'Tập 7',
+          episodeId: '7',
+          state: { kind: 'finished' },
+          link: watchLink('alpha-a1'),
+          mal: title('abc123').mal,
+        }}
+      />,
+      { path: '/' },
+    );
+    await userEvent.hover(await screen.findByTestId('card:continue:alpha-a1'));
+    await userEvent.click(
+      await screen.findByTestId('card:continue:alpha-a1:details'),
+    );
+    await expect(fetchMock).toBeFetched('path:/phim/alpha-a1/xem-phim.html');
+
+    const details = screen.getByTestId('details');
+    expect(within(details).getByTestId('trailer')).toBeInTheDocument();
+    expect(players.at(-1)?.videoId).toBe('abc123');
   });
 
   it('turns the sound on for every trailer from the popover, the ones that start later included', async () => {
