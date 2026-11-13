@@ -3,15 +3,12 @@ import {
   stripSearchParams,
   useNavigate,
 } from '@tanstack/react-router';
-import { TitleListing } from '../components/title-listing.tsx';
+import { NewEpisodes } from '../components/new-episodes.tsx';
 import {
   DEFAULT_PAGE,
   DEFAULT_SORT,
   ListSearchSchema,
 } from '../lib/titles/airing-list.ts';
-import { NEW_EPISODES_PATH } from '../lib/titles/home.ts';
-
-const NEW_EPISODES_LIMIT = 200;
 
 export const Route = createFileRoute('/new-episodes')({
   validateSearch: ListSearchSchema,
@@ -23,21 +20,15 @@ export const Route = createFileRoute('/new-episodes')({
       }),
     ],
   },
-  component: NewEpisodes,
+  component: NewEpisodesRoute,
 });
 
-function NewEpisodes() {
+function NewEpisodesRoute() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { sort, page } = Route.useSearch();
 
   return (
-    <TitleListing
-      heading="Mới cập nhật"
-      emptyText="Chưa có phim nào mới cập nhật."
-      sourcePath={NEW_EPISODES_PATH}
-      newEpisode
-      showCount={false}
-      limit={NEW_EPISODES_LIMIT}
+    <NewEpisodes
       search={{ sort, page }}
       onSearch={(next, { replace }) =>
         navigate({ search: (prev) => ({ ...prev, ...next }), replace })

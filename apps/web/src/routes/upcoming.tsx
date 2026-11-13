@@ -3,13 +3,12 @@ import {
   stripSearchParams,
   useNavigate,
 } from '@tanstack/react-router';
-import { TitleListing } from '../components/title-listing.tsx';
+import { Upcoming } from '../components/upcoming.tsx';
 import {
   DEFAULT_PAGE,
   DEFAULT_SORT,
   ListSearchSchema,
 } from '../lib/titles/airing-list.ts';
-import { UPCOMING_PATH } from '../lib/titles/home.ts';
 
 export const Route = createFileRoute('/upcoming')({
   validateSearch: ListSearchSchema,
@@ -21,19 +20,15 @@ export const Route = createFileRoute('/upcoming')({
       }),
     ],
   },
-  component: Upcoming,
+  component: UpcomingRoute,
 });
 
-function Upcoming() {
+function UpcomingRoute() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { sort, page } = Route.useSearch();
 
   return (
-    <TitleListing
-      heading="Sắp ra mắt"
-      emptyText="Chưa có phim nào sắp ra mắt."
-      sourcePath={UPCOMING_PATH}
-      upcoming
+    <Upcoming
       search={{ sort, page }}
       onSearch={(next, { replace }) =>
         navigate({ search: (prev) => ({ ...prev, ...next }), replace })
