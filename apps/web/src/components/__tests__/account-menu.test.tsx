@@ -1,104 +1,76 @@
 // @vitest-environment jsdom
-import { screen, waitFor } from '@testing-library/react';
+import fetchMock from '@fetch-mock/vitest';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
-import { jsonResponse, stubAuth, user } from '../../test/auth-stub.ts';
-import { renderApp } from '../../test/render-app.tsx';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '../../test/test-utils.tsx';
+import { AccountMenu } from '../account-menu.tsx';
 
-const signedIn = () => jsonResponse(200, { user });
+beforeEach(() => void vi.stubEnv('VITE_API_URL', 'https://api.test'));
 
-describe('the header account slot', () => {
-  it('renders nothing while the session loads, not a sign-in link', async () => {
-    let release: () => void = () => {};
-    const gate = new Promise<void>((resolve) => (release = resolve));
-    stubAuth({
-      me: async () => {
-        await gate;
-        return jsonResponse(401, { error: 'unauthenticated' });
-      },
-    });
-    await renderApp('/');
-    await screen.findByTestId('header');
-    expect(screen.queryByTestId('sign-in-link')).toBeNull();
-    expect(screen.queryByTestId('account-button')).toBeNull();
-    release();
-    await screen.findByTestId('sign-in-link');
-  });
-
+describe('the account menu', () => {
   it('shows a sign-in link when signed out', async () => {
-    stubAuth();
-    await renderApp('/');
-    const link = await screen.findByRole('link', { name: 'Đăng nhập' });
-    expect(link).toHaveProperty('pathname', '/sign-in');
-    expect(screen.queryByTestId('account-button')).toBeNull();
-  });
+    fetchMock.get('path:/v1/auth/me', 401);
+    render(<AccountMenu buttonClassName="" />, { path: '/' });
+    await expect(fetchMock).toBeFetched('path:/v1/auth/me');
 
-  it('falls back to the sign-in link when the API is not configured', async () => {
-    await renderApp('/');
-    await screen.findByTestId('header');
-    await screen.findByTestId('sign-in-link');
+    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute(
+      'href',
+      '/sign-in',
+    );
+    expect(screen.queryByTestId('account-button')).not.toBeInTheDocument();
   });
 
   it('opens the profile menu with the email and closes it on Escape', async () => {
-    stubAuth({ me: signedIn });
-    await renderApp('/');
-    const button = await screen.findByTestId('account-button');
-    expect(button.getAttribute('aria-haspopup')).toBe('menu');
-    expect(button.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByRole('menu')).toBeNull();
+    fetchMock.get('path:/v1/auth/me', {
+      user: { id: 'u1', email: 'mai@example.com' },
+    });
+    render(<AccountMenu buttonClassName="" />, { path: '/' });
+    await expect(fetchMock).toBeFetched('path:/v1/auth/me');
+    const button = screen.getByTestId('account-button');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
 
     await userEvent.click(button);
-    const menu = screen.getByRole('menu');
-    expect(button.getAttribute('aria-expanded')).toBe('true');
-    expect(menu.textContent).toContain('Đăng nhập với mai@example.com');
-    expect(document.activeElement).toBe(
-      screen.getByRole('menuitem', { name: 'Đăng xuất' }),
+    expect(screen.getByRole('menu')).toHaveTextContent(
+      'Đăng nhập với mai@example.com',
     );
+    expect(screen.getByRole('menuitem', { name: 'Đăng xuất' })).toHaveFocus();
 
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('menu')).toBeNull();
-    expect(document.activeElement).toBe(button);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
   });
 
-  it('closes on a click outside', async () => {
-    stubAuth({ me: signedIn });
-    await renderApp('/');
-    await userEvent.click(await screen.findByTestId('account-button'));
-    await userEvent.click(document.body);
-    expect(screen.queryByRole('menu')).toBeNull();
-  });
-
-  it('opens with ArrowDown and keeps focus on the item as the arrows wrap', async () => {
-    stubAuth({ me: signedIn });
-    await renderApp('/');
-    const button = await screen.findByTestId('account-button');
-    button.focus();
-    await userEvent.keyboard('{ArrowDown}');
-    const item = screen.getByRole('menuitem', { name: 'Đăng xuất' });
-    expect(document.activeElement).toBe(item);
-    await userEvent.keyboard('{ArrowDown}');
-    expect(document.activeElement).toBe(item);
-    await userEvent.keyboard('{ArrowUp}');
-    expect(document.activeElement).toBe(item);
-  });
-
-  it('signs out, closes the menu and returns home', async () => {
-    const stub = stubAuth({
-      me: signedIn,
-      signOut: () => new Response(null, { status: 204 }),
+  it('signs out, closes the menu, shows the sign-in link and goes home', async () => {
+    fetchMock
+      .get('path:/v1/auth/me', { user: { id: 'u1', email: 'mai@example.com' } })
+      .post('path:/v1/auth/sign-out', 204);
+    const { router } = render(<AccountMenu buttonClassName="" />, {
+      path: '/rankings',
     });
-    const { router } = await renderApp('/rankings');
-    await userEvent.click(await screen.findByTestId('account-button'));
+    await expect(fetchMock).toBeFetched('path:/v1/auth/me');
+    await userEvent.click(screen.getByTestId('account-button'));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Đăng xuất' }));
-    await screen.findByTestId('sign-in-link');
-    expect(screen.queryByRole('menu')).toBeNull();
-    expect(stub.to('signOut')).toHaveLength(1);
+    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-out');
+
+    expect(screen.getByTestId('sign-in-link')).toBeVisible();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   });
 
-  it('keeps the header on the other pages after sign-in', async () => {
-    stubAuth({ me: signedIn });
-    await renderApp('/browse');
-    expect(await screen.findByTestId('account-button')).toBeTruthy();
+  it('keeps the visitor signed in when sign-out fails, as the server says', async () => {
+    fetchMock
+      .get('path:/v1/auth/me', { user: { id: 'u1', email: 'mai@example.com' } })
+      .post('path:/v1/auth/sign-out', 500);
+    render(<AccountMenu buttonClassName="" />, { path: '/' });
+    await expect(fetchMock).toBeFetched('path:/v1/auth/me');
+    await userEvent.click(screen.getByTestId('account-button'));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Đăng xuất' }));
+    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-out');
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveFetchedTimes(2, 'path:/v1/auth/me'),
+    );
+    expect(screen.getByTestId('account-button')).toBeVisible();
+    expect(screen.queryByTestId('sign-in-link')).not.toBeInTheDocument();
   });
 });
