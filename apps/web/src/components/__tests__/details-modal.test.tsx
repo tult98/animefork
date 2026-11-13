@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import fetchMock from '@fetch-mock/vitest';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockWatchHtml } from '../../lib/titles/__mockData__/index.ts';
 import { render, screen, waitFor, within } from '../../test/test-utils.tsx';
 import { homeHtml, newEpisodesHtml, seasonHtml } from '../__mockData__/home.ts';
@@ -39,6 +39,37 @@ describe('the details modal', () => {
     expect(within(modal).getByTestId('details:episode:72839')).toBeVisible();
     expect(within(modal).getByTestId('details:episode:73386')).toBeVisible();
     expect(router.state.location.pathname).toBe('/');
+  });
+
+  it('names the episodes from the episode info, the Vietnamese title first', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://api.test');
+    fetchMock
+      .post('path:/v1/art/lookup', { art: {} })
+      .get('path:/v1/episodes/fresh-1-a1', {
+        status: 'ready',
+        episodes: [
+          { number: 1, title: 'Fly Me', titleVi: 'Bay cùng tôi', aired: null },
+          { number: 2, title: 'Second', titleVi: null, aired: '2018-10-13' },
+        ],
+      });
+    render(<Home />, { path: '/' });
+    await expect(fetchMock).toBeFetched(
+      'path:/danh-sach/all/all/autumn/2026/all/all/jp/',
+    );
+
+    await userEvent.click(cover('/phim/fresh-1-a1/'));
+    const modal = await screen.findByTestId('details');
+    await expect(fetchMock).toBeFetched('path:/v1/episodes/fresh-1-a1');
+
+    expect(
+      within(modal).getByTestId('details:episode:72839'),
+    ).toHaveTextContent('Bay cùng tôi');
+    expect(
+      within(modal).getByTestId('details:episode:73010'),
+    ).toHaveTextContent('Second');
+    expect(
+      within(modal).getByTestId('details:episode:73386'),
+    ).toHaveTextContent('Tập 3');
   });
 
   it('opens from the info button of a hero slide', async () => {

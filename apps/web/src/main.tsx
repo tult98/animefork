@@ -8,6 +8,12 @@ import { createPlayerSource } from './lib/player/select.ts';
 import { routeTree } from './routeTree.gen.ts';
 import './styles.css';
 
+if (!import.meta.env.VITE_API_URL) {
+  throw new Error(
+    'VITE_API_URL is not set. Point it at the API service, for example http://localhost:3100 in apps/web/.env.local.',
+  );
+}
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
 });
