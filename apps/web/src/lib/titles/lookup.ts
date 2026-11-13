@@ -55,6 +55,16 @@ export function lookupTitles(shelves: HomeShelves): TitleInput[] {
       if (input) bySlug.set(slug, input);
     }
   }
+  // A history row is looked up only for its MyAnimeList trailer and keeps its own art. It comes after the catalog titles,
+  // whose year and episode count match a title better than a bare name does.
+  for (const shelf of shelves) {
+    if (shelf.kind !== 'continue') continue;
+    for (const item of shelf.items) {
+      if (bySlug.has(item.slug)) continue;
+      const input = toInput({ slug: item.slug, name: item.titleName });
+      if (input) bySlug.set(item.slug, input);
+    }
+  }
   return [...bySlug.values()];
 }
 
