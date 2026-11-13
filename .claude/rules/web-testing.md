@@ -55,13 +55,14 @@ Say what the feature shows or does, not how the call is answered.
   expect(home.hero).toHaveLength(2);
   ```
   The matchers are `toHaveFetched(matcher)`, `toHaveNthFetched(n, matcher)` (1-based, for order), `toHaveFetchedTimes(n, matcher)`, `.not.toHaveFetched(matcher)` for a call that must not happen, and the verb forms such as `toHavePosted(matcher, { body })`.
-- The matchers are synchronous: they check the calls that already happened and do not wait for one. Wait for what the user sees with `findBy*`, then assert the request:
+- `toHaveFetched` and its relatives are synchronous: they check the calls that already happened. To wait for a request, use `await expect(fetchMock).toBeFetched(matcher)` from `src/test/test-utils.tsx`. It waits until the request was made and answered and React has drawn the answer, so the next line can query the UI directly:
   ```ts
   fetchMock.get('path:/v1/auth/me', 401);
   render(<AccountMenu buttonClassName="" />, { path: '/' });
-  await screen.findByRole('link', { name: 'Đăng nhập' });
-  expect(fetchMock).toHaveFetched('path:/v1/auth/me');
+  await expect(fetchMock).toBeFetched('path:/v1/auth/me');
+  expect(screen.getByRole('link', { name: 'Đăng nhập' })).toBeTruthy();
   ```
+  It takes the same matcher and options as `toHaveFetched`. It waits for the first matching request, so to wait for a second request to the same route, find its result in the UI with `findBy*`. It fails after 2 seconds and lists the requests that were made. Use the synchronous `.not.toHaveFetched` to check that a request did not happen.
 - To test a state while a request is in flight, give the route a delay: `fetchMock.post(matcher, response, { delay: 200 })`. Do not hold a request open with a promise and a `release()` function.
 - First-party API calls need `VITE_API_URL`: set it in the test file with `vi.stubEnv('VITE_API_URL', 'https://api.test')`, then match the route by path (`'path:/v1/auth/me'`).
 - Upstream site pages go through the `Transport`, which the custom `render` backs with `FetchTransport`. Match them by path too (`'path:/phim/x/xem-phim.html'`).

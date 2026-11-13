@@ -25,8 +25,9 @@ describe('the sign-up form', () => {
     await userEvent.click(
       screen.getByRole('button', { name: 'Tạo tài khoản' }),
     );
+    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-up');
 
-    const title = await screen.findByRole('heading', {
+    const title = screen.getByRole('heading', {
       name: 'Kiểm tra email của bạn',
     });
     expect(title.parentElement?.textContent).toContain('mai@example.com');
@@ -67,7 +68,7 @@ describe('the sign-up form', () => {
     await userEvent.click(
       screen.getByRole('button', { name: 'Tạo tài khoản' }),
     );
-    await screen.findByRole('heading', { name: 'Kiểm tra email của bạn' });
+    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-up');
     await userEvent.click(
       screen.getByRole('button', { name: 'Gửi lại email' }),
     );
@@ -95,10 +96,9 @@ describe('the sign-up form', () => {
     await userEvent.click(
       screen.getByRole('button', { name: 'Tạo tài khoản' }),
     );
+    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-up');
 
-    expect((await screen.findByRole('alert')).textContent).toContain(
-      'đã có tài khoản',
-    );
+    expect(screen.getByRole('alert').textContent).toContain('đã có tài khoản');
     expect(screen.getByLabelText('Mật khẩu mới')).toBeTruthy();
   });
 
@@ -113,7 +113,7 @@ describe('the sign-up form', () => {
       screen.getByRole('button', { name: 'Tạo tài khoản' }),
     );
 
-    await screen.findByText('Mật khẩu cần có ít nhất 8 ký tự.');
+    expect(screen.getByText('Mật khẩu cần có ít nhất 8 ký tự.')).toBeTruthy();
     expect(fetchMock).not.toHaveFetched('path:/v1/auth/sign-up');
   });
 });

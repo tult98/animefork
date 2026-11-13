@@ -11,10 +11,12 @@ describe('the account menu', () => {
   it('shows a sign-in link when signed out', async () => {
     fetchMock.get('path:/v1/auth/me', 401);
     render(<AccountMenu buttonClassName="" />, { path: '/' });
+    await expect(fetchMock).toBeFetched('path:/v1/auth/me');
 
-    const link = await screen.findByRole('link', { name: 'Đăng nhập' });
-    expect(link).toHaveProperty('pathname', '/sign-in');
-    expect(fetchMock).toHaveFetched('path:/v1/auth/me');
+    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveProperty(
+      'pathname',
+      '/sign-in',
+    );
     expect(screen.queryByTestId('account-button')).toBeNull();
   });
 
@@ -23,7 +25,8 @@ describe('the account menu', () => {
       user: { id: 'u1', email: 'mai@example.com' },
     });
     render(<AccountMenu buttonClassName="" />, { path: '/' });
-    const button = await screen.findByTestId('account-button');
+    await expect(fetchMock).toBeFetched('path:/v1/auth/me');
+    const button = screen.getByTestId('account-button');
     expect(screen.queryByRole('menu')).toBeNull();
 
     await userEvent.click(button);
@@ -46,12 +49,13 @@ describe('the account menu', () => {
     const { router } = render(<AccountMenu buttonClassName="" />, {
       path: '/rankings',
     });
-    await userEvent.click(await screen.findByTestId('account-button'));
+    await expect(fetchMock).toBeFetched('path:/v1/auth/me');
+    await userEvent.click(screen.getByTestId('account-button'));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Đăng xuất' }));
+    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-out');
 
-    await screen.findByTestId('sign-in-link');
+    expect(screen.getByTestId('sign-in-link')).toBeTruthy();
     expect(screen.queryByRole('menu')).toBeNull();
-    expect(fetchMock).toHavePosted('path:/v1/auth/sign-out');
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   });
 
@@ -60,13 +64,15 @@ describe('the account menu', () => {
       .get('path:/v1/auth/me', { user: { id: 'u1', email: 'mai@example.com' } })
       .post('path:/v1/auth/sign-out', 500);
     render(<AccountMenu buttonClassName="" />, { path: '/' });
-    await userEvent.click(await screen.findByTestId('account-button'));
+    await expect(fetchMock).toBeFetched('path:/v1/auth/me');
+    await userEvent.click(screen.getByTestId('account-button'));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Đăng xuất' }));
+    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-out');
 
     await waitFor(() =>
       expect(fetchMock).toHaveFetchedTimes(2, 'path:/v1/auth/me'),
     );
-    expect(await screen.findByTestId('account-button')).toBeTruthy();
+    expect(screen.getByTestId('account-button')).toBeTruthy();
     expect(screen.queryByTestId('sign-in-link')).toBeNull();
   });
 });

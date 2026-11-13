@@ -6,11 +6,15 @@ import {
   createRouter,
 } from '@tanstack/react-router';
 import {
+  act,
+  waitFor,
   render as rtlRender,
   renderHook as rtlRenderHook,
   type RenderHookOptions,
   type RenderOptions,
 } from '@testing-library/react';
+import type { CallHistoryFilter, FetchMock, UserRouteConfig } from 'fetch-mock';
+import { expect } from 'vitest';
 import { Fragment, StrictMode, type ReactElement, type ReactNode } from 'react';
 import { PlayerSourceProvider } from '../lib/player/context.tsx';
 import { ReplayPlayerSource } from '../lib/player/replay-player-source.ts';
@@ -80,3 +84,55 @@ export function renderHook<Result, Props>(
 }
 
 export * from '@testing-library/react';
+
+declare module 'vitest' {
+  interface Assertion {
+    toBeFetched(
+      filter?: CallHistoryFilter,
+      options?: UserRouteConfig,
+    ): Promise<void>;
+  }
+}
+
+// A line per request the test made, so a failure shows what was sent instead of what was expected.
+function requestsMade(fetchMock: FetchMock) {
+  const calls = fetchMock.callHistory.calls();
+  if (calls.length === 0) return '  none';
+  return calls
+    .map(
+      ({ url, options }) =>
+        `  ${(options.method ?? 'get').toUpperCase()} ${url}${options.body ? ` ${String(options.body)}` : ''}`,
+    )
+    .join('\n');
+}
+
+// Waits until the request was made and answered and React has drawn the answer, so the next line can query the UI without waiting.
+expect.extend({
+  async toBeFetched(
+    received: FetchMock,
+    filter?: CallHistoryFilter,
+    options?: UserRouteConfig,
+  ) {
+    const wanted = [filter, options && JSON.stringify(options)]
+      .filter(Boolean)
+      .join(' ');
+    try {
+      await waitFor(() => expect(received).toHaveFetched(filter, options), {
+        timeout: 2_000,
+      });
+    } catch {
+      return {
+        pass: false,
+        message: () =>
+          `expected a request matching ${wanted}\nrequests made:\n${requestsMade(received)}`,
+      };
+    }
+    await received.callHistory.flush(true);
+    await act(async () => {});
+    return {
+      pass: true,
+      message: () =>
+        `expected no request matching ${wanted}\nrequests made:\n${requestsMade(received)}`,
+    };
+  },
+});

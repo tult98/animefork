@@ -17,7 +17,10 @@ describe('the email verification status', () => {
       'Đang xác nhận',
     );
 
-    await screen.findByRole('heading', { name: 'Email đã được xác nhận' });
+    await expect(fetchMock).toBeFetched('path:/v1/auth/verify-email');
+    expect(
+      screen.getByRole('heading', { name: 'Email đã được xác nhận' }),
+    ).toBeTruthy();
     expect(fetchMock).toHavePosted('path:/v1/auth/verify-email', {
       body: { token: 'abc123' },
     });
@@ -35,8 +38,11 @@ describe('the email verification status', () => {
     });
     window.history.replaceState(null, '', '/verify-email#token=stale');
     render(<VerifyEmailStatus />, { path: '/verify-email' });
+    await expect(fetchMock).toBeFetched('path:/v1/auth/verify-email');
 
-    await screen.findByRole('heading', { name: 'Liên kết không dùng được' });
+    expect(
+      screen.getByRole('heading', { name: 'Liên kết không dùng được' }),
+    ).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toContain('hết hạn');
     expect(screen.getByRole('link', { name: 'Đăng ký lại' })).toHaveProperty(
       'pathname',
@@ -58,8 +64,9 @@ describe('the email verification status', () => {
     });
     window.history.replaceState(null, '', '/verify-email#token=abc123');
     render(<VerifyEmailStatus />, { path: '/verify-email' });
+    await expect(fetchMock).toBeFetched('path:/v1/auth/verify-email');
 
-    expect((await screen.findByRole('alert')).textContent).toContain(
+    expect(screen.getByRole('alert').textContent).toContain(
       'Không thể xác nhận',
     );
   });
@@ -68,8 +75,11 @@ describe('the email verification status', () => {
     fetchMock.post('path:/v1/auth/verify-email', { ok: true });
     window.history.replaceState(null, '', '/verify-email#token=abc123');
     render(<VerifyEmailStatus />, { path: '/verify-email', strict: true });
+    await expect(fetchMock).toBeFetched('path:/v1/auth/verify-email');
 
-    await screen.findByRole('heading', { name: 'Email đã được xác nhận' });
+    expect(
+      screen.getByRole('heading', { name: 'Email đã được xác nhận' }),
+    ).toBeTruthy();
     expect(fetchMock).toHavePostedTimes(1, 'path:/v1/auth/verify-email');
   });
 });
