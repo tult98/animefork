@@ -19,7 +19,7 @@ src/
   episodes/        episode lists from MAL, store, title translator, GET /v1/episodes/:slug
   auth/            accounts: contract, controller, service, store, session guard, password, tokens, cookie, mailer, limits
 db/migrations/     numbered SQL files applied at boot
-scripts/           eval-matcher.ts and eval-mal.ts, read-only matcher comparisons, and sync-episodes.ts, the episode backfill
+scripts/           eval-matcher.ts and eval-mal.ts, read-only matcher comparisons
 ```
 
 A new feature module sits beside `art/` and imports nothing from it. It reads its own env from the `ENV` provider with `parseEnv`, the way `art/art.config.ts` does, and adds its tables as the next numbered file in `db/migrations/`. Neither `database/` nor `common/` changes for it.
