@@ -134,6 +134,14 @@ function EpisodeRow({
         <span className="line-clamp-2 text-body-strong leading-[1.35] font-semibold">
           {text.title}
         </span>
+        {episode.synopsis ? (
+          <span
+            className="line-clamp-2 text-badge text-muted"
+            data-testid={`episode:${n}:synopsis`}
+          >
+            {episode.synopsis}
+          </span>
+        ) : null}
         {text.below ? (
           <span
             className={statusClass}
