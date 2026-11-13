@@ -17,13 +17,13 @@ describe('the email verification status', () => {
       'Đang xác nhận',
     );
 
-    await expect(fetchMock).toBeFetched('path:/v1/auth/verify-email');
+    await expect(fetchMock).toBeFetched('path:/v1/auth/verify-email', {
+      method: 'post',
+      body: { token: 'abc123' },
+    });
     expect(
       screen.getByRole('heading', { name: 'Email đã được xác nhận' }),
     ).toBeTruthy();
-    expect(fetchMock).toHavePosted('path:/v1/auth/verify-email', {
-      body: { token: 'abc123' },
-    });
     expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveProperty(
       'pathname',
       '/sign-in',

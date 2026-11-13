@@ -27,11 +27,11 @@ describe('the sign-in form', () => {
     );
     await userEvent.type(screen.getByLabelText('Mật khẩu'), 'correct horse');
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
-    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-in');
-
-    expect(fetchMock).toHavePosted('path:/v1/auth/sign-in', {
+    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-in', {
+      method: 'post',
       body: { email: 'mai@example.com', password: 'correct horse' },
     });
+
     expect(screen.getByTestId('account-button')).toBeTruthy();
   });
 

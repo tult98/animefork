@@ -56,7 +56,7 @@ Say what the feature shows or does, not how the call is answered.
   await expect(fetchMock).toBeFetched('path:/v1/auth/me');
   expect(screen.getByRole('link', { name: 'Đăng nhập' })).toBeTruthy();
   ```
-  It takes the same matcher and options as `toHaveFetched`. It waits for the first matching request, so to wait for a second request to the same route, find its result in the UI with `findBy*`. It fails after 2 seconds and lists the requests that were made.
+  It takes the same matcher and options as `toHaveFetched`, so it also checks the method and body: `toBeFetched('path:/v1/auth/sign-in', { method: 'post', body: { email } })`. It waits for the first matching request, so to wait for a second request to the same route, find its result in the UI with `findBy*`. It fails after 2 seconds and lists the requests that were made.
 - When the request has already happened, such as after `await fetchHome(transport)`, use the synchronous matchers, which do not wait:
   ```ts
   const home = await fetchHome(transport);

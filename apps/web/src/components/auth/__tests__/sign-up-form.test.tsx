@@ -25,16 +25,16 @@ describe('the sign-up form', () => {
     await userEvent.click(
       screen.getByRole('button', { name: 'Tạo tài khoản' }),
     );
-    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-up');
+    await expect(fetchMock).toBeFetched('path:/v1/auth/sign-up', {
+      method: 'post',
+      body: { email: 'mai@example.com', password: 'correct horse' },
+    });
 
     const title = screen.getByRole('heading', {
       name: 'Kiểm tra email của bạn',
     });
     expect(title.parentElement?.textContent).toContain('mai@example.com');
     expect(screen.queryByLabelText('Mật khẩu mới')).toBeNull();
-    expect(fetchMock).toHavePosted('path:/v1/auth/sign-up', {
-      body: { email: 'mai@example.com', password: 'correct horse' },
-    });
 
     await userEvent.click(
       screen.getByRole('button', { name: 'Gửi lại email' }),
