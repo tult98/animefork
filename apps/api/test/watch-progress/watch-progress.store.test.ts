@@ -16,6 +16,7 @@ function row(overrides: Partial<WatchProgressRow> = {}): WatchProgressRow {
     image: 'https://img.test/show.jpg',
     episodeLabel: 'Episode 1',
     seasonSlug: null,
+    seriesKey: null,
     updatedAt: new Date(T0),
     ...overrides,
   };
@@ -64,6 +65,62 @@ describe('MemoryWatchProgressStore', () => {
     expect(latest.map((r) => [r.slug, r.episodeId])).toEqual([
       ['a', '2'],
       ['b', '1'],
+    ]);
+  });
+
+  it('counts an older row without a key toward the series its slug later got', async () => {
+    const store = new MemoryWatchProgressStore();
+    const seriesKey = 'the-gioi-phep-thuat-a474';
+    await store.save(
+      row({
+        slug: 'black-clover-2nd-season-a6073',
+        episodeId: '115975',
+        updatedAt: new Date(T0 + 5_000),
+      }),
+    );
+    await store.save(
+      row({ slug: seriesKey, seriesKey, updatedAt: new Date(T0 + 10_000) }),
+    );
+    await store.save(
+      row({
+        slug: 'black-clover-2nd-season-a6073',
+        episodeId: '116427',
+        seriesKey,
+        updatedAt: new Date(T0 + 20_000),
+      }),
+    );
+
+    const rows = await store.latestPerSlug('u1', 10);
+    expect(rows.map((r) => r.episodeId)).toEqual(['116427']);
+  });
+
+  it('keeps one row per series across seasons, and rows without a series key apart', async () => {
+    const store = new MemoryWatchProgressStore();
+    const seriesKey = 'the-gioi-phep-thuat-a474';
+    await store.save(
+      row({
+        slug: 'the-gioi-phep-thuat-a474',
+        titleName: 'Black Clover (TV)',
+        seriesKey,
+        updatedAt: new Date(T0),
+      }),
+    );
+    await store.save(
+      row({
+        slug: 'black-clover-2nd-season-a6073',
+        titleName: 'Black Clover 2nd Season',
+        seriesKey,
+        updatedAt: new Date(T0 + 2000),
+      }),
+    );
+    await store.save(row({ slug: 'a', updatedAt: new Date(T0 + 1000) }));
+    await store.save(row({ slug: 'b', updatedAt: new Date(T0 + 500) }));
+
+    const latest = await store.latestPerSlug('u1', 20);
+    expect(latest.map((r) => r.slug)).toEqual([
+      'black-clover-2nd-season-a6073',
+      'a',
+      'b',
     ]);
   });
 

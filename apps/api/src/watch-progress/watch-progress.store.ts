@@ -42,10 +42,15 @@ export class MemoryWatchProgressStore implements WatchProgressStore {
     userId: string,
     limit: number,
   ): Promise<WatchProgressRow[]> {
+    const keyOfSlug = new Map<string, string>();
+    for (const row of this.rows.values()) {
+      if (row.seriesKey) keyOfSlug.set(row.slug, row.seriesKey);
+    }
     const latest = new Map<string, WatchProgressRow>();
     for (const row of [...this.rows.values()].sort(newestFirst)) {
-      if (row.userId === userId && !latest.has(row.slug)) {
-        latest.set(row.slug, row);
+      const series = row.seriesKey ?? keyOfSlug.get(row.slug) ?? row.slug;
+      if (row.userId === userId && !latest.has(series)) {
+        latest.set(series, row);
       }
     }
     return [...latest.values()]
@@ -73,11 +78,12 @@ interface WatchProgressDbRow {
   image: string;
   episode_label: string;
   season_slug: string | null;
+  series_key: string | null;
   updated_at: Date;
 }
 
 const COLUMNS = `user_id, slug, episode_id, position_s, duration_s, completed,
-  title_name, image, episode_label, season_slug, updated_at`;
+  title_name, image, episode_label, season_slug, series_key, updated_at`;
 
 function toRow(row: WatchProgressDbRow): WatchProgressRow {
   return {
@@ -91,6 +97,7 @@ function toRow(row: WatchProgressDbRow): WatchProgressRow {
     image: row.image,
     episodeLabel: row.episode_label,
     seasonSlug: row.season_slug,
+    seriesKey: row.series_key,
     updatedAt: row.updated_at,
   };
 }
@@ -107,8 +114,8 @@ export class PostgresWatchProgressStore implements WatchProgressStore {
     const { rows } = await this.pool.query<WatchProgressDbRow>(
       `insert into watch_progress
          (user_id, slug, episode_id, position_s, duration_s, completed,
-          title_name, image, episode_label, season_slug, updated_at)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          title_name, image, episode_label, season_slug, series_key, updated_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        on conflict (user_id, slug, episode_id) do update set
          position_s = excluded.position_s,
          duration_s = excluded.duration_s,
@@ -117,6 +124,7 @@ export class PostgresWatchProgressStore implements WatchProgressStore {
          image = excluded.image,
          episode_label = excluded.episode_label,
          season_slug = excluded.season_slug,
+         series_key = excluded.series_key,
          updated_at = excluded.updated_at
        returning ${COLUMNS}`,
       [
@@ -130,6 +138,7 @@ export class PostgresWatchProgressStore implements WatchProgressStore {
         row.image,
         row.episodeLabel,
         row.seasonSlug,
+        row.seriesKey,
         row.updatedAt,
       ],
     );
@@ -143,11 +152,16 @@ export class PostgresWatchProgressStore implements WatchProgressStore {
     limit: number,
   ): Promise<WatchProgressRow[]> {
     const { rows } = await this.pool.query<WatchProgressDbRow>(
-      `select ${COLUMNS} from (
-         select distinct on (slug) ${COLUMNS}
+      `with keyed as (
+         select ${COLUMNS},
+                coalesce(series_key, max(series_key) over (partition by user_id, slug), slug) as series
            from watch_progress
           where user_id = $1
-          order by slug, updated_at desc, length(episode_id) desc, episode_id desc
+       )
+       select ${COLUMNS} from (
+         select distinct on (series) ${COLUMNS}
+           from keyed
+          order by series, updated_at desc, length(episode_id) desc, episode_id desc
        ) latest
         order by updated_at desc, length(episode_id) desc, episode_id desc
         limit $2`,

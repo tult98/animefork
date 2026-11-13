@@ -40,6 +40,7 @@ const SKIP_SECONDS = 10;
 interface PlayerProps {
   slug: string;
   seasonSlug: string;
+  seriesKey?: string;
   title: string;
   seasonName?: string;
   episode: Episode;
@@ -69,6 +70,7 @@ function SkipGlyph({ forward }: { forward: boolean }) {
 export function Player({
   slug,
   seasonSlug,
+  seriesKey,
   title,
   seasonName,
   episode,
@@ -84,6 +86,7 @@ export function Player({
   useProgressSaving(videoRef, {
     slug,
     seasonSlug,
+    seriesKey,
     episodeId: episode.id,
     titleName: title,
     image,

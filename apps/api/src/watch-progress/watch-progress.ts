@@ -24,5 +24,6 @@ export interface WatchProgressRow {
   image: string;
   episodeLabel: string;
   seasonSlug: string | null;
+  seriesKey: string | null;
   updatedAt: Date;
 }
