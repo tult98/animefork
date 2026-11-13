@@ -142,6 +142,7 @@ export class ArtFiller {
     }
     const { tmdbId } = outcome.matched;
     await store.saveMatched(outcome.matched);
+    await this.translateEpisodeOverviews(input.slug);
     const keepsOverview =
       current?.tmdbId === tmdbId && current.overviewStatus === 'ok';
     if (keepsOverview || this.overviewsInFlight.has(input.slug)) return;
@@ -150,6 +151,26 @@ export class ArtFiller {
       tmdbId,
       await this.resolveOverview(input.slug, tmdbId),
     );
+  }
+
+  // A failure here never fails the fill. It stops at the first one so a translator that is down is asked once.
+  // Untranslated rows are picked up again by the next fill of the slug.
+  private async translateEpisodeOverviews(slug: string): Promise<void> {
+    if (!this.translator) return;
+    try {
+      for (const row of (await this.store.tmdbEpisodes(slug)).values()) {
+        if (row.overview === null || row.overviewVi !== null) continue;
+        await this.store.saveEpisodeTranslation(
+          slug,
+          row.number,
+          await this.translator.translate(row.overview),
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `episode overviews ${slug} failed: ${describeError(error)}`,
+      );
+    }
   }
 
   private async runOverview(slug: string, tmdbId: number): Promise<void> {

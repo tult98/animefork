@@ -17,12 +17,24 @@ const ENGLISH_ONLY = {
   '/3/tv/100?en': fx.DETAIL_100_EN,
 };
 
+// The episode texts have their own tests, and would add translator calls to the show overview ones.
+const STILLS_ONLY = {
+  ...fx.SEASON_100_1,
+  episodes: fx.SEASON_100_1.episodes.map(({ episode_number, still_path }) => ({
+    episode_number,
+    still_path,
+  })),
+};
+
 function recording(overrides: Record<string, unknown> = {}) {
   const overviewCalls: string[] = [];
-  const base = mockTmdb(overrides);
+  const base = mockTmdb({ '/3/tv/100/season/1': STILLS_ONLY, ...overrides });
   const fetchImpl: typeof fetch = async (input, init) => {
-    const language = new URL(String(input)).searchParams.get('language');
-    if (language) overviewCalls.push(language);
+    const url = new URL(String(input));
+    const language = url.searchParams.get('language');
+    if (language && !url.pathname.includes('/season/')) {
+      overviewCalls.push(language);
+    }
     return base(input, init);
   };
   return { fetch: fetchImpl, overviewCalls };
