@@ -1,13 +1,10 @@
 // @vitest-environment jsdom
-import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
-import { FetchTransport, upstream } from '../../../test/fetch-transport.ts';
 import { MOCK_WATCH_SLUG, mockWatchHtml } from '../__mockData__/index.ts';
 import {
   EpisodeNotFoundError,
   EpisodeSchema,
-  fetchWatchPage,
   parseOtherNames,
   parseWatchPage,
   selectEpisode,
@@ -128,15 +125,6 @@ describe('parseWatchPage', () => {
     expect(
       EpisodeSchema.safeParse({ id: '1', play: 'api', label: 'Tập 1' }).success,
     ).toBe(false);
-  });
-});
-
-describe('fetchWatchPage', () => {
-  it('shows the first episode of the watch page as the current one', async () => {
-    fetchMock.get(upstream(`/phim/${SLUG}/xem-phim.html`), mockWatchHtml);
-    const page = await fetchWatchPage(new FetchTransport(), SLUG);
-    expect(fetchMock).toHaveFetched(upstream(`/phim/${SLUG}/xem-phim.html`));
-    expect(page.currentEpisode.label).toBe('Tập 1_BD_Full');
   });
 });
 

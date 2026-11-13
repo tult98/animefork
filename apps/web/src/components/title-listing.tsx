@@ -29,7 +29,6 @@ import {
 } from '../lib/titles/season-pages.ts';
 import { lookupTitles } from '../lib/titles/lookup.ts';
 import type { DefaultShelf } from '../lib/titles/shelves.ts';
-import { useTransport } from '../lib/transport/index.ts';
 import { paginate } from '../lib/ui/paging.ts';
 import { Dropdown } from './dropdown.tsx';
 import { ErrorScreen } from './error-screen.tsx';
@@ -92,14 +91,13 @@ export function TitleListing({
   sourceError,
   onRetrySource,
 }: TitleListingProps) {
-  const transport = useTransport();
   const grid = useRef<HTMLDivElement>(null);
 
   const seasonPath = sourcePath ?? null;
   const first = useQuery({
     queryKey: ['season-first', seasonPath, limit],
     queryFn: seasonPath
-      ? ({ signal }) => fetchSeasonFirstPage(transport, seasonPath, signal)
+      ? ({ signal }) => fetchSeasonFirstPage(seasonPath, signal)
       : skipToken,
   });
   const pageCount = first.data
@@ -109,8 +107,7 @@ export function TitleListing({
     queryKey: ['season-rest', seasonPath, pageCount, limit],
     queryFn:
       seasonPath && first.data
-        ? ({ signal }) =>
-            fetchSeasonRest(transport, seasonPath, pageCount, signal)
+        ? ({ signal }) => fetchSeasonRest(seasonPath, pageCount, signal)
         : skipToken,
   });
   const settled = seasonPath === null || rest.isSuccess;

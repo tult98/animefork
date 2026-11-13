@@ -1,15 +1,18 @@
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { useTransport } from '../transport/index.ts';
+import { upstream } from '../transport/index.ts';
 import { applyArt, artPollDelay, fetchArt } from './art.ts';
 import { watchLookupTitle } from './lookup.ts';
-import { fetchWatchPage } from './watch.ts';
+import { parseWatchPage } from './watch.ts';
 
 export function useWatchPage(slug: string) {
-  const transport = useTransport();
   const watch = useQuery({
     queryKey: ['watch', slug],
-    queryFn: ({ signal }) => fetchWatchPage(transport, slug, signal),
+    queryFn: ({ signal }) =>
+      upstream
+        .get(`phim/${slug}/xem-phim.html`, { signal })
+        .text()
+        .then((html) => parseWatchPage(html, slug)),
   });
   const title = useMemo(
     () => (watch.data ? watchLookupTitle(watch.data) : undefined),

@@ -19,8 +19,6 @@ import { Fragment, StrictMode, type ReactElement, type ReactNode } from 'react';
 import { DetailsProvider } from '../components/details/details-context.tsx';
 import { PlayerSourceProvider } from '../lib/player/context.tsx';
 import { ReplayPlayerSource } from '../lib/player/replay-player-source.ts';
-import { TransportProvider } from '../lib/transport/index.ts';
-import { FetchTransport } from './fetch-transport.ts';
 
 interface Providers {
   strict?: boolean;
@@ -40,18 +38,15 @@ function newQueryClient() {
 // Everything a component reads from context. Every request it makes goes through global fetch, so the test sets the answer with fetchMock.
 function providers({ strict = false }: Providers = {}) {
   const queryClient = newQueryClient();
-  const transport = new FetchTransport();
   const Mode = strict ? StrictMode : Fragment;
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <Mode>
-        <TransportProvider transport={transport}>
-          <PlayerSourceProvider source={new ReplayPlayerSource('mp4')}>
-            <QueryClientProvider client={queryClient}>
-              {children}
-            </QueryClientProvider>
-          </PlayerSourceProvider>
-        </TransportProvider>
+        <PlayerSourceProvider source={new ReplayPlayerSource('mp4')}>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </PlayerSourceProvider>
       </Mode>
     );
   };

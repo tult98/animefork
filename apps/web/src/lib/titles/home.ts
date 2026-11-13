@@ -1,5 +1,3 @@
-import type { Transport } from '../transport/index.ts';
-import { expectOk } from '../transport/index.ts';
 import { parseCard, parseCards } from './card-parser.ts';
 import { TitleListSchema, TitleSchema, type Title } from './title.ts';
 
@@ -62,32 +60,4 @@ export function parseNewEpisodes(html: string): Title[] {
 export function parseSeason(html: string): Title[] {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   return nonEmpty(parseCards(doc, '.TPostMv'));
-}
-
-export async function fetchHome(
-  transport: Transport,
-  signal?: AbortSignal,
-): Promise<ParsedHome> {
-  const res = await transport.get({ url: '/', signal });
-  expectOk(res, '/');
-  return parseHome(res.data);
-}
-
-export async function fetchSeason(
-  transport: Transport,
-  seasonPath: string,
-  signal?: AbortSignal,
-): Promise<Title[]> {
-  const res = await transport.get({ url: seasonPath, signal });
-  expectOk(res, seasonPath);
-  return parseSeason(res.data);
-}
-
-export async function fetchNewEpisodes(
-  transport: Transport,
-  signal?: AbortSignal,
-): Promise<Title[]> {
-  const res = await transport.get({ url: NEW_EPISODES_PATH, signal });
-  expectOk(res, NEW_EPISODES_PATH);
-  return parseNewEpisodes(res.data);
 }

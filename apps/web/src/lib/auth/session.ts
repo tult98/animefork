@@ -1,10 +1,9 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AuthUser,
   UserResponse,
 } from '../../../../api/src/auth/contract.ts';
-import { useApiQuery } from '../api/use-api-query.ts';
-import { useApiMutation } from '../api/use-api-mutation.ts';
+import { api } from '../api/client.ts';
 
 export const SESSION_KEY = ['session'] as const;
 
@@ -14,10 +13,13 @@ export type Session =
   | { state: 'signedIn'; user: AuthUser };
 
 export function useSession(): Session {
-  const query = useApiQuery<UserResponse, AuthUser | null>({
-    key: SESSION_KEY,
-    endpoint: '/v1/auth/me',
-    map: (body) => body.user,
+  const query = useQuery({
+    queryKey: SESSION_KEY,
+    queryFn: ({ signal }) =>
+      api
+        .get('v1/auth/me', { signal })
+        .json<UserResponse>()
+        .then((body): AuthUser | null => body.user),
     // Sign-in and sign-out write the answer themselves, so a refetch would only race them.
     staleTime: Infinity,
     retryOnMount: false,
@@ -29,9 +31,8 @@ export function useSession(): Session {
 
 export function useSessionActions() {
   const queryClient = useQueryClient();
-  const signOutMutation = useApiMutation({
-    method: 'POST',
-    endpoint: '/v1/auth/sign-out',
+  const signOutMutation = useMutation({
+    mutationFn: () => api.post('v1/auth/sign-out'),
     onSuccess: () => queryClient.setQueryData(SESSION_KEY, null),
     // The cookie may still be live, so the server decides what the header shows.
     onError: () => queryClient.invalidateQueries({ queryKey: SESSION_KEY }),
