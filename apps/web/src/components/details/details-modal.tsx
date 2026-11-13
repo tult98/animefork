@@ -215,6 +215,14 @@ function Episodes({
                   <span className="details-ep-text">
                     <strong>{episode.name ?? episode.label}</strong>
                     {episode.name ? <small>{episode.label}</small> : null}
+                    {episode.synopsis ? (
+                      <span
+                        className="details-ep-synopsis"
+                        data-testid={`details:episode:${episode.id}:synopsis`}
+                      >
+                        {episode.synopsis}
+                      </span>
+                    ) : null}
                   </span>
                 </Link>
               </li>

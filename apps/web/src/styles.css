@@ -650,6 +650,16 @@ body {
     color: var(--muted);
   }
 
+  .details-ep-synopsis {
+    display: -webkit-box;
+    margin-top: 6px;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font: 400 13px/1.45 var(--font-sans);
+    color: var(--muted);
+  }
+
   .details-note {
     margin: 0;
     font: 400 13px/1.4 var(--font-sans);
