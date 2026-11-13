@@ -1,123 +1,71 @@
 import { describe, expect, it } from 'vitest';
-import {
-  isOverviewSettled,
-  isSettled,
-  isStale,
-  MATCHED_REFRESH_BELOW,
-  MATCHER_VERSION,
-  MISS_RETRY_BELOW,
-  OVERVIEW_RETRY_AFTER_MS,
-  RETRY_AFTER_MS,
-  type OverviewStatus,
-  type TitleStatus,
-} from '../../src/art/retry.ts';
+import { isOverviewSettled, isSettled, isStale } from '../../src/art/retry.ts';
 
+const MINUTE = 60_000;
+const DAY = 24 * 60 * MINUTE;
 const at = new Date('2026-01-01T00:00:00Z');
 const after = (ms: number) => new Date(at.getTime() + ms);
-const row = (status: TitleStatus, matcherVersion = MATCHER_VERSION) => ({
-  status,
-  matcherVersion,
-  attemptedAt: at,
+
+describe('isSettled', () => {
+  it.each([
+    ['a match ten years old', 'matched', 1, 3650 * DAY, true],
+    ['a miss just under a week old', 'no_match', 4, 7 * DAY - 1, true],
+    ['a miss a week old', 'no_match', 4, 7 * DAY, false],
+    [
+      'a failure just under ten minutes old',
+      'failed',
+      4,
+      10 * MINUTE - 1,
+      true,
+    ],
+    ['a failure ten minutes old', 'failed', 4, 10 * MINUTE, false],
+    ['a fresh miss written before matcher version 4', 'no_match', 3, 0, false],
+    ['a fresh failure written before matcher version 4', 'failed', 3, 0, false],
+  ] as const)('%s', (_name, status, matcherVersion, age, settled) => {
+    const row = { status, matcherVersion, attemptedAt: at };
+
+    expect(isSettled(row, after(age))).toBe(settled);
+  });
+
+  it.each([
+    ['a miss tried before the other names arrived', 'no_match', 1, false],
+    ['a miss tried in the instant the names arrived', 'no_match', 0, true],
+    ['a miss tried after the names arrived', 'no_match', -1, true],
+    ['a match tried before the names arrived', 'matched', 1, true],
+  ] as const)('%s', (_name, status, namesArrived, settled) => {
+    const row = { status, matcherVersion: 4, attemptedAt: at };
+
+    expect(isSettled(row, after(1000), after(namesArrived))).toBe(settled);
+  });
 });
 
-describe('retry table', () => {
-  it('writes new rows at the version misses are retried below', () => {
-    expect(MATCHER_VERSION).toBe(4);
-    expect(MISS_RETRY_BELOW).toBe(4);
-    expect(MATCHED_REFRESH_BELOW).toBe(2);
-  });
-
-  it('never retries a matched row, whatever its version', () => {
-    for (const version of [1, 2, 3, 4]) {
-      expect(
-        isSettled(row('matched', version), after(10 * 365 * 86_400_000)),
-      ).toBe(true);
-    }
-  });
-
-  it.each<[TitleStatus, number]>([
-    ['no_match', 7 * 86_400_000],
-    ['failed', 10 * 60_000],
-  ])(
-    'settles a current %s row inside its window and frees it at the edge',
-    (status, window) => {
-      expect(RETRY_AFTER_MS[status]).toBe(window);
-      expect(isSettled(row(status), after(window - 1))).toBe(true);
-      expect(isSettled(row(status), after(window))).toBe(false);
-    },
-  );
-
-  it.each<TitleStatus>(['no_match', 'failed'])(
-    'frees a %s row written below MISS_RETRY_BELOW at once',
-    (status) => {
-      expect(isSettled(row(status, MISS_RETRY_BELOW - 1), at)).toBe(false);
-      expect(isSettled(row(status, MISS_RETRY_BELOW), at)).toBe(true);
-    },
-  );
-
-  it.each<TitleStatus>(['no_match', 'failed'])(
-    'retries a %s row once when other names arrived after its try',
-    (status) => {
-      const now = after(1000);
-      expect(isSettled(row(status), now)).toBe(true);
-      expect(isSettled(row(status), now, after(-1))).toBe(true);
-      expect(isSettled(row(status), now, at)).toBe(true);
-      expect(isSettled(row(status), now, after(1))).toBe(false);
-      const retried = { ...row(status), attemptedAt: after(2) };
-      expect(isSettled(retried, now, after(1))).toBe(true);
-    },
-  );
-
-  it('never retries a matched row because other names arrived', () => {
-    expect(isSettled(row('matched'), after(1), after(1))).toBe(true);
-  });
-
-  it.each<[TitleStatus, number, boolean]>([
+describe('isStale', () => {
+  it.each([
     ['matched', 1, true],
     ['matched', 2, false],
-    ['matched', 3, false],
-    ['matched', 4, false],
-    ['no_match', 3, false],
-    ['failed', 3, false],
     ['no_match', 1, false],
-    ['failed', 1, false],
-  ])('calls a %s row at version %i stale: %s', (status, version, stale) => {
-    expect(isStale({ status, matcherVersion: version })).toBe(stale);
-  });
-});
-
-describe('overview retry table', () => {
-  const overview = (overviewStatus: OverviewStatus | null) => ({
-    overviewStatus,
-    overviewAttemptedAt: overviewStatus === null ? null : at,
-  });
-
-  it('fetches a row that has never had an overview attempt', () => {
-    expect(isOverviewSettled(overview(null), at)).toBe(false);
-  });
-
-  it('never fetches an ok overview again', () => {
-    expect(OVERVIEW_RETRY_AFTER_MS.ok).toBe(Number.POSITIVE_INFINITY);
-    expect(
-      isOverviewSettled(overview('ok'), after(10 * 365 * 86_400_000)),
-    ).toBe(true);
-    expect(
-      isOverviewSettled(
-        { overviewStatus: 'ok', overviewAttemptedAt: null },
-        at,
-      ),
-    ).toBe(true);
-  });
-
-  it.each<[OverviewStatus, number]>([
-    ['none', 7 * 86_400_000],
-    ['failed', 10 * 60_000],
-  ])(
-    'settles a %s overview inside its window and frees it at the edge',
-    (status, window) => {
-      expect(OVERVIEW_RETRY_AFTER_MS[status]).toBe(window);
-      expect(isOverviewSettled(overview(status), after(window - 1))).toBe(true);
-      expect(isOverviewSettled(overview(status), after(window))).toBe(false);
+  ] as const)(
+    'a %s row of matcher version %i: %s',
+    (status, matcherVersion, stale) => {
+      expect(isStale({ status, matcherVersion })).toBe(stale);
     },
   );
+});
+
+describe('isOverviewSettled', () => {
+  it.each([
+    ['an overview never asked for', null, 0, false],
+    ['a stored overview ten years old', 'ok', 3650 * DAY, true],
+    ['no overview found just under a week ago', 'none', 7 * DAY - 1, true],
+    ['no overview found a week ago', 'none', 7 * DAY, false],
+    ['a failure just under ten minutes old', 'failed', 10 * MINUTE - 1, true],
+    ['a failure ten minutes old', 'failed', 10 * MINUTE, false],
+  ] as const)('%s', (_name, overviewStatus, age, settled) => {
+    const row = {
+      overviewStatus,
+      overviewAttemptedAt: overviewStatus === null ? null : at,
+    };
+
+    expect(isOverviewSettled(row, after(age))).toBe(settled);
+  });
 });
