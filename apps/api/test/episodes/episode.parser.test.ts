@@ -24,10 +24,11 @@ describe('parseEpisodeList', () => {
 
   it('decodes entities in titles', () => {
     const list = parseEpisodeList(fixture('list-one-piece-offset-1100.html'));
-    expect(list).toHaveLength(80);
+    expect(list).toHaveLength(3);
     expect(list?.[0]?.title).toBe(
       "The Strongest Form of Humanity! The Seraphim's Powers!",
     );
+    expect(list?.[2]?.title).toBe("Turn Back My Father! Bonney's Futile Wish!");
   });
 
   it('tells an empty listing from a page that is not the episode list', () => {
