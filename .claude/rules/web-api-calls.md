@@ -28,7 +28,10 @@ Call the `upstream` client from `apps/web/src/lib/transport/`, never `fetch`. It
 useQuery({
   queryKey: ['new-episodes'],
   queryFn: ({ signal }) =>
-    upstream.get('danh-sach/all/all/all/all/all/all/jp/', { signal }).text().then(parseNewEpisodes),
+    upstream
+      .get('danh-sach/all/all/all/all/all/all/jp/', { signal })
+      .text()
+      .then(parseNewEpisodes),
 });
 ```
 
