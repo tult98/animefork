@@ -54,7 +54,11 @@ export const ART_STORE = Symbol('ArtStore');
 
 export interface ArtStore {
   find(slugs: string[]): Promise<Map<string, StoredTitle>>;
-  episodes(slug: string): Promise<Map<number, string>>;
+  episodesPage(
+    slug: string,
+    from: number,
+    limit: number,
+  ): Promise<Map<number, string>>;
   saveMatched(art: MatchedArt): Promise<void>;
   saveMiss(
     source: TitleSource,
@@ -156,14 +160,19 @@ export class PostgresArtStore implements ArtStore {
     return found;
   }
 
-  async episodes(slug: string): Promise<Map<number, string>> {
+  async episodesPage(
+    slug: string,
+    from: number,
+    limit: number,
+  ): Promise<Map<number, string>> {
     const { rows } = await this.pool.query<{
       episode_number: number;
       still_path: string;
     }>(
       `select episode_number, still_path from episode_art
-        where source_slug = $1 order by episode_number`,
-      [slug],
+        where source_slug = $1 and episode_number >= $2
+        order by episode_number limit $3`,
+      [slug, from, limit],
     );
     return new Map(rows.map((r) => [r.episode_number, r.still_path]));
   }

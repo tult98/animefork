@@ -43,6 +43,15 @@ export function isSettled(row: RetryRow, now: Date, namesAt?: Date): boolean {
   return now.getTime() - row.attemptedAt.getTime() < RETRY_AFTER_MS[row.status];
 }
 
+export function artStatus(
+  row: RetryRow | undefined,
+  now: Date,
+  namesAt?: Date,
+): 'ready' | 'pending' | 'none' {
+  if (!row || !isSettled(row, now, namesAt)) return 'pending';
+  return row.status === 'matched' ? 'ready' : 'none';
+}
+
 // | overview status | settled for | then                       |
 // | --------------- | ----------- | -------------------------- |
 // | (null)          | not at all  | fetched on its next lookup |

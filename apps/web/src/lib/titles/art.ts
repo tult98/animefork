@@ -5,7 +5,6 @@ import {
   LookupResponseSchema,
   MAX_TITLES_PER_LOOKUP,
   POSTER_SIZE,
-  STILL_SIZE,
   tmdbImageUrl,
   type ArtEntry,
   type ImageSize,
@@ -15,7 +14,7 @@ import {
 import { titleWatchLink } from './link.ts';
 import { arrangeUpcoming, UPCOMING_MIN_TITLES, type Shelf } from './shelves.ts';
 import type { Title } from './title.ts';
-import type { Episode, WatchPage } from './watch.ts';
+import type { WatchPage } from './watch.ts';
 
 export interface ArtEnv {
   VITE_API_URL?: string;
@@ -23,7 +22,6 @@ export interface ArtEnv {
 
 export interface TitleArt {
   backdrop?: string;
-  stills: Map<number, string>;
   pending: boolean;
 }
 
@@ -43,7 +41,7 @@ export interface HomeArt {
   pendingSlugs: Set<string>;
 }
 
-export const NO_ART: TitleArt = { stills: new Map(), pending: false };
+export const NO_ART: TitleArt = { pending: false };
 
 const TIMEOUT_MS = 3000;
 
@@ -88,7 +86,6 @@ const EMPTY_LOOKUP: LookupResult = {
 async function lookupChunk(
   url: string,
   titles: TitleInput[],
-  episodes: boolean,
   signal: AbortSignal,
   fetchImpl: typeof fetch,
 ): Promise<LookupResult> {
@@ -96,7 +93,7 @@ async function lookupChunk(
     method: 'POST',
     signal,
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(episodes ? { titles, episodes } : { titles }),
+    body: JSON.stringify({ titles }),
   });
   if (!res.ok) throw new Error(`art lookup answered ${res.status}`);
   const { art, ratings, avsStale, ratingsPending } = LookupResponseSchema.parse(
@@ -127,7 +124,6 @@ async function lookupArt(
   titles: TitleInput[],
   options: {
     env: ArtEnv;
-    episodes?: boolean;
     signal?: AbortSignal;
     fetch?: typeof fetch;
   },
@@ -148,7 +144,6 @@ async function lookupArt(
         lookupChunk(
           `${base}${LOOKUP_PATH}`,
           chunk,
-          options.episodes ?? false,
           signal,
           options.fetch ?? fetch,
         ),
@@ -172,47 +167,19 @@ export async function fetchArt(
   title: TitleInput,
   options: { env: ArtEnv; signal?: AbortSignal; fetch?: typeof fetch },
 ): Promise<TitleArt> {
-  const { ready, pending } = await lookupArt([title], {
-    ...options,
-    episodes: true,
-  });
+  const { ready, pending } = await lookupArt([title], options);
   const entry = ready.get(title.slug);
   if (!entry) return pending ? { ...NO_ART, pending } : NO_ART;
   return {
     backdrop: entry.backdropPath
       ? tmdbImageUrl(entry.backdropPath, BACKDROP_SIZE)
       : undefined,
-    stills: new Map(
-      Object.entries(entry.stills ?? {}).map(([n, path]) => [
-        Number.parseInt(n, 10),
-        tmdbImageUrl(path, STILL_SIZE),
-      ]),
-    ),
     pending: false,
   };
 }
 
-function episodeNumber(label: string): number | undefined {
-  const match = /^Tập (\d+)(?![\d.])/.exec(label);
-  return match?.[1] ? Number.parseInt(match[1], 10) : undefined;
-}
-
 export function applyArt(page: WatchPage, art: TitleArt): WatchPage {
-  if (!art.backdrop && art.stills.size === 0) return page;
-  const withStill = (episode: Episode): Episode => {
-    const number = episodeNumber(episode.label);
-    const still = number === undefined ? undefined : art.stills.get(number);
-    return still ? { ...episode, thumbnail: still } : episode;
-  };
-  const episodes = page.episodes.map(withStill);
-  return {
-    ...page,
-    image: art.backdrop ?? page.image,
-    episodes,
-    currentEpisode:
-      episodes.find((e) => e.id === page.currentEpisode.id) ??
-      page.currentEpisode,
-  };
+  return art.backdrop ? { ...page, image: art.backdrop } : page;
 }
 
 export async function fetchHomeArt(

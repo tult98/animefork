@@ -3,6 +3,7 @@ import fetchMock from '@fetch-mock/vitest';
 import type pg from 'pg';
 import { describe, expect, it } from 'vitest';
 import { ArtFiller } from '../../src/art/art.filler.ts';
+import { ART_STORE, type ArtStore } from '../../src/art/art.store.ts';
 import { PG_POOL } from '../../src/database/migration-runner.ts';
 import { buildApp } from '../test-app.ts';
 import { mockTmdbImages, mockTmdbShow } from './__mockData__/index.ts';
@@ -62,7 +63,8 @@ describe('art lookup', () => {
     });
     const later = await http()
       .post('/v1/art/lookup')
-      .send({ titles: [title], episodes: true });
+      .send({ titles: [title] });
+    const stills = await http().get(`/v1/art/stills/${slug}`);
     expect(later.body.art).toEqual({
       [slug]: {
         status: 'ready',
@@ -71,13 +73,13 @@ describe('art lookup', () => {
         posterPath: '/poster-vi.jpg',
         overview: 'Nasa Yuzaki gặp Tsukasa và cầu hôn cô ngay tại chỗ.',
         overviewTranslated: false,
-        stills: { '1': '/e1.jpg', '3': '/e3.jpg' },
       },
     });
-    const withoutEpisodes = await http()
-      .post('/v1/art/lookup')
-      .send({ titles: [title] });
-    expect(withoutEpisodes.body.art[slug]).not.toHaveProperty('stills');
+    expect(stills.status).toBe(200);
+    expect(stills.body).toEqual({
+      status: 'ready',
+      stills: { '1': '/e1.jpg', '3': '/e3.jpg' },
+    });
     expect(fetchMock).toHaveFetchedTimes(
       1,
       'https://tmdb.test/3/search/tv?api_key=key&query=Tonikaku+Kawaii',
@@ -478,7 +480,8 @@ describe('art lookup', () => {
 
     const res = await http()
       .post('/v1/art/lookup')
-      .send({ titles: [title], episodes: true });
+      .send({ titles: [title] });
+    const stills = await http().get(`/v1/art/stills/${slug}`);
 
     expect(res.body.art[slug]).toEqual({
       status: 'ready',
@@ -487,8 +490,8 @@ describe('art lookup', () => {
       posterPath: '/poster-vi.jpg',
       overview: 'Nasa Yuzaki gặp Tsukasa và cầu hôn cô ngay tại chỗ.',
       overviewTranslated: false,
-      stills: {},
     });
+    expect(stills.body).toEqual({ status: 'ready', stills: {} });
     expect(fetchMock).toHavePosted('https://api.typesafe.ai/v1/systemone', {
       headers: { authorization: 'Bearer jev-key' },
     });
@@ -636,5 +639,52 @@ describe('art lookup', () => {
       2,
       'https://tmdb.test/3/search/tv?api_key=key&query=Tonikaku+Kawaii',
     );
+  });
+});
+
+describe('episode stills', () => {
+  it('answers the stills of a page from an episode number on, and an empty ready page past the last one', async () => {
+    const { app, http } = await buildApp();
+    const slug = `one-piece-${randomUUID()}`;
+    await app.get<ArtStore>(ART_STORE).saveMatched({
+      title: {
+        source_slug: slug,
+        tmdb_id: 37854,
+        tmdb_season: 1,
+        match_scope: 'season',
+        backdrop_path: '/backdrop.jpg',
+        backdrop_lang: 'en',
+        poster_path: null,
+        poster_lang: null,
+        source_name: 'One Piece',
+        source_year: null,
+        source_episode_count: null,
+        matched_by: 'baseline',
+      },
+      episodes: [1, 2, 3, 4, 5].map((n) => ({
+        source_slug: slug,
+        episode_number: n,
+        still_path: `/e${n}.jpg`,
+      })),
+    });
+
+    const page = await http().get(`/v1/art/stills/${slug}?from=2&limit=2`);
+    const past = await http().get(`/v1/art/stills/${slug}?from=6`);
+
+    expect(page.status).toBe(200);
+    expect(page.body).toEqual({
+      status: 'ready',
+      stills: { '2': '/e2.jpg', '3': '/e3.jpg' },
+    });
+    expect(past.body).toEqual({ status: 'ready', stills: {} });
+  });
+
+  it('rejects a page longer than 100', async () => {
+    const { http } = await buildApp();
+
+    const res = await http().get('/v1/art/stills/one-piece?limit=101');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: 'invalid_request' });
   });
 });

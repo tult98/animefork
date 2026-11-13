@@ -42,6 +42,8 @@ describe('art store', () => {
       tmdbId: 100,
       backdropPath: '/first.jpg',
     });
-    expect(await store.episodes(slug)).toEqual(new Map([[1, '/e1.jpg']]));
+    expect(await store.episodesPage(slug, 1, 100)).toEqual(
+      new Map([[1, '/e1.jpg']]),
+    );
   });
 });

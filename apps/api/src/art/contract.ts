@@ -100,7 +100,6 @@ export type TitleInput = z.infer<typeof TitleInputSchema>;
 
 export const LookupRequestSchema = z.object({
   titles: z.array(TitleInputSchema).min(1).max(MAX_TITLES_PER_LOOKUP),
-  episodes: z.boolean().optional(),
 });
 
 export type LookupRequest = z.infer<typeof LookupRequestSchema>;
@@ -114,9 +113,6 @@ export const ArtEntrySchema = z.discriminatedUnion('status', [
     // Optional so a web build stays compatible with an API that predates the overview.
     overview: z.string().min(1).nullable().optional(),
     overviewTranslated: z.boolean().optional(),
-    stills: z
-      .record(z.string().regex(/^[1-9]\d*$/), z.string().min(1))
-      .optional(),
   }),
   z.object({ status: z.literal('pending') }),
   z.object({ status: z.literal('none') }),
@@ -217,3 +213,15 @@ export const EpisodesResponseSchema = z.object({
 });
 
 export type EpisodesResponse = z.infer<typeof EpisodesResponseSchema>;
+
+// Pages like the episodes endpoint and takes the same `from` and `limit` (EpisodesQuerySchema).
+export const STILLS_PATH = '/v1/art/stills';
+
+export const StillsResponseSchema = z.object({
+  // Describes the title's art, like the lookup: a page past the last still of a ready title is `ready` and empty.
+  status: z.enum(['ready', 'pending', 'none']),
+  // TMDB still paths by episode number. Empty unless the status is `ready`.
+  stills: z.record(z.string().regex(/^[1-9]\d*$/), z.string().min(1)),
+});
+
+export type StillsResponse = z.infer<typeof StillsResponseSchema>;

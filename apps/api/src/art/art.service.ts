@@ -8,12 +8,14 @@ import { isAvsStale } from '../ratings/ratings.ts';
 import { RATINGS_STORE, type RatingsStore } from '../ratings/ratings.store.ts';
 import type {
   ArtEntry,
+  EpisodesQuery,
   LookupRequest,
   LookupResponse,
   TitleInput,
+  StillsResponse,
   TitleRatings,
 } from './contract.ts';
-import { isOverviewSettled, isSettled, isStale } from './retry.ts';
+import { artStatus, isOverviewSettled, isStale } from './retry.ts';
 import { ART_STORE, type ArtStore, type StoredTitle } from './art.store.ts';
 import { ART_SYNC, ArtFiller } from './art.filler.ts';
 import {
@@ -69,13 +71,13 @@ export class ArtService {
       [...requested].map(([slug, t]) => [slug, withNames(t, names.get(slug))]),
     );
     const art: Record<string, ArtEntry> = {};
-    const ready: string[] = [];
 
     for (const [slug, title] of titles) {
       const row = rows.get(slug);
       const namesAt = names.get(slug)?.updatedAt;
-      if (row && isSettled(row, now, namesAt)) {
-        if (row.status === 'matched') {
+      const status = artStatus(row, now, namesAt);
+      if (row && status !== 'pending') {
+        if (status === 'ready') {
           const overviewOk = row.overviewStatus === 'ok';
           art[slug] = {
             status: 'ready',
@@ -94,7 +96,6 @@ export class ArtService {
           ) {
             void filler.fillOverview(slug, row.tmdbId);
           }
-          ready.push(slug);
         } else {
           art[slug] = { status: 'none' };
         }
@@ -104,19 +105,6 @@ export class ArtService {
       art[slug] = { status: 'pending' };
     }
 
-    if (request.episodes) {
-      await Promise.all(
-        ready.map(async (slug) => {
-          const stills = await store.episodes(slug);
-          const entry = art[slug];
-          if (entry?.status === 'ready') {
-            entry.stills = Object.fromEntries(
-              [...stills].map(([n, path]) => [String(n), path]),
-            );
-          }
-        }),
-      );
-    }
     const stored = await this.ratings.find(slugs);
     const ratings: Record<string, TitleRatings> = {};
     const avsStale: string[] = [];
@@ -168,6 +156,26 @@ export class ArtService {
       ratings,
       avsStale,
       ...(ratingsPending && { ratingsPending }),
+    };
+  }
+
+  // Reads only what the lookup's fill stored. A title the lookup has not matched yet answers `pending`.
+  async stills(
+    slug: string,
+    { from, limit }: EpisodesQuery,
+  ): Promise<StillsResponse> {
+    const [row, names] = await Promise.all([
+      this.store.find([slug]).then((rows) => rows.get(slug)),
+      this.names.find([slug]).then((found) => found.get(slug)),
+    ]);
+    const status = artStatus(row, this.clock(), names?.updatedAt);
+    if (status !== 'ready') return { status, stills: {} };
+    const page = await this.store.episodesPage(slug, from, limit);
+    return {
+      status,
+      stills: Object.fromEntries(
+        [...page].map(([n, path]) => [String(n), path]),
+      ),
     };
   }
 
