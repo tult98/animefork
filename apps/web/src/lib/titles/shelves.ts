@@ -47,6 +47,8 @@ export interface ContinueItem {
   episodeId: string;
   state: ContinueState;
   link: ReturnType<typeof watchLink>;
+  // Filled from the home lookup's MyAnimeList answer, so it is absent until that lands.
+  trailerYoutubeId?: string | null;
 }
 
 export interface ContinueShelf {

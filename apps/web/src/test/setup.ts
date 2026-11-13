@@ -26,6 +26,10 @@ beforeEach(() => {
 if (typeof document !== 'undefined') {
   const { cleanup, configure } = await import('@testing-library/react');
   await import('@testing-library/jest-dom/vitest');
+  // The trailer sound switch is page-wide, so a test that turns it on would leave every later trailer unmuted.
+  // Registered before cleanup because afterEach hooks run last-registered first, and the reset must not reach mounted trailers.
+  const { setTrailerMuted } = await import('../lib/ui/trailer-sound.ts');
+  afterEach(() => setTrailerMuted(true));
   afterEach(cleanup);
   // Whole-app renders parse fixture pages, which a loaded CI machine can stretch past the 1s default.
   configure({ asyncUtilTimeout: 5_000 });

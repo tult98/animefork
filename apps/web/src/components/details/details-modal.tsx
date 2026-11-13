@@ -7,16 +7,9 @@ import { useEpisodeInfo } from '../../lib/titles/use-episode-info.ts';
 import { useWatchPage } from '../../lib/titles/use-watch-page.ts';
 import type { Episode } from '../../lib/titles/watch.ts';
 import { useListWindow } from '../../lib/ui/use-list-window.ts';
+import { TrailerSoundButton } from '../trailer-sound-button.tsx';
 import { Trailer, type TrailerPhase } from '../trailer.tsx';
-import {
-  Check,
-  ChevronDown,
-  Play,
-  Star,
-  Volume2,
-  VolumeX,
-  X,
-} from '../ui/icons.ts';
+import { Check, ChevronDown, Play, Star, X } from '../ui/icons.ts';
 import { REDUCED_MOTION_QUERY } from '../use-hover-preview.ts';
 
 const number = new Intl.NumberFormat('vi-VN');
@@ -268,7 +261,6 @@ export function DetailsModal({
     ? null
     : (mal?.trailerYoutubeId ?? null);
   const [trailerPhase, setTrailerPhase] = useState<TrailerPhase>('loading');
-  const [muted, setMuted] = useState(true);
   const hd = title.quality && /hd/i.test(title.quality) ? title.quality : null;
   const hasMalScore = mal?.score != null;
   const stats = [
@@ -316,11 +308,7 @@ export function DetailsModal({
             className="details-art"
           />
           {trailerId ? (
-            <Trailer
-              youtubeId={trailerId}
-              muted={muted}
-              onPhase={setTrailerPhase}
-            />
+            <Trailer youtubeId={trailerId} onPhase={setTrailerPhase} />
           ) : null}
           <button
             type="button"
@@ -332,19 +320,10 @@ export function DetailsModal({
             <X aria-hidden="true" />
           </button>
           {trailerId && trailerPhase === 'playing' ? (
-            <button
-              type="button"
-              className="details-mute trailer-toggle"
-              aria-label={muted ? 'Bật tiếng' : 'Tắt tiếng'}
-              data-testid="details:mute"
-              onClick={() => setMuted(!muted)}
-            >
-              {muted ? (
-                <VolumeX aria-hidden="true" />
-              ) : (
-                <Volume2 aria-hidden="true" />
-              )}
-            </button>
+            <TrailerSoundButton
+              className="details-mute"
+              testId="details:mute"
+            />
           ) : null}
         </div>
 

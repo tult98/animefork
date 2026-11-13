@@ -4,7 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Title } from '../../lib/titles/title.ts';
 import { render, screen, within } from '../../test/test-utils.tsx';
 import { stubYouTube } from '../../test/youtube-stub.ts';
+import { watchLink } from '../../lib/titles/link.ts';
+import { ContinueCard } from '../continue-card.tsx';
 import { PosterCard } from '../poster-card.tsx';
+import { Trailer } from '../trailer.tsx';
 
 const title = (trailerYoutubeId: string | null): Title => ({
   path: 'alpha-a1',
@@ -51,6 +54,61 @@ describe('the promo video in the card popover', () => {
     expect(player.playVideo).toHaveBeenCalled();
     expect(video).toHaveAttribute('data-phase', 'playing');
     expect(preview.querySelector('img')).toBeInTheDocument();
+  });
+
+  it('plays the trailer of a continue watching title in its popover', async () => {
+    const players = stubYouTube();
+    render(
+      <ContinueCard
+        item={{
+          slug: 'alpha',
+          titleName: 'Phim alpha',
+          image: 'https://img.test/alpha.jpg',
+          episodeLabel: 'Tập 7',
+          episodeId: '7',
+          state: { kind: 'finished' },
+          link: watchLink('alpha'),
+          trailerYoutubeId: 'abc123',
+        }}
+      />,
+      { path: '/' },
+    );
+    await userEvent.hover(await screen.findByTestId('card:continue:alpha'));
+    const preview = await screen.findByTestId('card:continue:alpha:preview');
+    const player = await vi.waitUntil(() => players[0]);
+    expect(player.videoId).toBe('abc123');
+    expect(player.mute).toHaveBeenCalled();
+
+    player.play();
+    expect(within(preview).getByTestId('card:promo-video')).toHaveAttribute(
+      'data-phase',
+      'playing',
+    );
+    expect(preview.querySelector('img')).toBeInTheDocument();
+  });
+
+  it('turns the sound on for every trailer from the popover, the ones that start later included', async () => {
+    const players = stubYouTube();
+    render(<PosterCard title={title('abc123')} />, { path: '/' });
+    await userEvent.hover(await screen.findByTestId('card:alpha-a1'));
+    const preview = await screen.findByTestId('card:alpha-a1:preview');
+    const card = await vi.waitUntil(() => players[0]);
+    expect(
+      within(preview).queryByTestId('card:promo-video:sound'),
+    ).not.toBeInTheDocument();
+
+    card.play();
+    const sound = within(preview).getByTestId('card:promo-video:sound');
+    expect(sound).toHaveAccessibleName('Bật tiếng');
+    await userEvent.click(sound);
+    expect(card.unMute).toHaveBeenCalled();
+    expect(sound).toHaveAccessibleName('Tắt tiếng');
+    expect(screen.queryByTestId('details')).not.toBeInTheDocument();
+
+    render(<Trailer youtubeId="later" />);
+    const later = await vi.waitUntil(() => players[1]);
+    expect(later.unMute).toHaveBeenCalled();
+    expect(later.mute).not.toHaveBeenCalled();
   });
 
   it('keeps the image alone when the title has no trailer', async () => {

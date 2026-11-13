@@ -9,7 +9,7 @@ describe('the trailer', () => {
     const players = stubYouTube();
     const onPhase = vi.fn();
     const { unmount } = render(
-      <Trailer youtubeId="abc123" muted onPhase={onPhase} />,
+      <Trailer youtubeId="abc123" onPhase={onPhase} />,
     );
     const player = await vi.waitUntil(() => players[0]);
     expect(player.videoId).toBe('abc123');
@@ -39,7 +39,7 @@ describe('the trailer', () => {
 
   it('shows the image again when the video cannot be embedded', async () => {
     const players = stubYouTube();
-    render(<Trailer youtubeId="blocked" muted />);
+    render(<Trailer youtubeId="blocked" />);
     const player = await vi.waitUntil(() => players[0]);
 
     player.fail();

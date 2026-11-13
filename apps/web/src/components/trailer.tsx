@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTrailerMuted } from '../lib/ui/trailer-sound.ts';
 import { loadYouTubeApi, type YouTubePlayer } from '../lib/ui/youtube.ts';
 
 // An error counts as 'ended': either way the image under the trailer shows again.
@@ -26,17 +27,16 @@ function playerVars(): Record<string, string | number> {
 // Plays over the image it is placed on, which stays visible until the video plays and again once it ends, unless it loops.
 export function Trailer({
   youtubeId,
-  muted,
   loop = false,
   onPhase,
   testId = 'trailer',
 }: {
   youtubeId: string;
-  muted: boolean;
   loop?: boolean;
   onPhase?: (phase: TrailerPhase) => void;
   testId?: string;
 }) {
+  const muted = useTrailerMuted();
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const mutedRef = useRef(muted);
