@@ -52,7 +52,7 @@ export function Scrubber({ time, duration, segments, onSeek }: ScrubberProps) {
         <div
           role="tooltip"
           data-testid="player:scrub-caption"
-          className="pointer-events-none absolute bottom-8 -translate-x-1/2 rounded-md bg-surface px-2.5 py-1.5 text-badge tabular-nums shadow-card"
+          className="pointer-events-none absolute bottom-8 -translate-x-1/2 whitespace-nowrap rounded-md bg-surface px-2.5 py-1.5 text-badge tabular-nums shadow-card"
           style={{ left: `${Math.min(97, Math.max(3, hover * 100))}%` }}
         >
           {scrubCaption(segments, hover * duration)}
