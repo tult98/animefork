@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Animefork Helper",
   "description": "Extension add API helper for AnimeVsub",
-  "version": "1.0.50",
+  "version": "1.0.51",
   "icons": {
     "16": "icon.png",
     "48": "icon.png",
