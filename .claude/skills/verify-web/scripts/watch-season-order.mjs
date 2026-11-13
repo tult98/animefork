@@ -124,7 +124,10 @@ console.log('dates', JSON.stringify(dates));
 console.log('final', JSON.stringify(final));
 
 const datedCount = Object.values(dates).filter(Boolean).length;
-r.check(`the lookup was asked for the siblings (${lookups.length} answers)`, lookups.length > 0);
+r.check(
+  `the lookup was asked for the siblings (${lookups.length} answers)`,
+  lookups.length > 0,
+);
 r.check(`some seasons came back dated (${datedCount})`, datedCount >= 2);
 r.check(
   'the picker keeps the same seasons',
