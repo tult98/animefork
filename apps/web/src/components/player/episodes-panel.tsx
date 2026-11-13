@@ -1,4 +1,4 @@
-import type { RefCallback } from 'react';
+import { useLayoutEffect, useRef, type RefCallback } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import { episodeRowText } from '../../lib/player/episode-row.ts';
 import { episodeTitle } from '../../lib/player/format.ts';
@@ -23,8 +23,10 @@ interface EpisodesPanelProps {
   seasons: Season[];
   browseSlug: string;
   browsed: BrowsedEpisodes;
-  shown: number;
-  sentinelRef: RefCallback<HTMLDivElement>;
+  start: number;
+  end: number;
+  topRef: RefCallback<HTMLDivElement>;
+  bottomRef: RefCallback<HTMLDivElement>;
   playingSlug: string;
   playingEpisodeId: string;
   playingProgress: number;
@@ -168,8 +170,10 @@ function EpisodesView({
   seasons,
   browseSlug,
   browsed,
-  shown,
-  sentinelRef,
+  start,
+  end,
+  topRef,
+  bottomRef,
   playingSlug,
   playingEpisodeId,
   playingProgress,
@@ -178,6 +182,19 @@ function EpisodesView({
 }: EpisodesPanelProps) {
   const season = seasons.find((s) => s.slug === browseSlug);
   const hasSeasons = seasons.length > 1;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const loaded = browsed.status === 'success';
+
+  // Set on the container rather than with scrollIntoView, which would also scroll the page behind the panel.
+  useLayoutEffect(() => {
+    const scroller = scrollRef.current;
+    const row = scroller?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!scroller || !row) return;
+    const top =
+      row.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    scroller.scrollTop += top - (scroller.clientHeight - row.offsetHeight) / 2;
+  }, [loaded, browseSlug, playingEpisodeId]);
+
   return (
     <div className={PANEL} data-testid="player:episodes-panel">
       <div className={`${HEADER} justify-between`}>
@@ -205,7 +222,8 @@ function EpisodesView({
           <X aria-hidden="true" />
         </IconButton>
       </div>
-      <div className="pl-scroll flex flex-col gap-1 p-2">
+      <div ref={scrollRef} className="pl-scroll flex flex-col gap-1 p-2">
+        {loaded && start > 0 ? <div ref={topRef} aria-hidden="true" /> : null}
         {browsed.status === 'pending' ? (
           <p className="px-3 py-3 text-muted" role="status">
             {PLAYER_COPY.loading}
@@ -215,7 +233,7 @@ function EpisodesView({
             {PLAYER_COPY.failed}
           </p>
         ) : (
-          browsed.episodes.slice(0, shown).map((episode, index) => {
+          browsed.episodes.slice(start, end).map((episode, index) => {
             const current =
               browseSlug === playingSlug && episode.id === playingEpisodeId;
             // The playing episode shows the live position once it moves, and what was saved until then.
@@ -228,7 +246,7 @@ function EpisodesView({
                 key={episode.id}
                 episode={episode}
                 image={image}
-                n={index + 1}
+                n={start + index + 1}
                 current={current}
                 state={state}
                 onPick={() => {
@@ -238,8 +256,8 @@ function EpisodesView({
             );
           })
         )}
-        {browsed.status === 'success' && shown < browsed.episodes.length ? (
-          <div ref={sentinelRef} aria-hidden="true" />
+        {loaded && end < browsed.episodes.length ? (
+          <div ref={bottomRef} aria-hidden="true" />
         ) : null}
       </div>
     </div>

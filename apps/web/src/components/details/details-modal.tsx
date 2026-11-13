@@ -6,7 +6,7 @@ import type { Title } from '../../lib/titles/title.ts';
 import { useEpisodeInfo } from '../../lib/titles/use-episode-info.ts';
 import { useWatchPage } from '../../lib/titles/use-watch-page.ts';
 import type { Episode } from '../../lib/titles/watch.ts';
-import { useShownCount } from '../../lib/ui/use-shown-count.ts';
+import { useListWindow } from '../../lib/ui/use-list-window.ts';
 import { Check, ChevronDown, Play, Star, X } from '../ui/icons.ts';
 
 const number = new Intl.NumberFormat('vi-VN');
@@ -107,11 +107,15 @@ function Episodes({
   const [slug, setSlug] = useState(firstSlug);
   const [menu, setMenu] = useState(false);
   const watch = useWatchPage(slug);
-  const { shown, more, sentinelRef } = useShownCount(
-    watch.data?.episodes.length ?? 0,
-    { initial: 12, step: 50, resetKey: slug },
-  );
-  const page = useEpisodeInfo(slug, watch.data, { shown });
+  const total = watch.data?.episodes.length ?? 0;
+  const { end, bottomRef } = useListWindow(total, {
+    anchor: 0,
+    before: 0,
+    size: 12,
+    step: 50,
+    resetKey: slug,
+  });
+  const page = useEpisodeInfo(slug, watch.data, { start: 0, end });
   const seasons = page?.seasons ?? [];
 
   useEffect(() => {
@@ -197,7 +201,7 @@ function Episodes({
       ) : (
         <>
           <ol className="details-eps">
-            {episodes.slice(0, shown).map((episode) => (
+            {episodes.slice(0, end).map((episode) => (
               <li key={episode.id}>
                 <Link
                   {...watchLink(slug, episode.id)}
@@ -229,9 +233,9 @@ function Episodes({
               </li>
             ))}
           </ol>
-          {more ? <div ref={sentinelRef} aria-hidden="true" /> : null}
+          {end < total ? <div ref={bottomRef} aria-hidden="true" /> : null}
           <p className="details-note">
-            Hiển thị {shown} / {episodes.length} tập
+            Hiển thị {end} / {episodes.length} tập
           </p>
         </>
       )}

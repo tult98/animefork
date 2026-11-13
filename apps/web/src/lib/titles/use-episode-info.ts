@@ -19,14 +19,21 @@ function bucketStart(number: number): number {
   return Math.floor((number - 1) / BUCKET) * BUCKET + 1;
 }
 
-function bucketsFor(page: WatchPage, shown: number): number[] {
+interface Range {
+  start: number;
+  end: number;
+}
+
+// A list asks for the rows it renders. Without one, the page is the playing one and needs its episode and the next.
+function wantedEpisodes(page: WatchPage, range: Range | undefined) {
+  if (range) return page.episodes.slice(range.start, range.end);
   const index = page.episodes.findIndex((e) => e.id === page.currentEpisode.id);
   const nextEpisode = index === -1 ? undefined : page.episodes[index + 1];
-  const wanted = [
-    ...page.episodes.slice(0, shown),
-    page.currentEpisode,
-    ...(nextEpisode ? [nextEpisode] : []),
-  ];
+  return [page.currentEpisode, ...(nextEpisode ? [nextEpisode] : [])];
+}
+
+function bucketsFor(page: WatchPage, range: Range | undefined): number[] {
+  const wanted = wantedEpisodes(page, range);
   const starts = new Set(
     wanted.flatMap((e) => {
       const number = episodeNumber(e.label);
@@ -48,12 +55,9 @@ function readyEpisodes(
 export function useEpisodeInfo(
   slug: string,
   page: WatchPage | undefined,
-  { shown = 0 }: { shown?: number } = {},
+  range?: Range,
 ): WatchPage | undefined {
-  const buckets = useMemo(
-    () => (page ? bucketsFor(page, shown) : []),
-    [page, shown],
-  );
+  const buckets = page ? bucketsFor(page, range) : [];
   const info = useQueries({
     queries: buckets.map((from) =>
       queryOptions({

@@ -14,7 +14,7 @@ import {
 } from '../../lib/titles/watch.ts';
 import { useEpisodeInfo } from '../../lib/titles/use-episode-info.ts';
 import { useWatchPage } from '../../lib/titles/use-watch-page.ts';
-import { useShownCount } from '../../lib/ui/use-shown-count.ts';
+import { useListWindow } from '../../lib/ui/use-list-window.ts';
 import { ErrorScreen } from '../error-screen.tsx';
 import { LoaderCircle } from '../ui/icons.ts';
 import {
@@ -46,14 +46,6 @@ export function WatchScreen({
   const [view, setView] = useState<EpisodesView>('episodes');
   const browseSlug = browse ?? slug;
   const browsedQuery = useWatchPage(browseSlug);
-  const panelList = useShownCount(browsedQuery.data?.episodes.length ?? 0, {
-    initial: 50,
-    step: 50,
-    resetKey: browseSlug,
-  });
-  const browsedPage = useEpisodeInfo(browseSlug, browsedQuery.data, {
-    shown: panelList.shown,
-  });
 
   const slugRows = useProgressRows(slug);
   const browsedRows = useProgressRows(browseSlug);
@@ -90,6 +82,28 @@ export function WatchScreen({
     };
   }, [watch.data, episodeId, basis]);
   const page = useEpisodeInfo(slug, resolved?.page);
+
+  const playingId = resolved?.page.currentEpisode.id;
+  const browsedEpisodes = browsedQuery.data?.episodes ?? [];
+  const panelList = useListWindow(browsedEpisodes.length, {
+    anchor:
+      browseSlug === slug
+        ? Math.max(
+            0,
+            browsedEpisodes.findIndex((e) => e.id === playingId),
+          )
+        : 0,
+    before: 5,
+    size: 50,
+    step: 50,
+    resetKey: `${browseSlug}\n${playingId}`,
+  });
+  // Until the playing episode is known the window is not anchored yet, and its rows would ask for the wrong page.
+  const browsedPage = useEpisodeInfo(
+    browseSlug,
+    browsedQuery.data,
+    resolved ? panelList : { start: 0, end: 0 },
+  );
 
   if (watch.error) {
     return (
@@ -171,8 +185,10 @@ export function WatchScreen({
           seasons={page.seasons}
           browseSlug={browseSlug}
           browsed={browsed}
-          shown={panelList.shown}
-          sentinelRef={panelList.sentinelRef}
+          start={panelList.start}
+          end={panelList.end}
+          topRef={panelList.topRef}
+          bottomRef={panelList.bottomRef}
           playingSlug={slug}
           playingEpisodeId={page.currentEpisode.id}
           playingProgress={progress}

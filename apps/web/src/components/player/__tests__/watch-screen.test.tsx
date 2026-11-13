@@ -106,7 +106,7 @@ describe('the watch screen', () => {
     );
   });
 
-  it('names the playing episode past the 100th from its page of episode info, and lists 50 episodes and more on scroll', async () => {
+  it('opens the list at the playing episode past the 100th, named from its page of episode info, and adds the earlier ones on scroll', async () => {
     const episodes = Array.from(
       { length: 150 },
       (_, i) =>
@@ -148,12 +148,26 @@ describe('the watch screen', () => {
     expect(await screen.findByTestId('player:episode-name')).toHaveTextContent(
       'The Last',
     );
-    expect(screen.getByTestId('episode:50')).toBeInTheDocument();
-    expect(screen.queryByTestId('episode:51')).not.toBeInTheDocument();
-    expect(screen.getByTestId('episode:2')).toHaveTextContent('Two');
+    expect(screen.getByTestId('episode:120')).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    expect(screen.getByTestId('episode:115')).toBeInTheDocument();
+    expect(screen.queryByTestId('episode:114')).not.toBeInTheDocument();
+    expect(screen.getByTestId('episode:150')).toBeInTheDocument();
+    expect(fetchMock).not.toHaveFetched('path:/v1/episodes/long-show-a1', {
+      query: { from: '1' },
+    });
 
     intersectAll();
-    expect(screen.getByTestId('episode:100')).toBeInTheDocument();
-    expect(screen.queryByTestId('episode:101')).not.toBeInTheDocument();
+    expect(screen.getByTestId('episode:65')).toBeInTheDocument();
+    expect(screen.queryByTestId('episode:64')).not.toBeInTheDocument();
+
+    intersectAll();
+    intersectAll();
+    await expect(fetchMock).toBeFetched('path:/v1/episodes/long-show-a1', {
+      query: { from: '1' },
+    });
+    expect(screen.getByTestId('episode:2')).toHaveTextContent('Two');
   });
 });
