@@ -1,20 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ArtFiller } from '../art/art.filler.ts';
-import { ART_STORE, type ArtStore } from '../art/art.store.ts';
 import type { EpisodeInfo, EpisodesResponse } from '../art/contract.ts';
 import { CLOCK, type Clock } from '../common/clock.ts';
-import { looksVietnamese } from '../common/vietnamese.ts';
 import type { MalFiller } from '../mal/mal.filler.ts';
 import { MAL_FILLER } from '../mal/mal.module.ts';
 import { isMalSettled } from '../mal/mal.retry.ts';
 import { MAL_STORE, type MalStore } from '../mal/mal.store.ts';
 import { isEpisodeListSettled } from './episode.retry.ts';
-import {
-  EPISODE_STORE,
-  type EpisodeStore,
-  type StoredEpisode,
-} from './episode.store.ts';
-import type { StoredTmdbEpisode } from '../art/art.store.ts';
+import { EPISODE_STORE, type EpisodeStore } from './episode.store.ts';
 
 // Reads only what the fillers already stored. A missing list is scheduled and answered `pending`, never fetched here.
 @Injectable()
@@ -22,24 +14,18 @@ export class EpisodeInfoService {
   private readonly mal: MalStore;
   private readonly malFiller: MalFiller | null;
   private readonly episodes: EpisodeStore;
-  private readonly art: ArtStore;
   private readonly clock: Clock;
-  private readonly artFiller: ArtFiller | null;
 
   constructor(
     @Inject(MAL_STORE) mal: MalStore,
     @Inject(MAL_FILLER) malFiller: MalFiller | null,
     @Inject(EPISODE_STORE) episodes: EpisodeStore,
-    @Inject(ART_STORE) art: ArtStore,
     @Inject(CLOCK) clock: Clock,
-    @Inject(ArtFiller) artFiller: ArtFiller | null = null,
   ) {
     this.mal = mal;
     this.malFiller = malFiller;
     this.episodes = episodes;
-    this.art = art;
     this.clock = clock;
-    this.artFiller = artFiller;
   }
 
   async get(slug: string): Promise<EpisodesResponse> {
@@ -48,18 +34,21 @@ export class EpisodeInfoService {
     const malId = row?.status === 'ok' ? row.malId : null;
     if (row && malId !== null) void this.malFiller?.ensureEpisodes([row]);
 
-    const [listed, attempts, tmdb, title] = await Promise.all([
+    const [listed, attempts] =
       malId === null
-        ? new Map<number, StoredEpisode>()
-        : this.episodes.find(malId),
-      malId === null ? new Map() : this.episodes.listAttempts([malId]),
-      this.art.tmdbEpisodes(slug),
-      this.art.find([slug]),
-    ]);
-    // A title matched before episode text was stored gets it in the background. This request answers from what is stored.
-    const matched = title.get(slug);
-    if (matched) void this.artFiller?.ensureEpisodeInfo([matched]);
-    const episodes = merge(listed, tmdb);
+        ? [new Map(), new Map()]
+        : await Promise.all([
+            this.episodes.find(malId),
+            this.episodes.listAttempts([malId]),
+          ]);
+    const episodes: EpisodeInfo[] = [...listed.values()]
+      .sort((a, b) => a.number - b.number)
+      .map(({ number, title, titleVi, aired }) => ({
+        number,
+        title,
+        titleVi,
+        aired,
+      }));
     if (episodes.length > 0) return { status: 'ready', episodes };
 
     const settled =
@@ -68,27 +57,4 @@ export class EpisodeInfoService {
         : isMalSettled(row, now);
     return { status: settled ? 'none' : 'pending', episodes: [] };
   }
-}
-
-// MAL's title wins over TMDB's name, and the Vietnamese title falls back to TMDB's only when MAL has none yet. Both synopses come from TMDB alone.
-function merge(
-  listed: Map<number, StoredEpisode>,
-  tmdb: Map<number, StoredTmdbEpisode>,
-): EpisodeInfo[] {
-  const numbers = new Set([...listed.keys(), ...tmdb.keys()]);
-  return [...numbers]
-    .sort((a, b) => a - b)
-    .map((number) => {
-      const mal = listed.get(number);
-      const t = tmdb.get(number);
-      const nameIsVi = t?.name != null && looksVietnamese(t.name);
-      return {
-        number,
-        title: mal?.title ?? (nameIsVi ? null : (t?.name ?? null)),
-        titleVi: mal?.titleVi ?? (nameIsVi ? (t?.name ?? null) : null),
-        synopsis: t?.overviewLang === 'en' ? t.overview : null,
-        synopsisVi: t?.overviewVi ?? null,
-        aired: mal?.aired ?? null,
-      };
-    });
 }

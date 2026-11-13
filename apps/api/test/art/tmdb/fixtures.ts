@@ -98,19 +98,9 @@ export const IMAGES_100 = {
 export const SEASON_100_1 = {
   id: 1,
   episodes: [
-    {
-      episode_number: 1,
-      name: 'Fateful Meeting',
-      overview: 'Nasa meets Tsukasa.',
-      still_path: '/e1.jpg',
-    },
-    {
-      episode_number: 2,
-      name: 'Episode 2',
-      overview: 'Nasa gặp lại Tsukasa.',
-      still_path: null,
-    },
-    { episode_number: 3, name: 'Three', overview: '', still_path: '/e3.jpg' },
+    { episode_number: 1, still_path: '/e1.jpg' },
+    { episode_number: 2, still_path: null },
+    { episode_number: 3, still_path: '/e3.jpg' },
   ],
 };
 

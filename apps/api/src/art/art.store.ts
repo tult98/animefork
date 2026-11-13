@@ -5,7 +5,6 @@ import { PG_POOL } from '../database/migration-runner.ts';
 import type { TitleInput } from './contract.ts';
 import {
   isStale,
-  type EpisodeInfoStatus,
   MATCHED_REFRESH_BELOW,
   MATCHER_VERSION,
   type MissStatus,
@@ -13,7 +12,7 @@ import {
   type TitleStatus,
 } from './retry.ts';
 import type { MatcherName, MatchScope } from './tmdb/matcher.ts';
-import type { EpisodeTmdbRow, MatchedTitle } from './tmdb/sync.ts';
+import type { MatchedTitle } from './tmdb/sync.ts';
 
 export interface StoredTitle {
   slug: string;
@@ -59,37 +58,13 @@ export type TitleSource = Pick<
   'slug' | 'name' | 'year' | 'episodeCount'
 >;
 
-export type MatchedArt = Pick<MatchedTitle, 'title' | 'episodes'> &
-  Partial<Pick<MatchedTitle, 'info'>>;
-
-// What TMDB holds for one episode. `overviewVi` is Vietnamese text, TMDB's own or a translation of its English one.
-export interface StoredTmdbEpisode {
-  number: number;
-  name: string | null;
-  overview: string | null;
-  overviewLang: OverviewLang | null;
-  overviewVi: string | null;
-}
-
-export interface StoredEpisodeInfoSync {
-  status: EpisodeInfoStatus;
-  attemptedAt: Date;
-}
+export type MatchedArt = Pick<MatchedTitle, 'title' | 'episodes'>;
 
 export const ART_STORE = Symbol('ArtStore');
 
 export interface ArtStore {
   find(slugs: string[]): Promise<Map<string, StoredTitle>>;
   episodes(slug: string): Promise<Map<number, string>>;
-  tmdbEpisodes(slug: string): Promise<Map<number, StoredTmdbEpisode>>;
-  saveEpisodeTranslation(
-    slug: string,
-    number: number,
-    overviewVi: string,
-  ): Promise<void>;
-  saveEpisodeInfo(slug: string, info: EpisodeTmdbRow[]): Promise<void>;
-  episodeInfoSync(slugs: string[]): Promise<Map<string, StoredEpisodeInfoSync>>;
-  saveEpisodeInfoSync(slug: string, status: EpisodeInfoStatus): Promise<void>;
   saveMatched(art: MatchedArt): Promise<void>;
   saveMiss(
     source: TitleSource,
@@ -107,8 +82,6 @@ export interface ArtStore {
 export class MemoryArtStore implements ArtStore {
   readonly titles = new Map<string, StoredTitle>();
   readonly stills = new Map<string, Map<number, string>>();
-  readonly tmdbInfo = new Map<string, Map<number, StoredTmdbEpisode>>();
-  readonly infoSync = new Map<string, StoredEpisodeInfoSync>();
   private readonly now: Clock;
 
   constructor(@Inject(CLOCK) now: Clock = systemClock) {
@@ -128,22 +101,7 @@ export class MemoryArtStore implements ArtStore {
     return new Map(this.stills.get(slug));
   }
 
-  async tmdbEpisodes(slug: string): Promise<Map<number, StoredTmdbEpisode>> {
-    return new Map(
-      [...(this.tmdbInfo.get(slug) ?? [])].map(([n, row]) => [n, { ...row }]),
-    );
-  }
-
-  async saveEpisodeTranslation(
-    slug: string,
-    number: number,
-    overviewVi: string,
-  ): Promise<void> {
-    const row = this.tmdbInfo.get(slug)?.get(number);
-    if (row) this.tmdbInfo.get(slug)?.set(number, { ...row, overviewVi });
-  }
-
-  async saveMatched({ title, episodes, info = [] }: MatchedArt): Promise<void> {
+  async saveMatched({ title, episodes }: MatchedArt): Promise<void> {
     const existing = this.titles.get(title.source_slug);
     if (existing?.status === 'matched' && !isStale(existing)) return;
     this.titles.set(title.source_slug, {
@@ -171,50 +129,6 @@ export class MemoryArtStore implements ArtStore {
       title.source_slug,
       new Map(episodes.map((e) => [e.episode_number, e.still_path])),
     );
-    this.infoSync.delete(title.source_slug);
-    await this.saveEpisodeInfo(title.source_slug, info);
-  }
-
-  async saveEpisodeInfo(slug: string, info: EpisodeTmdbRow[]): Promise<void> {
-    const before = this.tmdbInfo.get(slug);
-    this.tmdbInfo.set(
-      slug,
-      new Map(
-        info.map((e) => [
-          e.episode_number,
-          {
-            number: e.episode_number,
-            name: e.name,
-            overview: e.overview,
-            overviewLang: e.overview_lang,
-            overviewVi:
-              e.overview_lang === 'vi'
-                ? e.overview
-                : before?.get(e.episode_number)?.overview === e.overview
-                  ? (before.get(e.episode_number)?.overviewVi ?? null)
-                  : null,
-          },
-        ]),
-      ),
-    );
-  }
-
-  async episodeInfoSync(
-    slugs: string[],
-  ): Promise<Map<string, StoredEpisodeInfoSync>> {
-    const found = new Map<string, StoredEpisodeInfoSync>();
-    for (const slug of slugs) {
-      const row = this.infoSync.get(slug);
-      if (row) found.set(slug, { ...row });
-    }
-    return found;
-  }
-
-  async saveEpisodeInfoSync(
-    slug: string,
-    status: EpisodeInfoStatus,
-  ): Promise<void> {
-    this.infoSync.set(slug, { status, attemptedAt: this.now() });
   }
 
   async saveMiss(
@@ -378,45 +292,7 @@ export class PostgresArtStore implements ArtStore {
     return new Map(rows.map((r) => [r.episode_number, r.still_path]));
   }
 
-  async tmdbEpisodes(slug: string): Promise<Map<number, StoredTmdbEpisode>> {
-    const { rows } = await this.pool.query<{
-      episode_number: number;
-      name: string | null;
-      overview: string | null;
-      overview_lang: OverviewLang | null;
-      overview_vi: string | null;
-    }>(
-      `select episode_number, name, overview, overview_lang, overview_vi
-         from episode_tmdb_info where source_slug = $1 order by episode_number`,
-      [slug],
-    );
-    return new Map(
-      rows.map((r) => [
-        r.episode_number,
-        {
-          number: r.episode_number,
-          name: r.name,
-          overview: r.overview,
-          overviewLang: r.overview_lang,
-          overviewVi: r.overview_vi,
-        },
-      ]),
-    );
-  }
-
-  async saveEpisodeTranslation(
-    slug: string,
-    number: number,
-    overviewVi: string,
-  ): Promise<void> {
-    await this.pool.query(
-      `update episode_tmdb_info set overview_vi = $3
-        where source_slug = $1 and episode_number = $2`,
-      [slug, number, overviewVi],
-    );
-  }
-
-  async saveMatched({ title, episodes, info = [] }: MatchedArt): Promise<void> {
+  async saveMatched({ title, episodes }: MatchedArt): Promise<void> {
     const client = await this.pool.connect();
     try {
       await client.query('begin');
@@ -487,15 +363,6 @@ export class PostgresArtStore implements ArtStore {
           ],
         );
       }
-      if (written.rowCount) {
-        await client.query(
-          `delete from episode_tmdb_sync where source_slug = $1`,
-          [title.source_slug],
-        );
-      }
-      if (written.rowCount && info.length > 0) {
-        await writeEpisodeInfo(client, title.source_slug, info);
-      }
       await client.query('commit');
     } catch (error) {
       await client.query('rollback').catch(() => undefined);
@@ -503,46 +370,6 @@ export class PostgresArtStore implements ArtStore {
     } finally {
       client.release();
     }
-  }
-
-  async saveEpisodeInfo(slug: string, info: EpisodeTmdbRow[]): Promise<void> {
-    if (info.length > 0) await writeEpisodeInfo(this.pool, slug, info);
-  }
-
-  async episodeInfoSync(
-    slugs: string[],
-  ): Promise<Map<string, StoredEpisodeInfoSync>> {
-    const found = new Map<string, StoredEpisodeInfoSync>();
-    if (slugs.length === 0) return found;
-    const { rows } = await this.pool.query<{
-      source_slug: string;
-      status: EpisodeInfoStatus;
-      attempted_at: Date;
-    }>(
-      `select source_slug, status, attempted_at from episode_tmdb_sync
-        where source_slug = any($1::text[])`,
-      [slugs],
-    );
-    for (const row of rows) {
-      found.set(row.source_slug, {
-        status: row.status,
-        attemptedAt: row.attempted_at,
-      });
-    }
-    return found;
-  }
-
-  async saveEpisodeInfoSync(
-    slug: string,
-    status: EpisodeInfoStatus,
-  ): Promise<void> {
-    await this.pool.query(
-      `insert into episode_tmdb_sync (source_slug, status, attempted_at)
-       select source_slug, $2, now() from title_art where source_slug = $1
-       on conflict (source_slug) do update set
-         status = excluded.status, attempted_at = now()`,
-      [slug, status],
-    );
   }
 
   async saveMiss(
@@ -604,34 +431,4 @@ export class PostgresArtStore implements ArtStore {
       ],
     );
   }
-}
-
-async function writeEpisodeInfo(
-  db: Pick<pg.Pool, 'query'>,
-  slug: string,
-  info: EpisodeTmdbRow[],
-): Promise<void> {
-  await db.query(
-    `insert into episode_tmdb_info
-       (source_slug, episode_number, name, overview, overview_lang, overview_vi)
-     select $1, n, nm, ov, lang, case when lang = 'vi' then ov end
-       from unnest($2::int[], $3::text[], $4::text[], $5::text[])
-            as e(n, nm, ov, lang)
-     on conflict (source_slug, episode_number) do update set
-       name = excluded.name,
-       overview_vi = case
-         when excluded.overview_lang = 'vi' then excluded.overview
-         when episode_tmdb_info.overview = excluded.overview
-           then episode_tmdb_info.overview_vi
-       end,
-       overview = excluded.overview,
-       overview_lang = excluded.overview_lang`,
-    [
-      slug,
-      info.map((e) => e.episode_number),
-      info.map((e) => e.name),
-      info.map((e) => e.overview),
-      info.map((e) => e.overview_lang),
-    ],
-  );
 }

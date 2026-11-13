@@ -176,13 +176,11 @@ export const EPISODES_PATH = '/v1/episodes';
 
 export const EpisodesSlugSchema = z.string().regex(SLUG_PATTERN);
 
-// Titles and synopses come from MyAnimeList and TMDB. The Vietnamese fields are null until translated.
+// Numbers, titles and air dates come from MyAnimeList's episode list. `titleVi` is null until translated.
 export const EpisodeInfoSchema = z.object({
   number: z.number().int().positive(),
   title: z.string().min(1).nullable(),
   titleVi: z.string().min(1).nullable(),
-  synopsis: z.string().min(1).nullable(),
-  synopsisVi: z.string().min(1).nullable(),
   // An ISO date.
   aired: z
     .string()

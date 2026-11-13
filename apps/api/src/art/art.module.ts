@@ -50,6 +50,5 @@ import { createTranslator, OVERVIEW_TRANSLATOR } from './translator.ts';
     ArtFiller,
     ArtService,
   ],
-  exports: [ArtFiller],
 })
 export class ArtModule {}

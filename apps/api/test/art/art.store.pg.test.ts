@@ -70,52 +70,6 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
     ]);
   });
 
-  it('keeps a translated overview across a refill that reads the same English text', async () => {
-    const s = slug('tmdb-info');
-    const info = (overview: string) => [
-      {
-        source_slug: s,
-        episode_number: 1,
-        name: 'Fateful Meeting',
-        overview,
-        overview_lang: 'en' as const,
-      },
-    ];
-    await store.saveMatched({
-      title: title(s, '/b.jpg'),
-      episodes: [],
-      info: info('Nasa meets Tsukasa.'),
-    });
-    await store.saveEpisodeTranslation(s, 1, 'Nasa gặp Tsukasa.');
-    await pool.query(
-      `update title_art set matcher_version = 0 where source_slug = $1`,
-      [s],
-    );
-
-    await store.saveMatched({
-      title: title(s, '/b.jpg'),
-      episodes: [],
-      info: info('Nasa meets Tsukasa.'),
-    });
-    expect((await store.tmdbEpisodes(s)).get(1)?.overviewVi).toBe(
-      'Nasa gặp Tsukasa.',
-    );
-
-    await pool.query(
-      `update title_art set matcher_version = 0 where source_slug = $1`,
-      [s],
-    );
-    await store.saveMatched({
-      title: title(s, '/b.jpg'),
-      episodes: [],
-      info: info('Changed text.'),
-    });
-    expect((await store.tmdbEpisodes(s)).get(1)).toMatchObject({
-      overview: 'Changed text.',
-      overviewVi: null,
-    });
-  });
-
   it('round-trips a show-scope row with a null season and no stills', async () => {
     const s = slug('show-scope');
     await store.saveMatched({
@@ -444,29 +398,5 @@ describe.skipIf(!url)('PostgresArtStore against DATABASE_URL', () => {
         [slug('bad')],
       ),
     ).rejects.toThrow(/title_art_matched_has_tmdb/);
-  });
-
-  it('writes episode text without touching the title and keeps the sync status per slug', async () => {
-    const s = slug('backfill');
-    await store.saveMatched({ title: title(s, '/b.jpg'), episodes: [] });
-
-    await store.saveEpisodeInfo(s, [
-      {
-        source_slug: s,
-        episode_number: 1,
-        name: 'One',
-        overview: 'First.',
-        overview_lang: 'en',
-      },
-    ]);
-    await store.saveEpisodeInfoSync(s, 'failed');
-    await store.saveEpisodeInfoSync(s, 'ok');
-
-    expect((await store.tmdbEpisodes(s)).get(1)).toMatchObject({
-      name: 'One',
-      overviewVi: null,
-    });
-    expect((await store.episodeInfoSync([s])).get(s)?.status).toBe('ok');
-    expect((await store.find([s])).get(s)?.backdropPath).toBe('/b.jpg');
   });
 });

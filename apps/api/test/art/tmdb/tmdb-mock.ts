@@ -7,10 +7,7 @@ export function mockTmdb(
   return async (input) => {
     const url = new URL(String(input));
     const query =
-      url.searchParams.get('query') ??
-      (url.pathname.includes('/season/')
-        ? null
-        : url.searchParams.get('language'));
+      url.searchParams.get('query') ?? url.searchParams.get('language');
     const route = `${url.pathname}${query ? `?${query}` : ''}`;
     const table: Record<string, unknown> = {
       '/3/search/tv?Tonikaku Kawaii': fx.SEARCH_TONIKAWA,

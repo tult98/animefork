@@ -50,14 +50,6 @@ const SeasonSchema = z.object({
   episodes: z.array(
     z.object({
       episode_number: z.number().int(),
-      name: z
-        .string()
-        .nullish()
-        .transform((v) => v?.trim() || null),
-      overview: z
-        .string()
-        .nullish()
-        .transform((v) => v?.trim() || null),
       still_path: z
         .string()
         .nullish()
@@ -97,11 +89,7 @@ export interface TmdbClient {
   tvImages(tvId: number): Promise<TmdbImages>;
   tvDetail(tvId: number, language?: string): Promise<TmdbDetail>;
   tvAlternativeTitles(tvId: number): Promise<string[]>;
-  seasonDetail(
-    tvId: number,
-    season: number,
-    language?: string,
-  ): Promise<TmdbSeason>;
+  seasonDetail(tvId: number, season: number): Promise<TmdbSeason>;
 }
 
 export function createTmdbClient(options: {
@@ -142,11 +130,7 @@ export function createTmdbClient(options: {
       (
         await get(`/tv/${tvId}/alternative_titles`, {}, AlternativeTitlesSchema)
       ).results.map((r) => r.title),
-    seasonDetail: (tvId, season, language) =>
-      get(
-        `/tv/${tvId}/season/${season}`,
-        language ? { language } : {},
-        SeasonSchema,
-      ),
+    seasonDetail: (tvId, season) =>
+      get(`/tv/${tvId}/season/${season}`, {}, SeasonSchema),
   };
 }

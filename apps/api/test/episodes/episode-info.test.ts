@@ -67,7 +67,6 @@ const malRow = (over: Partial<StoredMal> = {}): StoredMal => ({
 function world() {
   const mal = new MemoryMalStore(() => NOW);
   const episodes = new MemoryEpisodeStore();
-  const art = new MemoryArtStore(() => NOW);
   const list = vi.fn(async (): Promise<ListedEpisode[] | null> => []);
   const filler = new MalFiller(
     mal,
@@ -76,13 +75,13 @@ function world() {
     null,
     new EpisodeFiller(episodes, { list }, null, () => NOW),
   );
-  const service = new EpisodeInfoService(mal, filler, episodes, art, () => NOW);
-  return { mal, episodes, art, list, filler, service };
+  const service = new EpisodeInfoService(mal, filler, episodes, () => NOW);
+  return { mal, episodes, list, filler, service };
 }
 
 describe('EpisodeInfoService', () => {
-  it('merges MAL and TMDB episodes sorted by number, MAL title first', async () => {
-    const { mal, episodes, art, list, service } = world();
+  it('answers the MAL episodes sorted by number with no description fields', async () => {
+    const { mal, episodes, list, service } = world();
     await mal.save(malRow());
     await episodes.saveListAttempt({
       malId: 7,
@@ -95,70 +94,14 @@ describe('EpisodeInfoService', () => {
       { number: 1, title: 'The Boy', titleAlt: null, aired: '2026-10-03' },
     ]);
     await episodes.saveTranslation(7, 1, 'Cậu bé');
-    await art.saveMatched({
-      title: {
-        source_slug: SLUG,
-        tmdb_id: 1,
-        tmdb_season: 1,
-        match_scope: 'season',
-        backdrop_path: null,
-        backdrop_lang: null,
-        poster_path: null,
-        poster_lang: null,
-        source_name: 'Black Clover',
-        source_year: null,
-        source_episode_count: null,
-        matched_by: 'baseline',
-      },
-      episodes: [],
-      info: [
-        {
-          source_slug: SLUG,
-          episode_number: 1,
-          name: 'TMDB One',
-          overview: 'Asta is born.',
-          overview_lang: 'en',
-        },
-        {
-          source_slug: SLUG,
-          episode_number: 3,
-          name: 'Cánh cửa',
-          overview: 'Một cánh cửa mở ra.',
-          overview_lang: 'vi',
-        },
-      ],
-    });
-    await art.saveEpisodeTranslation(SLUG, 1, 'Asta chào đời.');
 
     const out = await service.get(SLUG);
 
     expect(out).toEqual({
       status: 'ready',
       episodes: [
-        {
-          number: 1,
-          title: 'The Boy',
-          titleVi: 'Cậu bé',
-          synopsis: 'Asta is born.',
-          synopsisVi: 'Asta chào đời.',
-          aired: '2026-10-03',
-        },
-        {
-          number: 2,
-          title: 'The Door',
-          titleVi: null,
-          synopsis: null,
-          synopsisVi: null,
-          aired: '2026-10-10',
-        },
-        {
-          number: 3,
-          title: null,
-          titleVi: 'Cánh cửa',
-          synopsis: null,
-          synopsisVi: 'Một cánh cửa mở ra.',
-          aired: null,
-        },
+        { number: 1, title: 'The Boy', titleVi: 'Cậu bé', aired: '2026-10-03' },
+        { number: 2, title: 'The Door', titleVi: null, aired: '2026-10-10' },
       ],
     });
     expect(list).not.toHaveBeenCalled();

@@ -1,4 +1,3 @@
-import type { OverviewLang } from '../art.store.ts';
 import { pickBackdrop, pickPoster } from './images.ts';
 import {
   decide,
@@ -10,7 +9,6 @@ import {
   type MatchQuestion,
 } from './matcher.ts';
 import type { TmdbClient, TmdbDetail } from './tmdb.ts';
-import { looksVietnamese } from '../../common/vietnamese.ts';
 import type { TitleInput } from '../contract.ts';
 import {
   distinctRomaji,
@@ -40,14 +38,6 @@ export interface EpisodeArtRow {
   still_path: string;
 }
 
-export interface EpisodeTmdbRow {
-  source_slug: string;
-  episode_number: number;
-  name: string | null;
-  overview: string | null;
-  overview_lang: OverviewLang | null;
-}
-
 const CANDIDATE_LIMIT = 5;
 const ALTERNATIVE_TITLE_LIMIT = 3;
 const MAX_SEARCHES = 5;
@@ -58,7 +48,6 @@ export interface MatchedTitle {
   probability: number;
   title: TitleArtRow;
   episodes: EpisodeArtRow[];
-  info: EpisodeTmdbRow[];
 }
 
 export interface SkippedTitle {
@@ -109,45 +98,6 @@ export function mapEpisodes(
       source_slug: slug,
       episode_number: number,
       still_path: episode.still_path,
-    });
-  }
-  return rows;
-}
-
-// TMDB names an episode it has no title for "Episode 3" or "Tập 3".
-const PLACEHOLDER_NAME = /^(?:episode|tập)\s*\d+$/i;
-
-// The name and overview TMDB holds for each episode, numbered and capped the way the stills are.
-export function mapEpisodeInfo(
-  slug: string,
-  episodes: {
-    episode_number: number;
-    name: string | null;
-    overview: string | null;
-  }[],
-  offset: number,
-  sourceEpisodeCount?: number,
-): EpisodeTmdbRow[] {
-  const rows: EpisodeTmdbRow[] = [];
-  for (const episode of episodes) {
-    const number = episode.episode_number + offset;
-    if (number < 1) continue;
-    if (sourceEpisodeCount && number > sourceEpisodeCount) continue;
-    const name =
-      episode.name && !PLACEHOLDER_NAME.test(episode.name)
-        ? episode.name
-        : null;
-    if (!name && !episode.overview) continue;
-    rows.push({
-      source_slug: slug,
-      episode_number: number,
-      name,
-      overview: episode.overview,
-      overview_lang: episode.overview
-        ? looksVietnamese(episode.overview)
-          ? 'vi'
-          : 'en'
-        : null,
     });
   }
   return rows;
@@ -233,7 +183,6 @@ function matchedOutcome(
   scope: MatchScope,
   images: Awaited<ReturnType<TmdbClient['tvImages']>>,
   episodes: EpisodeArtRow[],
-  info: EpisodeTmdbRow[],
   season: number | null = null,
 ): SyncOutcome {
   const backdrop = pickBackdrop(images.backdrops);
@@ -259,7 +208,6 @@ function matchedOutcome(
         matched_by: answer.by,
       },
       episodes,
-      info,
     },
   };
 }
@@ -288,21 +236,14 @@ export async function syncTitle(
   const scope = effectiveScope(answer, choice, details, season);
   if (scope === 'show') {
     const images = await tmdb.tvImages(choice);
-    return matchedOutcome(input, answer, choice, 'show', images, [], []);
+    return matchedOutcome(input, answer, choice, 'show', images, []);
   }
 
   const [images, seasonDetail] = await Promise.all([
     tmdb.tvImages(choice),
-    // The same single season call, asked in Vietnamese so a translated name and overview come back with the stills.
-    tmdb.seasonDetail(choice, season, 'vi'),
+    tmdb.seasonDetail(choice, season),
   ]);
   const episodes = mapEpisodes(
-    input.slug,
-    seasonDetail.episodes,
-    answer.episodeOffset ?? 0,
-    input.episodeCount,
-  );
-  const info = mapEpisodeInfo(
     input.slug,
     seasonDetail.episodes,
     answer.episodeOffset ?? 0,
@@ -315,7 +256,6 @@ export async function syncTitle(
     'season',
     images,
     episodes,
-    info,
     season,
   );
 }

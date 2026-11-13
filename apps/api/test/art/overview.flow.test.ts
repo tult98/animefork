@@ -17,24 +17,12 @@ const ENGLISH_ONLY = {
   '/3/tv/100?en': fx.DETAIL_100_EN,
 };
 
-// The episode texts have their own tests, and would add translator calls to the show overview ones.
-const STILLS_ONLY = {
-  ...fx.SEASON_100_1,
-  episodes: fx.SEASON_100_1.episodes.map(({ episode_number, still_path }) => ({
-    episode_number,
-    still_path,
-  })),
-};
-
 function recording(overrides: Record<string, unknown> = {}) {
   const overviewCalls: string[] = [];
-  const base = mockTmdb({ '/3/tv/100/season/1': STILLS_ONLY, ...overrides });
+  const base = mockTmdb(overrides);
   const fetchImpl: typeof fetch = async (input, init) => {
-    const url = new URL(String(input));
-    const language = url.searchParams.get('language');
-    if (language && !url.pathname.includes('/season/')) {
-      overviewCalls.push(language);
-    }
+    const language = new URL(String(input)).searchParams.get('language');
+    if (language) overviewCalls.push(language);
     return base(input, init);
   };
   return { fetch: fetchImpl, overviewCalls };
@@ -353,7 +341,6 @@ describe('overview backfill', () => {
     async (concurrency, order) => {
       const { store, filler, service } = setup({ concurrency });
       store.titles.set('other-a2', matchedRow({ slug: 'other-a2' }));
-      await store.saveEpisodeInfoSync('other-a2', 'ok');
       const events: string[] = [];
       const find = store.find.bind(store);
       const saveOverview = store.saveOverview.bind(store);

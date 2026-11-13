@@ -21,7 +21,7 @@ export const MAX_QUEUED_LISTS = 20;
 const TRANSLATE_CONCURRENCY = 2;
 
 // Fills episode names in the background for the MAL lookup. One MAL list request per show (more only past 100
-// episodes), no synopsis pages, and nothing here ever throws into the caller.
+// episodes), and nothing here ever throws into the caller.
 // One list read runs at a time. Its slot is held to read and store the list, not to translate it. Single-flight lives
 // in this process's memory, like the other fillers.
 export class EpisodeFiller {
