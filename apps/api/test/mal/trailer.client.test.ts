@@ -29,12 +29,12 @@ describe('TrailerClient.youtubeId', () => {
     expect(await client.youtubeId(1)).toBeNull();
   });
 
-  it('answers null instead of throwing when Tenrai cannot be reached or errors', async () => {
+  it('answers undefined instead of throwing when Tenrai cannot be reached or errors', async () => {
     const down = make(() => {
       throw new TypeError('fetch failed');
     });
-    expect(await down.client.youtubeId(1)).toBeNull();
+    expect(await down.client.youtubeId(1)).toBeUndefined();
     const broken = make(() => new Response('nope', { status: 503 }));
-    expect(await broken.client.youtubeId(1)).toBeNull();
+    expect(await broken.client.youtubeId(1)).toBeUndefined();
   });
 });

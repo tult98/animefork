@@ -107,6 +107,39 @@ describe('lookup with MyAnimeList', () => {
     expect(asked).toEqual([1]);
   });
 
+  it('keeps the stored promo video id on a refresh when Tenrai fails', async () => {
+    let answer: string | null | undefined = 'abc123';
+    const { service, malFiller, advance } = withMal(
+      {},
+      { youtubeId: async () => answer },
+    );
+    await service.lookup({ titles: [TITLE] });
+    await malFiller.idle();
+    answer = undefined;
+    advance(MAL_REFRESH_AFTER_MS);
+    await service.lookup({ titles: [TITLE] });
+    await malFiller.idle();
+    const res = await service.lookup({ titles: [TITLE] });
+    expect(res.ratings?.[TITLE.slug]?.mal?.score).toBe(8);
+    expect(res.ratings?.[TITLE.slug]?.mal?.trailerYoutubeId).toBe('abc123');
+  });
+
+  it('clears the stored promo video id on a refresh when Tenrai says there is none', async () => {
+    let answer: string | null | undefined = 'abc123';
+    const { service, malFiller, advance } = withMal(
+      {},
+      { youtubeId: async () => answer },
+    );
+    await service.lookup({ titles: [TITLE] });
+    await malFiller.idle();
+    answer = null;
+    advance(MAL_REFRESH_AFTER_MS);
+    await service.lookup({ titles: [TITLE] });
+    await malFiller.idle();
+    const res = await service.lookup({ titles: [TITLE] });
+    expect(res.ratings?.[TITLE.slug]?.mal?.trailerYoutubeId).toBeNull();
+  });
+
   it('does not ask MAL again for a title already being filled', async () => {
     const { service, searches, malFiller } = withMal();
     await service.lookup({ titles: [TITLE] });

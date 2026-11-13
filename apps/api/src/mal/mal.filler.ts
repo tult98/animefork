@@ -128,6 +128,7 @@ export class MalFiller {
       await this.store.touch(current.slug);
       return null;
     }
+    const trailer = await this.trailerFor(current.malId);
     const now = this.now();
     const row: StoredMal = {
       ...current,
@@ -140,7 +141,8 @@ export class MalFiller {
       episodes: stats.episodes,
       startDate: stats.startDate,
       startSeason: stats.startSeason,
-      trailerYoutubeId: await this.trailerFor(current.malId),
+      trailerYoutubeId:
+        trailer === undefined ? current.trailerYoutubeId : trailer,
       datesKnown: true,
       attemptedAt: now,
       fetchedAt: now,
@@ -221,7 +223,7 @@ export class MalFiller {
       episodes: candidate.episodes ?? null,
       startDate: candidate.startDate,
       startSeason: candidate.startSeason,
-      trailerYoutubeId: await this.trailerFor(candidate.id),
+      trailerYoutubeId: (await this.trailerFor(candidate.id)) ?? null,
       datesKnown: true,
       matchedTitle: candidate.title,
       matchScore: Math.round(score * 1000) / 1000,
@@ -235,8 +237,11 @@ export class MalFiller {
     return row;
   }
 
-  private async trailerFor(malId: number): Promise<string | null> {
-    return (await this.trailers?.youtubeId(malId)) ?? null;
+  // undefined means the lookup failed, so a stored id must survive it.
+  private async trailerFor(
+    malId: number,
+  ): Promise<string | null | undefined> {
+    return this.trailers?.youtubeId(malId);
   }
 
   private async saveMiss(

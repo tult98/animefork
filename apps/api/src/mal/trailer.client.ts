@@ -2,8 +2,9 @@ import { z } from 'zod';
 import { DEFAULT_TENRAI_API } from './mal.config.ts';
 
 export interface TrailerClient {
-  // The YouTube id of the title's promo video, or null when it has none or the lookup failed.
-  youtubeId(malId: number): Promise<string | null>;
+  // The YouTube id of the title's promo video, null when Tenrai says it has none,
+  // or undefined when the lookup failed and nothing is known.
+  youtubeId(malId: number): Promise<string | null | undefined>;
 }
 
 export interface TrailerClientOptions {
@@ -34,13 +35,13 @@ export function createTrailerClient(
         const res = await doFetch(`${base}/anime/${malId}/full`, {
           signal: AbortSignal.timeout(timeout),
         });
-        if (!res.ok) return null;
+        if (!res.ok) return undefined;
         const parsed = FullSchema.safeParse(await res.json());
         return parsed.success
           ? (parsed.data.data.trailer?.youtube_id ?? null)
-          : null;
+          : undefined;
       } catch {
-        return null;
+        return undefined;
       }
     },
   };
