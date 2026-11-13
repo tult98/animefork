@@ -11,3 +11,10 @@ export function percent(part: number, whole: number): number {
   if (!Number.isFinite(whole) || whole <= 0) return 0;
   return Math.min(100, Math.max(0, (part / whole) * 100));
 }
+
+export function episodeTitle(episode: {
+  label: string;
+  name?: string;
+}): string {
+  return episode.name ? `${episode.label}: ${episode.name}` : episode.label;
+}

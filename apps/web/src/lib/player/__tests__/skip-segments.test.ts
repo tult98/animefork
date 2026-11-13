@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   activeSegment,
   episodeNumber,
+  outroCountdown,
+  scrubCaption,
+  segmentTicks,
   type SkipSegment,
 } from '../skip-segments.ts';
 
@@ -50,5 +53,56 @@ describe('episodeNumber', () => {
     ]) {
       expect(episodeNumber(label), label).toBeUndefined();
     }
+  });
+});
+
+describe('segmentTicks', () => {
+  it('notches both edges of the intro and the start of the outro', () => {
+    expect(segmentTicks([INTRO, OUTRO], 1400)).toEqual([
+      (30 / 1400) * 100,
+      (120 / 1400) * 100,
+      (1300 / 1400) * 100,
+    ]);
+  });
+
+  it('leaves out a notch at the very start or past the end, and all of them without a duration', () => {
+    const early: SkipSegment = { kind: 'intro', startS: 0, endS: 90 };
+    expect(segmentTicks([early], 900)).toEqual([10]);
+    expect(segmentTicks([INTRO, OUTRO], 0)).toEqual([]);
+  });
+});
+
+describe('scrubCaption', () => {
+  it('tells the intro and the outro apart from the rest of the episode', () => {
+    expect(scrubCaption([INTRO, OUTRO], 65)).toBe('1:05 · Mở đầu');
+    expect(scrubCaption([INTRO, OUTRO], 1310)).toBe('21:50 · Kết thúc');
+    expect(scrubCaption([INTRO, OUTRO], 600)).toBe('10:00');
+  });
+});
+
+describe('outroCountdown', () => {
+  it('counts the seconds left in the video and fills from the start of the outro', () => {
+    expect(outroCountdown(OUTRO, 1300, 1400)).toEqual({
+      seconds: 100,
+      fraction: 0,
+    });
+    const half = outroCountdown(OUTRO, 1350.2, 1400);
+    expect(half.seconds).toBe(50);
+    expect(half.fraction).toBeCloseTo(0.502);
+    expect(outroCountdown(OUTRO, 1400, 1400)).toEqual({
+      seconds: 0,
+      fraction: 1,
+    });
+  });
+
+  it('stays at zero when the clock is past the end or the duration is unknown', () => {
+    expect(outroCountdown(OUTRO, 1500, 1400)).toEqual({
+      seconds: 0,
+      fraction: 1,
+    });
+    expect(outroCountdown(OUTRO, 1350, Number.NaN)).toEqual({
+      seconds: 0,
+      fraction: 0,
+    });
   });
 });

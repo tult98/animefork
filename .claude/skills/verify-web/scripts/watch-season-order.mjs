@@ -50,8 +50,8 @@ for (const slug of slugs) {
   await page.waitForSelector('[data-testid="player:video"]', {
     timeout: 60000,
   });
-  const back = page.getByTestId('player:seasons-back');
-  // A single season has no back button. The panel is a hover popup on the episodes control.
+  const back = page.getByTestId('player:seasons');
+  // A single season has no season button. The panel is a hover popup on the episodes control.
   if ((await back.count()) === 0) continue;
   await openEpisodesPanel();
   await back.click();
@@ -75,7 +75,7 @@ await page.goto(r.url(`/watch/${found}`));
 await page.waitForSelector('[data-testid="player:video"]', { timeout: 60000 });
 await r.title();
 await openEpisodesPanel();
-await page.getByTestId('player:seasons-back').click();
+await page.getByTestId('player:seasons').click();
 const panel = page.getByTestId('player:seasons-panel');
 await panel.waitFor();
 const read = () =>

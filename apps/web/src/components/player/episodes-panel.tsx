@@ -1,8 +1,9 @@
-import { useState } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
+import { episodeRowText } from '../../lib/player/episode-row.ts';
+import { episodeTitle } from '../../lib/player/format.ts';
 import { UNWATCHED, type EpisodeProgress } from '../../lib/progress/model.ts';
 import type { Episode, Season } from '../../lib/titles/watch.ts';
-import { ArrowLeft, AudioLines, Check, Play } from '../ui/icons.ts';
+import { Check, ChevronDown, ChevronLeft, Play, X } from '../ui/icons.ts';
 import { IconButton } from './icon-button.tsx';
 
 export type EpisodesView = 'episodes' | 'seasons';
@@ -15,6 +16,7 @@ export type BrowsedEpisodes =
 interface EpisodesPanelProps {
   view: EpisodesView;
   onView: (view: EpisodesView) => void;
+  onClose: () => void;
   title: string;
   image?: string;
   seasons: Season[];
@@ -29,7 +31,9 @@ interface EpisodesPanelProps {
 }
 
 const PANEL =
-  'flex h-[min(560px,calc(100vh-200px))] flex-col overflow-hidden rounded-lg bg-surface-alt text-ink shadow-card';
+  'flex h-[min(560px,calc(100vh-200px))] flex-col overflow-hidden rounded-lg bg-surface text-ink shadow-card';
+const HEADER =
+  'flex min-h-15 items-center border-b border-border-strong py-2 pr-2 pl-4';
 
 export function EpisodesPanel(props: EpisodesPanelProps) {
   return props.view === 'seasons' ? (
@@ -39,50 +43,116 @@ export function EpisodesPanel(props: EpisodesPanelProps) {
   );
 }
 
-function ProgressLine({ fraction }: { fraction: number }) {
-  return (
+function ThumbOverlay({ current }: { current: boolean }) {
+  return current ? (
     <span
-      aria-hidden="true"
-      className="relative h-0.5 w-28 flex-none bg-progress-track"
+      data-testid="episode:now-playing"
+      className="absolute inset-0 grid place-items-center bg-hero-overlay"
     >
-      {fraction > 0 ? (
-        <span
-          className="absolute inset-y-0 left-0 bg-brand"
-          style={{ width: `${fraction * 100}%` }}
-          data-testid="episode:progress"
-        />
-      ) : null}
+      <svg
+        aria-hidden="true"
+        className="pl-eq size-[22px] fill-white"
+        viewBox="0 0 22 22"
+      >
+        <rect x="3" y="2" width="4" height="18" rx="2" />
+        <rect x="9" y="2" width="4" height="18" rx="2" />
+        <rect x="15" y="2" width="4" height="18" rx="2" />
+      </svg>
+    </span>
+  ) : (
+    <span className="pl-thumb-play absolute inset-0 grid place-items-center bg-hero-overlay">
+      <Play aria-hidden="true" className="size-6 fill-current" />
     </span>
   );
 }
 
-function EpisodeStatus({ n, state }: { n: number; state: EpisodeProgress }) {
-  if (state.kind === 'watched') {
-    // The check and the word carry the state, so it reads without the accent colour.
-    return (
-      <span
-        className="flex w-28 flex-none items-center justify-end gap-1 text-sm text-muted"
-        data-testid={`episode:${n}:watched`}
-      >
-        <Check aria-hidden="true" className="size-4" />
-        {PLAYER_COPY.watched}
-      </span>
-    );
-  }
+function EpisodeRow({
+  episode,
+  image,
+  n,
+  current,
+  state,
+  onPick,
+}: {
+  episode: Episode;
+  image?: string;
+  n: number;
+  current: boolean;
+  state: EpisodeProgress;
+  onPick: () => void;
+}) {
+  const text = episodeRowText(
+    episode,
+    current ? 'current' : state.kind === 'watched' ? 'watched' : undefined,
+  );
+  const src = episode.thumbnail ?? image;
+  const fraction = state.kind === 'inProgress' ? state.fraction : 0;
+  const statusClass = `text-badge ${current ? 'text-ink' : 'text-muted'}`;
+  const watched = state.kind === 'watched' && !current;
   return (
-    <>
-      {state.kind === 'inProgress' ? (
-        <span className="sr-only">{PLAYER_COPY.inProgress}</span>
-      ) : null}
-      <ProgressLine
-        fraction={state.kind === 'inProgress' ? state.fraction : 0}
-      />
-    </>
+    <button
+      type="button"
+      className="pl-item gap-4 rounded-lg p-2 data-[current=true]:shadow-[inset_0_0_0_1px_var(--border)]"
+      aria-current={current ? 'true' : undefined}
+      aria-label={`${PLAYER_COPY.play} ${episodeTitle(episode)}`}
+      data-current={current}
+      data-progress={state.kind}
+      data-testid={`episode:${n}`}
+      onClick={onPick}
+    >
+      <span className="relative h-18 w-32 flex-none overflow-hidden rounded-md bg-surface-alt">
+        {src ? (
+          <img
+            src={src}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+          />
+        ) : null}
+        <ThumbOverlay current={current} />
+        {current || fraction > 0 ? (
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-1 bg-progress-track"
+          >
+            <span
+              className="block h-full bg-brand"
+              style={{ width: `${fraction * 100}%` }}
+              data-testid={fraction > 0 ? 'episode:progress' : undefined}
+            />
+          </span>
+        ) : null}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        {text.meta ? (
+          <span
+            className={statusClass}
+            data-testid={watched ? `episode:${n}:watched` : undefined}
+          >
+            {text.meta}
+          </span>
+        ) : null}
+        <span className="line-clamp-2 text-body-strong leading-[1.35] font-semibold">
+          {text.title}
+        </span>
+        {text.below ? (
+          <span
+            className={statusClass}
+            data-testid={watched ? `episode:${n}:watched` : undefined}
+          >
+            {text.below}
+          </span>
+        ) : null}
+        {state.kind === 'inProgress' && !current ? (
+          <span className="sr-only">{PLAYER_COPY.inProgress}</span>
+        ) : null}
+      </span>
+    </button>
   );
 }
 
 function EpisodesView({
   onView,
+  onClose,
   image,
   seasons,
   browseSlug,
@@ -95,116 +165,63 @@ function EpisodesView({
 }: EpisodesPanelProps) {
   const season = seasons.find((s) => s.slug === browseSlug);
   const hasSeasons = seasons.length > 1;
-  const [chosenId, setChosenId] = useState<string>();
-  const expandedId =
-    chosenId ?? (browseSlug === playingSlug ? playingEpisodeId : undefined);
   return (
     <div className={PANEL} data-testid="player:episodes-panel">
-      <div
-        className={`flex items-center gap-3 py-4 ${hasSeasons ? 'px-3' : 'px-6'}`}
-      >
+      <div className={`${HEADER} justify-between`}>
         {hasSeasons ? (
-          <IconButton
-            small
-            label={PLAYER_COPY.backToSeasons}
-            data-testid="player:seasons-back"
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-pill-quiet pr-4 pl-6 text-body-strong hover:bg-pill-active"
+            aria-haspopup="true"
+            aria-label={PLAYER_COPY.seasonPicker(season?.name ?? '')}
+            data-testid="player:seasons"
             onClick={() => onView('seasons')}
           >
-            <ArrowLeft aria-hidden="true" />
-          </IconButton>
-        ) : null}
-        <h2 className="flex-1 text-title-sm">{season?.name}</h2>
+            {season?.name}
+            <ChevronDown aria-hidden="true" className="size-5" />
+          </button>
+        ) : (
+          <h2 className="ml-2 text-title-sm">{PLAYER_COPY.episodes}</h2>
+        )}
+        <IconButton
+          small
+          label={PLAYER_COPY.closeEpisodes}
+          data-testid="player:episodes-close"
+          onClick={onClose}
+        >
+          <X aria-hidden="true" />
+        </IconButton>
       </div>
-      <div className="pl-scroll">
+      <div className="pl-scroll flex flex-col gap-1 p-2">
         {browsed.status === 'pending' ? (
-          <p className="px-5 py-3 text-muted" role="status">
+          <p className="px-3 py-3 text-muted" role="status">
             {PLAYER_COPY.loading}
           </p>
         ) : browsed.status === 'error' ? (
-          <p className="px-5 py-3 text-muted" role="alert">
+          <p className="px-3 py-3 text-muted" role="alert">
             {PLAYER_COPY.failed}
           </p>
         ) : (
           browsed.episodes.map((episode, index) => {
             const current =
               browseSlug === playingSlug && episode.id === playingEpisodeId;
-            const name = episode.name ?? episode.label;
-            const expanded = episode.id === expandedId;
-            const n = index + 1;
             // The playing episode shows the live position once it moves, and what was saved until then.
             const state: EpisodeProgress =
               current && playingProgress > 0
                 ? { kind: 'inProgress', fraction: playingProgress / 100 }
                 : (progress.get(episode.id) ?? UNWATCHED);
             return (
-              <div
+              <EpisodeRow
                 key={episode.id}
-                className={`pl-er ${expanded ? 'bg-canvas outline-2 -outline-offset-2 outline-ink' : ''}`}
-                data-current={current}
-                data-expanded={expanded}
-                data-progress={state.kind}
-                data-testid={`episode:${n}`}
-              >
-                <button
-                  type="button"
-                  className="pl-row items-center! gap-5 px-6 py-4"
-                  aria-expanded={expanded}
-                  aria-current={current ? 'true' : undefined}
-                  data-testid={`episode:${n}:toggle`}
-                  onClick={() => setChosenId(episode.id)}
-                >
-                  <span className="w-6 flex-none text-center text-title-sm font-medium tabular-nums">
-                    {n}
-                  </span>
-                  <span className="min-w-0 flex-1 text-title-sm font-medium">
-                    {name}
-                  </span>
-                  <EpisodeStatus n={n} state={state} />
-                </button>
-                {expanded ? (
-                  <div
-                    className="flex gap-5 px-6 pb-5"
-                    data-testid={current ? 'episode:now-playing' : undefined}
-                  >
-                    <button
-                      type="button"
-                      className="relative grid h-[94px] w-42 flex-none place-items-center overflow-hidden rounded-md bg-surface text-ink"
-                      aria-label={`${PLAYER_COPY.play} ${name}`}
-                      data-testid={`episode:${n}:play`}
-                      onClick={() => {
-                        setChosenId(undefined);
-                        if (!current) onPickEpisode(browseSlug, episode);
-                      }}
-                    >
-                      {episode.thumbnail || image ? (
-                        <img
-                          src={episode.thumbnail ?? image}
-                          alt=""
-                          className="absolute inset-0 size-full object-cover opacity-60"
-                        />
-                      ) : null}
-                      {current ? (
-                        <span className="relative flex items-center gap-2 text-body-strong">
-                          <AudioLines aria-hidden="true" className="size-5" />
-                          {PLAYER_COPY.nowPlaying}
-                        </span>
-                      ) : (
-                        <span className="relative grid size-11 place-items-center rounded-full bg-hero-overlay shadow-[inset_0_0_0_2px_var(--ink)]">
-                          <Play
-                            aria-hidden="true"
-                            className="ml-0.5 size-5 fill-current"
-                          />
-                        </span>
-                      )}
-                    </button>
-                    {episode.synopsis ? (
-                      <span className="line-clamp-4 text-sm">
-                        {episode.synopsis}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
+                episode={episode}
+                image={image}
+                n={index + 1}
+                current={current}
+                state={state}
+                onPick={() => {
+                  if (!current) onPickEpisode(browseSlug, episode);
+                }}
+              />
             );
           })
         )}
@@ -217,32 +234,45 @@ function SeasonsView({
   title,
   seasons,
   browseSlug,
+  onView,
   onPickSeason,
 }: EpisodesPanelProps) {
   return (
     <div className={PANEL} data-testid="player:seasons-panel">
-      <div className="px-6 py-5">
-        <h2 className="text-title-sm">{title}</h2>
+      <div className={`${HEADER} gap-2 pr-4 pl-2`}>
+        <IconButton
+          small
+          label={PLAYER_COPY.backToEpisodes}
+          data-testid="player:seasons-back"
+          onClick={() => onView('episodes')}
+        >
+          <ChevronLeft aria-hidden="true" />
+        </IconButton>
+        <h2 className="min-w-0 truncate text-title-sm">{title}</h2>
       </div>
-      <div className="pl-scroll">
+      <div role="list" className="pl-scroll flex flex-col gap-1 p-2">
+        <div className="px-4 pt-2 pb-1 text-badge text-muted">
+          {PLAYER_COPY.pickSeason}
+        </div>
         {seasons.map((season) => {
           const selected = season.slug === browseSlug;
           return (
             <button
               key={season.slug}
               type="button"
-              className="pl-row min-h-14 gap-4 px-4 py-2"
+              role="listitem"
+              className="pl-item min-h-16 justify-between gap-4 rounded-lg p-4"
               data-current={selected}
               aria-current={selected ? 'true' : undefined}
               data-testid={`season:${season.slug}`}
               onClick={() => onPickSeason(season.slug)}
             >
-              <span className="grid size-6 flex-none place-items-center">
-                {selected ? (
-                  <Check aria-hidden="true" className="size-6" />
-                ) : null}
+              <span className="text-body-strong leading-[1.35] font-semibold">
+                {season.name}
               </span>
-              <span className="text-lg font-medium">{season.name}</span>
+              {selected ? (
+                <Check aria-hidden="true" className="size-6 flex-none" />
+              ) : null}
             </button>
           );
         })}

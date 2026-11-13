@@ -1,6 +1,10 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { PLAYER_COPY } from '../../lib/player/copy.ts';
 import { formatClock } from '../../lib/player/format.ts';
+import {
+  activeSegment,
+  showsOutroCard,
+} from '../../lib/player/skip-segments.ts';
 import { useSkipSegments } from '../../lib/player/use-skip-segments.ts';
 import { usePlayback } from '../../lib/player/use-playback.ts';
 import { useProgressSaving } from '../../lib/progress/use-progress-saving.ts';
@@ -37,13 +41,14 @@ interface PlayerProps {
   slug: string;
   seasonSlug: string;
   title: string;
+  seasonName?: string;
   episode: Episode;
   image?: string;
   startS: number;
   nextEpisode?: NextEpisodeInfo;
   onNext?: () => void;
   onBack: () => void;
-  episodesPanel: (progress: number) => ReactNode;
+  episodesPanel: (progress: number, close: () => void) => ReactNode;
 }
 
 function SkipGlyph({ forward }: { forward: boolean }) {
@@ -65,6 +70,7 @@ export function Player({
   slug,
   seasonSlug,
   title,
+  seasonName,
   episode,
   image,
   startS,
@@ -83,6 +89,14 @@ export function Player({
     image,
     episodeLabel: episode.label,
   });
+  const next = useRef(onNext);
+  useEffect(() => {
+    next.current = onNext;
+  }, [onNext]);
+  // Keyed on the phase alone: the episode switch moves ended to loading, so each ending fires once.
+  useEffect(() => {
+    if (state.phase === 'ended') next.current?.();
+  }, [state.phase]);
   const skipSegments = useSkipSegments(slug, episode.label);
   const fullscreen = useFullscreen(root);
   usePlayerKeys({
@@ -95,6 +109,10 @@ export function Player({
   const playing = state.phase === 'playing';
   const idle = useIdle(root, playing);
   const playLabel = playing ? PLAYER_COPY.pause : PLAYER_COPY.play;
+  const outroCard = showsOutroCard(
+    activeSegment(skipSegments, state.time),
+    !!nextEpisode && !!onNext,
+  );
   const progress = state.duration > 0 ? (state.time / state.duration) * 100 : 0;
 
   return (
@@ -151,14 +169,36 @@ export function Player({
         </div>
       ) : null}
 
-      <IconButton
-        label={PLAYER_COPY.back}
-        data-testid="player:back"
-        className="pl-chrome absolute top-8 left-gutter z-1 bg-hero-overlay max-[720px]:left-4"
-        onClick={onBack}
-      >
-        <ArrowLeft aria-hidden="true" />
-      </IconButton>
+      <div
+        aria-hidden="true"
+        className="pl-chrome pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--canvas)_85%,transparent),transparent)]"
+      />
+      <div className="pl-chrome pointer-events-none absolute inset-x-gutter top-7 z-1 flex items-center gap-4 max-[720px]:inset-x-4">
+        <IconButton
+          small
+          label={PLAYER_COPY.back}
+          data-testid="player:back"
+          className="pointer-events-auto"
+          onClick={onBack}
+        >
+          <ArrowLeft aria-hidden="true" />
+        </IconButton>
+        <div className="min-w-0">
+          <div data-testid="player:title" className="truncate text-title-sm">
+            {title}
+          </div>
+          <div className="truncate text-sm font-medium text-muted">
+            {seasonName ? `${seasonName} · ` : null}
+            <span data-testid="player:episode-label">{episode.label}</span>
+            {episode.name ? (
+              <>
+                {': '}
+                <span data-testid="player:episode-name">{episode.name}</span>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
 
       <div className="pl-bar pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-3 px-gutter pt-24 pb-7 max-[720px]:px-4">
         <div
@@ -168,6 +208,9 @@ export function Player({
         <SkipButton
           segments={skipSegments}
           time={state.time}
+          duration={state.duration}
+          image={image}
+          nextEpisode={nextEpisode}
           onSkip={controls.seek}
           onNext={onNext}
         />
@@ -176,14 +219,9 @@ export function Player({
             <Scrubber
               time={state.time}
               duration={state.duration}
+              segments={skipSegments}
               onSeek={controls.seek}
             />
-            <span
-              data-testid="player:remaining"
-              className="min-w-14 text-right text-body-strong tabular-nums"
-            >
-              {formatClock(state.duration - state.time)}
-            </span>
           </div>
 
           <div className="pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -226,40 +264,31 @@ export function Player({
                 onVolume={controls.setVolume}
                 onToggleMute={controls.toggleMute}
               />
-            </div>
-
-            <div className="flex min-w-0 flex-[1_1_240px] items-baseline gap-4 px-2 text-lg leading-[1.4]">
               <span
-                data-testid="player:title"
-                className="font-bold whitespace-nowrap"
+                data-testid="player:time"
+                className="ml-2 text-sm font-medium tabular-nums"
               >
-                {title}
-              </span>
-              <span
-                data-testid="player:episode-label"
-                className="whitespace-nowrap text-muted"
-              >
-                {episode.label}
-              </span>
-              {episode.name ? (
-                <span
-                  data-testid="player:episode-name"
-                  className="min-w-0 truncate font-medium"
-                >
-                  {episode.name}
+                {formatClock(state.time)}
+                <span className="text-muted">
+                  {' / '}
+                  {formatClock(state.duration)}
                 </span>
-              ) : null}
+              </span>
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <NextEpisode next={nextEpisode} image={image} onNext={onNext} />
+              <NextEpisode
+                next={outroCard ? undefined : nextEpisode}
+                image={image}
+                onNext={onNext}
+              />
               <HoverPopup
                 id="episodes"
                 label={PLAYER_COPY.episodes}
                 icon={<ListVideo aria-hidden="true" />}
-                width={440}
+                width={408}
               >
-                {episodesPanel(progress)}
+                {({ close }) => episodesPanel(progress, close)}
               </HoverPopup>
               <HoverPopup
                 id="speed"

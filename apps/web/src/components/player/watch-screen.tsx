@@ -143,18 +143,20 @@ export function WatchScreen({
       slug={slug}
       seasonSlug={page.currentSeason.slug}
       title={page.title}
+      seasonName={page.seasons.length > 1 ? page.currentSeason.name : undefined}
       episode={page.currentEpisode}
       image={page.image}
       startS={resolved?.startS ?? 0}
       nextEpisode={next ? { episode: next, number: index + 2 } : undefined}
       onNext={next ? () => open(slug, next) : undefined}
       onBack={goBack}
-      episodesPanel={(progress) => (
+      episodesPanel={(progress, close) => (
         <EpisodesPanel
           view={view}
           title={page.title}
           image={page.image}
           onView={setView}
+          onClose={close}
           seasons={page.seasons}
           browseSlug={browseSlug}
           browsed={browsed}

@@ -40,12 +40,14 @@ const unscored = {
 
 async function openSeasonPicker() {
   render(<WatchScreen slug={MOCK_WATCH_SLUG} />, { path: '/' });
-  await userEvent.click(await screen.findByTestId('player:seasons-back'));
+  await userEvent.click(await screen.findByTestId('player:seasons'));
   return screen.getByTestId('player:seasons-panel');
 }
 
 function pickerOrder(panel: HTMLElement) {
-  return [...panel.querySelectorAll('button')].map((b) => b.textContent);
+  return [...panel.querySelectorAll('[role="listitem"]')].map(
+    (b) => b.textContent,
+  );
 }
 
 beforeEach(() => {
