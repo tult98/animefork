@@ -259,6 +259,31 @@ body {
 }
 
 @layer components {
+  .trailer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    container-type: size;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .trailer[data-phase='playing'] {
+    opacity: 1;
+  }
+
+  /* Covers its box like object-fit: cover, scaled past the edges so YouTube's title bar and logo fall outside. */
+  .trailer iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100cqw, 177.78cqh);
+    height: max(100cqh, 56.25cqw);
+    border: 0;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+
   .hero-slide {
     opacity: 0;
     visibility: hidden;
