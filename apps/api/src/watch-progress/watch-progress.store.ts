@@ -42,9 +42,13 @@ export class MemoryWatchProgressStore implements WatchProgressStore {
     userId: string,
     limit: number,
   ): Promise<WatchProgressRow[]> {
+    const keyOfSlug = new Map<string, string>();
+    for (const row of this.rows.values()) {
+      if (row.seriesKey) keyOfSlug.set(row.slug, row.seriesKey);
+    }
     const latest = new Map<string, WatchProgressRow>();
     for (const row of [...this.rows.values()].sort(newestFirst)) {
-      const series = row.seriesKey ?? row.slug;
+      const series = row.seriesKey ?? keyOfSlug.get(row.slug) ?? row.slug;
       if (row.userId === userId && !latest.has(series)) {
         latest.set(series, row);
       }
@@ -148,11 +152,16 @@ export class PostgresWatchProgressStore implements WatchProgressStore {
     limit: number,
   ): Promise<WatchProgressRow[]> {
     const { rows } = await this.pool.query<WatchProgressDbRow>(
-      `select ${COLUMNS} from (
-         select distinct on (coalesce(series_key, slug)) ${COLUMNS}
+      `with keyed as (
+         select ${COLUMNS},
+                coalesce(series_key, max(series_key) over (partition by user_id, slug), slug) as series
            from watch_progress
           where user_id = $1
-          order by coalesce(series_key, slug), updated_at desc, length(episode_id) desc, episode_id desc
+       )
+       select ${COLUMNS} from (
+         select distinct on (series) ${COLUMNS}
+           from keyed
+          order by series, updated_at desc, length(episode_id) desc, episode_id desc
        ) latest
         order by updated_at desc, length(episode_id) desc, episode_id desc
         limit $2`,

@@ -169,6 +169,30 @@ describe.skipIf(!url)('PostgresWatchProgressStore against DATABASE_URL', () => {
     expect(mine[0]?.seriesKey).toBe(seriesKey);
   });
 
+  it('counts an older row without a key toward the series its slug later got', async () => {
+    const first = slug('late-s1');
+    const second = slug('late-s2');
+    await store.save(
+      row({ slug: second, episodeId: '1', updatedAt: new Date(T0 + 5_000) }),
+    );
+    await store.save(
+      row({ slug: first, seriesKey: first, updatedAt: new Date(T0 + 10_000) }),
+    );
+    await store.save(
+      row({
+        slug: second,
+        episodeId: '2',
+        seriesKey: first,
+        updatedAt: new Date(T0 + 20_000),
+      }),
+    );
+
+    const mine = (await store.latestPerSlug(ana, 1000)).filter((r) =>
+      r.slug.startsWith(`${prefix}-late-`),
+    );
+    expect(mine.map((r) => [r.slug, r.episodeId])).toEqual([[second, '2']]);
+  });
+
   it('removes a user’s progress with the user', async () => {
     const gone = await user('gone');
     const s = slug('cascade');

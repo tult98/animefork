@@ -68,6 +68,32 @@ describe('MemoryWatchProgressStore', () => {
     ]);
   });
 
+  it('counts an older row without a key toward the series its slug later got', async () => {
+    const store = new MemoryWatchProgressStore();
+    const seriesKey = 'the-gioi-phep-thuat-a474';
+    await store.save(
+      row({
+        slug: 'black-clover-2nd-season-a6073',
+        episodeId: '115975',
+        updatedAt: new Date(T0 + 5_000),
+      }),
+    );
+    await store.save(
+      row({ slug: seriesKey, seriesKey, updatedAt: new Date(T0 + 10_000) }),
+    );
+    await store.save(
+      row({
+        slug: 'black-clover-2nd-season-a6073',
+        episodeId: '116427',
+        seriesKey,
+        updatedAt: new Date(T0 + 20_000),
+      }),
+    );
+
+    const rows = await store.latestPerSlug('u1', 10);
+    expect(rows.map((r) => r.episodeId)).toEqual(['116427']);
+  });
+
   it('keeps one row per series across seasons, and rows without a series key apart', async () => {
     const store = new MemoryWatchProgressStore();
     const seriesKey = 'the-gioi-phep-thuat-a474';
