@@ -8,6 +8,12 @@
       "port": 9000
     },
     {
+      "name": "api",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["NX_DAEMON=false", "pnpm", "nx", "dev", "api"],
+      "port": 3100
+    },
+    {
       "name": "web",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["nx", "dev", "web"],
