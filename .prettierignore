@@ -20,3 +20,5 @@
 /apps/web/public/fixtures
 # Vendored from apps/desktop-web verbatim: the wasm glue code, never hand-edited.
 /apps/web/src/lib/player/dha
+# Verbatim copies of MAL pages.
+/apps/api/test/episodes/fixtures
