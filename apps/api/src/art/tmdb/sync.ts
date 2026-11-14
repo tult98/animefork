@@ -36,8 +36,11 @@ export interface TitleArtRow {
   source_name: string;
   source_year: number | null;
   source_episode_count: number | null;
-  matched_by: MatcherName;
+  matched_by: ArtMatchedBy;
+  source_mal_id?: number | null;
 }
+
+export type ArtMatchedBy = MatcherName | 'mal';
 
 export interface EpisodeArtRow {
   source_slug: string;
@@ -50,7 +53,7 @@ const ALTERNATIVE_TITLE_LIMIT = 3;
 const MAX_SEARCHES = 5;
 const MOVIE_LIMIT = 5;
 const MOVIES_PER_QUERY = 3;
-const ANIMATION_GENRE = 16;
+export const ANIMATION_GENRE = 16;
 
 export interface MatchedTitle {
   slug: string;
@@ -176,15 +179,20 @@ async function movieCandidates(
   );
 }
 
+export interface SyncOptions {
+  sideEntry?: boolean;
+}
+
 export async function gatherCandidates(
   input: TitleInput,
   tmdb: TmdbClient,
+  { sideEntry = false }: SyncOptions = {},
 ): Promise<Gathered | null> {
   const season = parseSeasonNumber(input.seasonName, input.name);
   const queries = tmdbQueries(input);
-  let query = '';
+  let query = queries[0] ?? '';
   let results: Awaited<ReturnType<TmdbClient['searchTv']>> = [];
-  for (const candidate of queries) {
+  for (const candidate of sideEntry ? [] : queries) {
     query = candidate;
     results = await tmdb.searchTv(candidate);
     if (results.length > 0) break;
@@ -214,6 +222,7 @@ export async function gatherCandidates(
       seasonName: input.seasonName,
       year: input.year,
       episodeCount: input.episodeCount,
+      ...(sideEntry && { sideEntry }),
       candidates: [
         ...details.map((d, i) =>
           toCandidate(d, season, alternativeTitles[i] ?? []),
@@ -279,8 +288,9 @@ function matchedOutcome(
 export async function syncTitle(
   input: TitleInput,
   { tmdb, matcher }: SyncDeps,
+  options: SyncOptions = {},
 ): Promise<SyncOutcome> {
-  const gathered = await gatherCandidates(input, tmdb);
+  const gathered = await gatherCandidates(input, tmdb, options);
   if (!gathered) return skip(input.slug, 'no TMDB search results');
   const { season, query, question, details } = gathered;
 

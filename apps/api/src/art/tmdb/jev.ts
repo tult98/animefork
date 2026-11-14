@@ -280,7 +280,9 @@ export class JevMatcher implements Matcher {
     const anyShow = answers.any_show.noul;
     const sideEntryNoul = answers.side_entry.noul;
     const sideEntry =
-      sideEntryNoul >= MIN_SIDE_ENTRY_NOUL || namesSideEntry(question);
+      question.sideEntry === true ||
+      sideEntryNoul >= MIN_SIDE_ENTRY_NOUL ||
+      namesSideEntry(question);
     const fitsSourceKind = (c: Candidate) =>
       sideEntry ? c.kind === 'movie' : c.kind === 'tv';
     const seasonAccepted =

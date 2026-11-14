@@ -9,18 +9,18 @@ const after = (ms: number) => new Date(at.getTime() + ms);
 describe('isSettled', () => {
   it.each([
     ['a match ten years old', 'matched', 1, 3650 * DAY, true],
-    ['a miss just under a week old', 'no_match', 5, 7 * DAY - 1, true],
-    ['a miss a week old', 'no_match', 5, 7 * DAY, false],
+    ['a miss just under a week old', 'no_match', 6, 7 * DAY - 1, true],
+    ['a miss a week old', 'no_match', 6, 7 * DAY, false],
     [
       'a failure just under ten minutes old',
       'failed',
-      5,
+      6,
       10 * MINUTE - 1,
       true,
     ],
-    ['a failure ten minutes old', 'failed', 5, 10 * MINUTE, false],
-    ['a fresh miss written before matcher version 5', 'no_match', 4, 0, false],
-    ['a fresh failure written before matcher version 5', 'failed', 4, 0, false],
+    ['a failure ten minutes old', 'failed', 6, 10 * MINUTE, false],
+    ['a fresh miss written before matcher version 6', 'no_match', 5, 0, false],
+    ['a fresh failure written before matcher version 6', 'failed', 5, 0, false],
   ] as const)('%s', (_name, status, matcherVersion, age, settled) => {
     const row = { status, matcherVersion, attemptedAt: at };
 
@@ -33,7 +33,7 @@ describe('isSettled', () => {
     ['a miss tried after the names arrived', 'no_match', -1, true],
     ['a match tried before the names arrived', 'matched', 1, true],
   ] as const)('%s', (_name, status, namesArrived, settled) => {
-    const row = { status, matcherVersion: 5, attemptedAt: at };
+    const row = { status, matcherVersion: 6, attemptedAt: at };
 
     expect(isSettled(row, after(1000), after(namesArrived))).toBe(settled);
   });

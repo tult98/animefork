@@ -7,6 +7,7 @@ const SearchResultSchema = z.object({
   name: z.string(),
   original_name: z.string(),
   first_air_date: z.string().nullish(),
+  genre_ids: z.array(z.number().int()).default([]),
 });
 
 const SearchSchema = z.object({ results: z.array(SearchResultSchema) });
@@ -70,6 +71,7 @@ const SeasonSchema = z.object({
   episodes: z.array(
     z.object({
       episode_number: z.number().int(),
+      air_date: z.string().nullish(),
       still_path: z
         .string()
         .nullish()

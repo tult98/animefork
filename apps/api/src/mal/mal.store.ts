@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type pg from 'pg';
 import { PG_POOL } from '../database/migration-runner.ts';
 import type { MalAiring, MalSeason, MalStartSeason } from '../art/contract.ts';
+import type { MalFactFields } from './mal.client.ts';
 import type { MalStatus } from './mal.retry.ts';
 
 export const MAL_STORE = Symbol('MalStore');
@@ -22,6 +23,9 @@ export interface StoredMal {
   startDate: string | null;
   startSeason: MalStartSeason | null;
   trailerYoutubeId: string | null;
+  mediaType: string | null;
+  english: string | null;
+  synonyms: string[];
   // False for a row saved before start dates were stored, so it is fetched once more.
   datesKnown: boolean;
   // What the matcher chose and how sure it was, so a wrong match can be spotted by eye.
@@ -39,6 +43,7 @@ export interface MalStore {
   save(row: StoredMal): Promise<void>;
   // Records a failed refresh without touching the stored numbers, so it is not retried on every lookup.
   touch(slug: string): Promise<void>;
+  saveFacts(slug: string, facts: MalFactFields): Promise<void>;
 }
 
 interface MalRow {
@@ -56,6 +61,9 @@ interface MalRow {
   mal_start_year: number | null;
   mal_start_season: MalSeason | null;
   mal_trailer_youtube_id: string | null;
+  mal_media_type: string | null;
+  mal_english: string | null;
+  mal_synonyms: string[];
   mal_dates_known: boolean;
   matched_title: string | null;
   match_score: string | null;
@@ -84,7 +92,7 @@ export class PostgresMalStore implements MalStore {
       `select source_slug, status, mal_id, mal_score, mal_voters, mal_rank,
               mal_popularity, mal_members, mal_airing, mal_episodes,
               mal_start_date, mal_start_year, mal_start_season, mal_trailer_youtube_id,
-              mal_dates_known, matched_title, match_score, matched_by, matcher_version, reason,
+              mal_media_type, mal_english, mal_synonyms, mal_dates_known, matched_title, match_score, matched_by, matcher_version, reason,
               attempted_at, fetched_at
          from title_mal where source_slug = any($1::text[])`,
       [slugs],
@@ -107,6 +115,9 @@ export class PostgresMalStore implements MalStore {
             ? { year: row.mal_start_year, season: row.mal_start_season }
             : null,
         trailerYoutubeId: row.mal_trailer_youtube_id,
+        mediaType: row.mal_media_type,
+        english: row.mal_english,
+        synonyms: row.mal_synonyms,
         datesKnown: row.mal_dates_known,
         matchedTitle: row.matched_title,
         matchScore: toNumber(row.match_score),
@@ -128,9 +139,9 @@ export class PostgresMalStore implements MalStore {
           mal_start_date, mal_start_year, mal_start_season,
           mal_trailer_youtube_id, mal_dates_known,
           matched_title, match_score, matched_by, matcher_version, reason,
-          attempted_at, fetched_at)
+          attempted_at, fetched_at, mal_media_type, mal_english, mal_synonyms)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-               $15, $16, $17, $18, $19, $20, $21, $22)
+               $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
        on conflict (source_slug) do update set
          status = excluded.status,
          mal_id = excluded.mal_id,
@@ -152,7 +163,10 @@ export class PostgresMalStore implements MalStore {
          matcher_version = excluded.matcher_version,
          reason = excluded.reason,
          attempted_at = excluded.attempted_at,
-         fetched_at = excluded.fetched_at`,
+         fetched_at = excluded.fetched_at,
+         mal_media_type = excluded.mal_media_type,
+         mal_english = excluded.mal_english,
+         mal_synonyms = excluded.mal_synonyms`,
       [
         row.slug,
         row.status,
@@ -176,6 +190,9 @@ export class PostgresMalStore implements MalStore {
         row.reason,
         row.attemptedAt,
         row.fetchedAt,
+        row.mediaType,
+        row.english,
+        row.synonyms,
       ],
     );
   }
@@ -184,6 +201,18 @@ export class PostgresMalStore implements MalStore {
     await this.pool.query(
       `update title_mal set attempted_at = now() where source_slug = $1`,
       [slug],
+    );
+  }
+
+  async saveFacts(
+    slug: string,
+    { mediaType, english, synonyms }: MalFactFields,
+  ): Promise<void> {
+    await this.pool.query(
+      `update title_mal
+          set mal_media_type = $2, mal_english = $3, mal_synonyms = $4
+        where source_slug = $1`,
+      [slug, mediaType, english, synonyms],
     );
   }
 }

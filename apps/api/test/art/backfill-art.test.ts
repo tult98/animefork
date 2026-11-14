@@ -1,9 +1,18 @@
 import { randomInt } from 'node:crypto';
 import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it } from 'vitest';
+import type pg from 'pg';
 import { ART_SYNC, ArtFiller } from '../../src/art/art.filler.ts';
 import { ART_STORE, type ArtStore } from '../../src/art/art.store.ts';
-import { backfillArt } from '../../src/scripts/backfill-art.ts';
+import type { SyncDeps } from '../../src/art/tmdb/sync.ts';
+import { PG_POOL } from '../../src/database/migration-runner.ts';
+import { createMalClient } from '../../src/mal/mal.client.ts';
+import { MAL_STORE, type MalStore } from '../../src/mal/mal.store.ts';
+import {
+  backfillArt,
+  backfillArtFromMal,
+  selectMalArtRows,
+} from '../../src/scripts/backfill-art.ts';
 import { buildApp } from '../test-app.ts';
 import { mockTmdbImages, mockTmdbShow } from './__mockData__/index.ts';
 
@@ -685,5 +694,285 @@ describe('backfill-art', () => {
         titles: [{ slug, name: 'Boruto: Đứa Con Ngỗ Nghịch Của Naruto' }],
       });
     expect(res.body.art).toEqual({ [slug]: { status: 'none' } });
+  });
+
+  it('reports the movie a dry run would move a title to from its MAL facts, and writes nothing', async () => {
+    const { app, http } = await buildApp({
+      env: { TMDB_API_BASE: 'https://tmdb.test/3' },
+    });
+    const slug = `naruto-movie-1-a${randomInt(1_000_000_000)}`;
+    const malId = randomInt(1, 2_000_000_000);
+    const store = app.get<ArtStore>(ART_STORE);
+    const malStore = app.get<MalStore>(MAL_STORE);
+    await store.saveMatched({
+      title: {
+        source_slug: slug,
+        tmdb_kind: 'tv',
+        tmdb_id: 46260,
+        tmdb_season: null,
+        match_scope: 'show',
+        backdrop_path: '/naruto-series.jpg',
+        backdrop_lang: 'en',
+        poster_path: null,
+        poster_lang: null,
+        source_name: 'Naruto: Cuộc Chiến Ở Tuyết Quốc',
+        source_year: 2004,
+        source_episode_count: null,
+        matched_by: 'jev',
+      },
+      episodes: [],
+    });
+    await malStore.save({
+      slug,
+      status: 'ok',
+      malId,
+      score: 7.1,
+      voters: 50000,
+      rank: 4000,
+      popularity: 2000,
+      members: 120000,
+      airing: 'finished_airing',
+      episodes: 1,
+      startDate: '2004-08-21',
+      startSeason: { year: 2004, season: 'summer' },
+      trailerYoutubeId: null,
+      mediaType: null,
+      english: null,
+      synonyms: [],
+      datesKnown: true,
+      matchedTitle:
+        'Naruto Movie 1: Dai Katsugeki!! Yuki Hime Shinobu Houjou Dattebayo!',
+      matchScore: 0.9,
+      matchedBy: 'franchise',
+      matcherVersion: 8,
+      reason: null,
+      attemptedAt: new Date('2026-03-01T00:00:00Z'),
+      fetchedAt: new Date('2026-03-01T00:00:00Z'),
+    });
+    fetchMock
+      .get(`begin:https://mal.test/v2/anime/${malId}?fields=`, {
+        id: malId,
+        title:
+          'Naruto Movie 1: Dai Katsugeki!! Yuki Hime Shinobu Houjou Dattebayo!',
+        alternative_titles: {
+          synonyms: [],
+          en: 'Naruto the Movie: Ninja Clash in the Land of Snow',
+        },
+        start_date: '2004-08-21',
+        num_episodes: 1,
+        media_type: 'movie',
+      })
+      .get(
+        'https://tmdb.test/3/search/movie?api_key=key&query=Naruto+the+Movie%3A+Ninja+Clash+in+the+Land+of+Snow',
+        {
+          results: [
+            {
+              id: 16907,
+              title: 'Naruto the Movie: Ninja Clash in the Land of Snow',
+              original_title: '劇場版 NARUTO 大活劇!雪姫忍法帖だってばよ!!',
+              release_date: '2004-08-21',
+              genre_ids: [16, 28],
+            },
+          ],
+        },
+      )
+      .get(
+        'https://tmdb.test/3/movie/16907/images?api_key=key&include_image_language=vi%2Cen%2Cnull',
+        mockTmdbImages,
+      )
+      .get('https://tmdb.test/3/movie/16907?api_key=key&language=vi', {
+        id: 16907,
+        title: 'Naruto the Movie: Ninja Clash in the Land of Snow',
+        original_title: '劇場版 NARUTO 大活劇!雪姫忍法帖だってばよ!!',
+        overview: 'Naruto bảo vệ công chúa Yuki.',
+      });
+    const pool = app.get<pg.Pool>(PG_POOL);
+    const lines: string[] = [];
+
+    const summary = await backfillArtFromMal(
+      await selectMalArtRows(pool, [slug], null),
+      {
+        tmdb: app.get<SyncDeps>(ART_SYNC).tmdb,
+        mal: createMalClient({
+          clientId: 'abc',
+          baseUrl: 'https://mal.test/v2',
+          gapMs: 0,
+        }),
+        malStore,
+        store,
+        filler: app.get(ArtFiller),
+        write: false,
+        log: (line) => lines.push(line),
+      },
+    );
+
+    expect(summary).toEqual({
+      lookedAt: 1,
+      kept: 0,
+      rematched: 1,
+      filled: 0,
+      failed: 0,
+    });
+    expect(lines).toEqual([
+      `rematched ${slug} tv:46260/show -> movie:16907/show`,
+    ]);
+    const res = await http()
+      .post('/v1/art/lookup')
+      .send({ titles: [{ slug, name: 'Naruto: Cuộc Chiến Ở Tuyết Quốc' }] });
+    expect(res.body.art[slug]).toMatchObject({
+      status: 'ready',
+      backdropPath: '/naruto-series.jpg',
+    });
+    const mal = (await malStore.find([slug])).get(slug);
+    expect(mal).toMatchObject({ mediaType: null, english: null });
+    expect(fetchMock).not.toHaveFetched(
+      'https://tmdb.test/3/movie/16907?api_key=key&language=vi',
+    );
+  });
+
+  it('with --write moves a title to the TMDB movie its MAL facts find, and keeps the facts it read from MAL', async () => {
+    const { app, http } = await buildApp({
+      env: { TMDB_API_BASE: 'https://tmdb.test/3' },
+    });
+    const slug = `naruto-movie-1-a${randomInt(1_000_000_000)}`;
+    const malId = randomInt(1, 2_000_000_000);
+    const store = app.get<ArtStore>(ART_STORE);
+    const malStore = app.get<MalStore>(MAL_STORE);
+    await store.saveMatched({
+      title: {
+        source_slug: slug,
+        tmdb_kind: 'tv',
+        tmdb_id: 46260,
+        tmdb_season: null,
+        match_scope: 'show',
+        backdrop_path: '/naruto-series.jpg',
+        backdrop_lang: 'en',
+        poster_path: null,
+        poster_lang: null,
+        source_name: 'Naruto: Cuộc Chiến Ở Tuyết Quốc',
+        source_year: 2004,
+        source_episode_count: null,
+        matched_by: 'jev',
+      },
+      episodes: [],
+    });
+    await malStore.save({
+      slug,
+      status: 'ok',
+      malId,
+      score: 7.1,
+      voters: 50000,
+      rank: 4000,
+      popularity: 2000,
+      members: 120000,
+      airing: 'finished_airing',
+      episodes: 1,
+      startDate: '2004-08-21',
+      startSeason: { year: 2004, season: 'summer' },
+      trailerYoutubeId: null,
+      mediaType: null,
+      english: null,
+      synonyms: [],
+      datesKnown: true,
+      matchedTitle:
+        'Naruto Movie 1: Dai Katsugeki!! Yuki Hime Shinobu Houjou Dattebayo!',
+      matchScore: 0.9,
+      matchedBy: 'franchise',
+      matcherVersion: 8,
+      reason: null,
+      attemptedAt: new Date('2026-03-01T00:00:00Z'),
+      fetchedAt: new Date('2026-03-01T00:00:00Z'),
+    });
+    fetchMock
+      .get(`begin:https://mal.test/v2/anime/${malId}?fields=`, {
+        id: malId,
+        title:
+          'Naruto Movie 1: Dai Katsugeki!! Yuki Hime Shinobu Houjou Dattebayo!',
+        alternative_titles: {
+          synonyms: [],
+          en: 'Naruto the Movie: Ninja Clash in the Land of Snow',
+        },
+        start_date: '2004-08-21',
+        num_episodes: 1,
+        media_type: 'movie',
+      })
+      .get(
+        'https://tmdb.test/3/search/movie?api_key=key&query=Naruto+the+Movie%3A+Ninja+Clash+in+the+Land+of+Snow',
+        {
+          results: [
+            {
+              id: 16907,
+              title: 'Naruto the Movie: Ninja Clash in the Land of Snow',
+              original_title: '劇場版 NARUTO 大活劇!雪姫忍法帖だってばよ!!',
+              release_date: '2004-08-21',
+              genre_ids: [16, 28],
+            },
+          ],
+        },
+      )
+      .get(
+        'https://tmdb.test/3/movie/16907/images?api_key=key&include_image_language=vi%2Cen%2Cnull',
+        mockTmdbImages,
+      )
+      .get('https://tmdb.test/3/movie/16907?api_key=key&language=vi', {
+        id: 16907,
+        title: 'Naruto the Movie: Ninja Clash in the Land of Snow',
+        original_title: '劇場版 NARUTO 大活劇!雪姫忍法帖だってばよ!!',
+        overview: 'Naruto bảo vệ công chúa Yuki.',
+      });
+    const pool = app.get<pg.Pool>(PG_POOL);
+    const lines: string[] = [];
+
+    const summary = await backfillArtFromMal(
+      await selectMalArtRows(pool, [slug], null),
+      {
+        tmdb: app.get<SyncDeps>(ART_SYNC).tmdb,
+        mal: createMalClient({
+          clientId: 'abc',
+          baseUrl: 'https://mal.test/v2',
+          gapMs: 0,
+        }),
+        malStore,
+        store,
+        filler: app.get(ArtFiller),
+        write: true,
+        log: (line) => lines.push(line),
+      },
+    );
+
+    expect(summary).toEqual({
+      lookedAt: 1,
+      kept: 0,
+      rematched: 1,
+      filled: 0,
+      failed: 0,
+    });
+    expect(lines).toEqual([
+      `rematched ${slug} tv:46260/show -> movie:16907/show`,
+    ]);
+    const res = await http()
+      .post('/v1/art/lookup')
+      .send({ titles: [{ slug, name: 'Naruto: Cuộc Chiến Ở Tuyết Quốc' }] });
+    expect(res.body.art[slug]).toEqual({
+      status: 'ready',
+      backdropPath: '/backdrop-en.jpg',
+      backdropLang: 'en',
+      posterPath: '/poster-vi.jpg',
+      overview: 'Naruto bảo vệ công chúa Yuki.',
+      overviewTranslated: false,
+    });
+    const art = (await store.find([slug])).get(slug);
+    expect(art).toMatchObject({
+      tmdbKind: 'movie',
+      tmdbId: 16907,
+      matchedBy: 'mal',
+      sourceMalId: malId,
+    });
+    const mal = (await malStore.find([slug])).get(slug);
+    expect(mal).toMatchObject({
+      mediaType: 'movie',
+      english: 'Naruto the Movie: Ninja Clash in the Land of Snow',
+      synonyms: [],
+    });
   });
 });

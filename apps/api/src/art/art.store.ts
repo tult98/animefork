@@ -9,8 +9,8 @@ import {
   type OverviewStatus,
   type TitleStatus,
 } from './retry.ts';
-import type { MatcherName, MatchScope } from './tmdb/matcher.ts';
-import type { MatchedTitle } from './tmdb/sync.ts';
+import type { MatchScope } from './tmdb/matcher.ts';
+import type { ArtMatchedBy, MatchedTitle } from './tmdb/sync.ts';
 import type { TmdbKind } from './tmdb/tmdb.ts';
 
 export interface StoredTitle {
@@ -30,7 +30,8 @@ export interface StoredTitle {
   sourceName: string | null;
   sourceYear: number | null;
   sourceEpisodeCount: number | null;
-  matchedBy: MatcherName | null;
+  matchedBy: ArtMatchedBy | null;
+  sourceMalId: number | null;
   overview: string | null;
   overviewLang: OverviewLang | null;
   overviewTranslated: boolean;
@@ -71,6 +72,7 @@ export interface ArtStore {
     status: MissStatus,
     reason: string,
   ): Promise<void>;
+  stampSourceMalId(slug: string, sourceMalId: number): Promise<void>;
   clearMatch(slug: string, status: MissStatus, reason: string): Promise<void>;
   saveOverview(
     slug: string,
@@ -113,7 +115,8 @@ interface TitleRow {
   source_name: string | null;
   source_year: number | null;
   source_episode_count: number | null;
-  matched_by: MatcherName | null;
+  matched_by: ArtMatchedBy | null;
+  source_mal_id: number | null;
   overview: string | null;
   overview_lang: OverviewLang | null;
   overview_translated: boolean;
@@ -136,7 +139,7 @@ export class PostgresArtStore implements ArtStore {
       `select source_slug, status, tmdb_kind, tmdb_id, tmdb_season, match_scope,
               backdrop_path, backdrop_lang, poster_path, poster_lang, reason, matcher_version,
               attempted_at, source_name, source_year, source_episode_count,
-              matched_by, overview, overview_lang, overview_translated,
+              matched_by, source_mal_id, overview, overview_lang, overview_translated,
               overview_status, overview_attempted_at
          from title_art where source_slug = any($1::text[])`,
       [slugs],
@@ -160,6 +163,7 @@ export class PostgresArtStore implements ArtStore {
         sourceYear: row.source_year,
         sourceEpisodeCount: row.source_episode_count,
         matchedBy: row.matched_by,
+        sourceMalId: row.source_mal_id,
         overview: row.overview,
         overviewLang: row.overview_lang,
         overviewTranslated: row.overview_translated,
@@ -208,9 +212,9 @@ export class PostgresArtStore implements ArtStore {
            (source_slug, status, tmdb_id, tmdb_season, match_scope,
             backdrop_path, backdrop_lang, poster_path, poster_lang, reason,
             matcher_version, attempted_at, source_name, source_year,
-            source_episode_count, matched_by, tmdb_kind)
+            source_episode_count, matched_by, tmdb_kind, source_mal_id)
          values ($1, 'matched', $2, $3, $14, $4, $5, $6, $7, null, $8, now(),
-                 $9, $10, $11, $12, $15)
+                 $9, $10, $11, $12, $15, $17)
          on conflict (source_slug) do update set
            status = excluded.status,
            tmdb_kind = excluded.tmdb_kind,
@@ -228,6 +232,7 @@ export class PostgresArtStore implements ArtStore {
            source_year = excluded.source_year,
            source_episode_count = excluded.source_episode_count,
            matched_by = excluded.matched_by,
+           source_mal_id = excluded.source_mal_id,
            overview = case when (title_art.tmdb_kind, title_art.tmdb_id)
              = (excluded.tmdb_kind, excluded.tmdb_id) then title_art.overview end,
            overview_lang = case when (title_art.tmdb_kind, title_art.tmdb_id)
@@ -260,6 +265,7 @@ export class PostgresArtStore implements ArtStore {
           title.match_scope,
           title.tmdb_kind,
           overwriteMatch,
+          title.source_mal_id ?? null,
         ],
       );
       if (overwriteMatch) {
@@ -307,7 +313,8 @@ export class PostgresArtStore implements ArtStore {
          source_name = excluded.source_name,
          source_year = excluded.source_year,
          source_episode_count = excluded.source_episode_count,
-         matched_by = null
+         matched_by = null,
+         source_mal_id = null
        where title_art.status <> 'matched'`,
       [
         source.slug,
@@ -318,6 +325,14 @@ export class PostgresArtStore implements ArtStore {
         source.year ?? null,
         source.episodeCount ?? null,
       ],
+    );
+  }
+
+  async stampSourceMalId(slug: string, sourceMalId: number): Promise<void> {
+    await this.pool.query(
+      `update title_art set source_mal_id = $2
+        where source_slug = $1 and status = 'matched'`,
+      [slug, sourceMalId],
     );
   }
 
@@ -344,6 +359,7 @@ export class PostgresArtStore implements ArtStore {
            poster_path = null,
            poster_lang = null,
            matched_by = null,
+           source_mal_id = null,
            overview = null,
            overview_lang = null,
            overview_translated = false,

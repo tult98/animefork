@@ -25,6 +25,7 @@ export interface MatchQuestion {
   seasonName?: string;
   year?: number;
   episodeCount?: number;
+  sideEntry?: boolean;
   candidates: Candidate[];
 }
 

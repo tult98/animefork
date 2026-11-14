@@ -4,17 +4,10 @@ export type MissStatus = Exclude<TitleStatus, 'matched'>;
 const MINUTE = 60_000;
 const DAY = 24 * 60 * MINUTE;
 
-export const MATCHER_VERSION = 5;
+export const MATCHER_VERSION = 6;
 
-// | status   | written below version | settled for  | then                                     |
-// | -------- | --------------------- | ------------ | ---------------------------------------- |
-// | matched  | MATCHED_REFRESH_BELOW | forever      | answers ready, refills in the background |
-// | no_match | MISS_RETRY_BELOW      | not at all   | retried on its next lookup               |
-// | no_match | (current)             | 7 days       | retried on its next lookup               |
-// | failed   | MISS_RETRY_BELOW      | not at all   | retried on its next lookup               |
-// | failed   | (current)             | 10 minutes   | retried on its next lookup               |
 export const MATCHED_REFRESH_BELOW = 2;
-export const MISS_RETRY_BELOW = 5;
+export const MISS_RETRY_BELOW = 6;
 
 export const RETRY_AFTER_MS: Record<TitleStatus, number> = {
   matched: Number.POSITIVE_INFINITY,
@@ -30,6 +23,18 @@ interface RetryRow {
 
 export function isStale(row: Omit<RetryRow, 'attemptedAt'>): boolean {
   return row.status === 'matched' && row.matcherVersion < MATCHED_REFRESH_BELOW;
+}
+
+export function isFromOtherMal(
+  row: { status: TitleStatus; sourceMalId: number | null },
+  malId: number | null,
+): boolean {
+  return (
+    row.status === 'matched' &&
+    malId !== null &&
+    row.sourceMalId !== null &&
+    row.sourceMalId !== malId
+  );
 }
 
 export function isSettled(row: RetryRow, now: Date, namesAt?: Date): boolean {
