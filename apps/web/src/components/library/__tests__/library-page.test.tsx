@@ -97,7 +97,7 @@ describe('the library page', () => {
     await expect(fetchMock).toBeFetched('path:/v1/library/ratings/alpha', {
       method: 'delete',
     });
-    expect(screen.queryByTestId('library:card:alpha')).toBeNull();
+    expect(screen.queryByTestId('library:card:alpha')).not.toBeInTheDocument();
     expect(screen.getByTestId('library:empty')).toHaveTextContent(
       'Chưa thích tiêu đề nào',
     );
@@ -121,7 +121,7 @@ describe('the library page', () => {
     );
     expect(screen.getByTestId('library:nav:p1')).toHaveTextContent('Cozy1');
     expect(screen.getByTestId('library:card:beta')).toBeVisible();
-    expect(screen.queryByTestId('library:card:alpha')).toBeNull();
+    expect(screen.queryByTestId('library:card:alpha')).not.toBeInTheDocument();
   });
 
   it('asks a signed-out viewer to sign in and requests no library', async () => {
@@ -160,6 +160,8 @@ describe('the library page', () => {
       'href',
       '/watch/gamma/7',
     );
-    expect(screen.queryByRole('button', { name: /Bỏ|Xóa/ })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /Bỏ|Xóa/ }),
+    ).not.toBeInTheDocument();
   });
 });
