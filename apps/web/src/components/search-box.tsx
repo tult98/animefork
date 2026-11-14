@@ -1,9 +1,9 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HeaderIconButton } from './ui/header.tsx';
 import { Search, X } from './ui/icons.ts';
 
-const ICON_BUTTON_CLASS =
+const MOBILE_ICON_CLASS =
   'grid size-11 place-items-center rounded-full hover:bg-pill-active desk:hidden';
 
 function useCurrentQuery(): string {
@@ -16,97 +16,108 @@ function useCurrentQuery(): string {
 
 function SearchForm({
   initial,
-  inputRef,
-  onSubmitted,
+  open,
+  setOpen,
 }: {
   initial: string;
-  inputRef: RefObject<HTMLInputElement | null>;
-  onSubmitted: () => void;
+  open: boolean;
+  setOpen: (open: boolean) => void;
 }) {
   const navigate = useNavigate();
+  const input = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(initial);
+
+  useEffect(() => {
+    if (open) input.current?.focus();
+  }, [open]);
 
   return (
     <form
       role="search"
-      className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-pill border border-border bg-canvas pr-3 pl-4 focus-within:border-focus desk:w-[clamp(240px,32vw,460px)] desk:flex-none"
+      data-testid="search:bar"
+      data-open={open}
+      className={`flex h-12 min-w-0 items-center gap-1 overflow-hidden rounded-pill border bg-canvas pl-0 transition-[width,opacity,border-color] duration-200 ease-out max-desk:absolute max-desk:inset-0 max-desk:z-10 max-desk:h-auto max-desk:rounded-none max-desk:border-0 max-desk:px-(--pad) ${
+        open
+          ? 'border-border focus-within:border-focus desk:w-[clamp(240px,32vw,460px)]'
+          : 'border-transparent bg-transparent max-desk:invisible max-desk:opacity-0 desk:w-11'
+      }`}
       onSubmit={(event) => {
         event.preventDefault();
         const q = value.trim();
         if (q === '') return;
         void navigate({ to: '/search', search: { q } });
-        onSubmitted();
+      }}
+      onBlur={(event) => {
+        if (value === '' && !event.currentTarget.contains(event.relatedTarget))
+          setOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') setOpen(false);
       }}
     >
-      <Search aria-hidden="true" className="af-icon flex-none" />
+      <button
+        type="button"
+        aria-label="Tìm kiếm"
+        tabIndex={open ? -1 : 0}
+        className="grid size-11 flex-none cursor-pointer place-items-center rounded-full hover:bg-pill-active max-desk:pointer-events-none"
+        onClick={() => setOpen(true)}
+      >
+        <Search aria-hidden="true" className="af-icon" />
+      </button>
       <input
-        ref={inputRef}
+        ref={input}
         type="search"
         data-testid="search:input"
         aria-label="Tìm phim"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        className="h-11 min-w-0 flex-1 border-0 bg-transparent text-base/normal text-ink outline-0 [&::-webkit-search-cancel-button]:hidden"
+        className={`h-11 min-w-0 flex-1 border-0 bg-transparent text-base/normal text-ink outline-0 [&::-webkit-search-cancel-button]:hidden ${
+          open ? '' : 'invisible'
+        }`}
       />
-      {value === '' ? null : (
+      {open && value !== '' ? (
         <button
           type="button"
           aria-label="Xóa nội dung tìm kiếm"
-          className="grid size-7 flex-none cursor-pointer place-items-center rounded-full bg-pill-active text-ink"
+          className="mr-3 grid size-7 flex-none cursor-pointer place-items-center rounded-full bg-pill-active text-ink"
           onClick={() => {
             setValue('');
-            inputRef.current?.focus();
+            input.current?.focus();
           }}
         >
           <X aria-hidden="true" className="af-icon size-4" />
         </button>
-      )}
+      ) : null}
+      <button
+        type="button"
+        className="min-h-11 flex-none cursor-pointer px-2 text-base/none font-medium desk:hidden"
+        onClick={() => setOpen(false)}
+      >
+        Hủy
+      </button>
     </form>
   );
 }
 
 export function SearchBox() {
-  const [open, setOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const q = useCurrentQuery();
+  const [open, setOpen] = useState(q !== '');
 
-  useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
+  const [seenQ, setSeenQ] = useState(q);
+  if (q !== seenQ) {
+    setSeenQ(q);
+    if (q !== '') setOpen(true);
+  }
 
   return (
     <>
       <HeaderIconButton
         icon={Search}
-        label="Tìm kiếm"
-        className={ICON_BUTTON_CLASS}
+        label="Mở tìm kiếm"
+        className={MOBILE_ICON_CLASS}
         onClick={() => setOpen(true)}
       />
-      <div
-        data-testid="search:bar"
-        className={
-          open
-            ? 'flex items-center gap-2 bg-canvas px-(--pad) max-desk:absolute max-desk:inset-0 max-desk:z-10'
-            : 'max-desk:hidden desk:flex'
-        }
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') setOpen(false);
-        }}
-      >
-        <SearchForm
-          key={q}
-          initial={q}
-          inputRef={inputRef}
-          onSubmitted={() => setOpen(false)}
-        />
-        <button
-          type="button"
-          className="min-h-11 flex-none cursor-pointer px-2 text-base/none font-medium desk:hidden"
-          onClick={() => setOpen(false)}
-        >
-          Hủy
-        </button>
-      </div>
+      <SearchForm key={q} initial={q} open={open} setOpen={setOpen} />
     </>
   );
 }

@@ -11,13 +11,13 @@ import { SearchBox } from '../search-box.tsx';
 import { SearchResults } from '../search-results.tsx';
 
 describe('searching', () => {
-  it('opens the results page for the text typed in the top bar', async () => {
+  it('opens the results page for the text typed after tapping the search icon', async () => {
     const { router } = render(<SearchBox />, { path: '/' });
 
-    await userEvent.type(
-      await screen.findByTestId('search:input'),
-      'tsuki{Enter}',
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Tìm kiếm' }),
     );
+    await userEvent.type(screen.getByTestId('search:input'), 'tsuki{Enter}');
 
     expect(router.state.location.pathname).toBe('/search');
     expect(router.state.location.search).toEqual({ q: 'tsuki' });
