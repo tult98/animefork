@@ -404,6 +404,161 @@ describe('art lookup with MyAnimeList', () => {
     );
   });
 
+  it('matches a second same-named movie without reading the franchise from MAL again', async () => {
+    const { app, http } = await buildApp({
+      env: {
+        MAL_CLIENT_ID: 'abc',
+        MAL_API_BASE: 'https://mal.test/v2',
+        TENRAI_API_BASE: 'https://tenrai.test/v1',
+        TYPESAFE_API_KEY: 'jev-key',
+      },
+    });
+    const run = randomInt(1_000_000_000);
+    // The taken ids come from every slug of this display name, so each test needs its own.
+    const name = `Thám Tử Lừng Danh Conan ${run}`;
+    const series = `tham-tu-lung-danh-conan-a${run}`;
+    const first = `tham-tu-lung-danh-conan-bong-ma-duong-baker-a${run}`;
+    const second = `tham-tu-lung-danh-conan-me-cung-co-do-a${run}`;
+    const seriesMalId = randomInt(1, 1_000_000_000);
+    const phantom = seriesMalId + 1;
+    const crossroad = seriesMalId + 2;
+    const art = app.get<ArtStore>(ART_STORE);
+    await art.saveMiss({ slug: series, name }, 'no_match', 'no art');
+    await art.saveMiss({ slug: first, name }, 'no_match', 'no art');
+    await art.saveMiss({ slug: second, name }, 'no_match', 'no art');
+    await app.get<MalStore>(MAL_STORE).save({
+      slug: series,
+      status: 'ok',
+      malId: seriesMalId,
+      score: 8.17,
+      voters: 1000,
+      rank: 100,
+      popularity: 200,
+      members: 3000,
+      airing: 'currently_airing',
+      episodes: null,
+      startDate: '1996-01-08',
+      startSeason: { year: 1996, season: 'winter' },
+      trailerYoutubeId: null,
+      datesKnown: true,
+      matchedTitle: 'Meitantei Conan',
+      matchScore: 1,
+      matchedBy: 'score',
+      matcherVersion: 5,
+      reason: null,
+      attemptedAt: new Date('2026-03-01T00:00:00Z'),
+      fetchedAt: new Date('2026-03-01T00:00:00Z'),
+    });
+    fetchMock
+      .get('begin:https://mal.test/v2/anime?q=', {
+        data: [
+          {
+            node: {
+              id: seriesMalId,
+              title: 'Meitantei Conan',
+              media_type: 'tv',
+            },
+          },
+        ],
+      })
+      .get(`begin:https://mal.test/v2/anime/${seriesMalId}?`, {
+        id: seriesMalId,
+        title: 'Meitantei Conan',
+        media_type: 'tv',
+        related_anime: [
+          { node: { id: phantom }, relation_type: 'side_story' },
+          { node: { id: crossroad }, relation_type: 'side_story' },
+        ],
+      })
+      .get(`begin:https://mal.test/v2/anime/${phantom}?`, {
+        id: phantom,
+        title: 'Meitantei Conan: Baker Street no Bourei',
+        media_type: 'movie',
+        related_anime: [
+          { node: { id: seriesMalId }, relation_type: 'parent_story' },
+        ],
+      })
+      .get(`begin:https://mal.test/v2/anime/${crossroad}?`, {
+        id: crossroad,
+        title: 'Meitantei Conan: Meikyuu no Crossroad',
+        media_type: 'movie',
+      })
+      .post(
+        'https://api.typesafe.ai/v1/systemone',
+        {
+          model: 'jev-1.13.0',
+          answers: {
+            match: {
+              type: 'choice',
+              choice: String(phantom),
+              confidence: 0.9,
+              probabilities: { [phantom]: 0.98, [crossroad]: 0.02 },
+            },
+            any_match: { type: 'noul', noul: 0.7 },
+          },
+          usage: { input_tokens: 400, output_tokens: 20 },
+        },
+        { repeat: 1 },
+      )
+      .post('https://api.typesafe.ai/v1/systemone', {
+        model: 'jev-1.13.0',
+        answers: {
+          match: {
+            type: 'choice',
+            choice: String(crossroad),
+            confidence: 0.9,
+            probabilities: { [crossroad]: 0.97 },
+          },
+          any_match: { type: 'noul', noul: 0.8 },
+        },
+        usage: { input_tokens: 400, output_tokens: 20 },
+      })
+      .get(`https://tenrai.test/v1/anime/${phantom}/full`, {
+        data: { trailer: null },
+      })
+      .get(`https://api.tenrai.org/v1/anime/${phantom}/episodes?page=1`, 404)
+      .get(`https://tenrai.test/v1/anime/${crossroad}/full`, {
+        data: { trailer: null },
+      })
+      .get(
+        `https://api.tenrai.org/v1/anime/${crossroad}/episodes?page=1`,
+        404,
+      );
+
+    await http()
+      .post('/v1/art/lookup')
+      .send({ titles: [{ slug: first, name }] });
+    await app.get<MalFiller>(MAL_FILLER).idle();
+    await http()
+      .post('/v1/art/lookup')
+      .send({ titles: [{ slug: second, name }] });
+    await app.get<MalFiller>(MAL_FILLER).idle();
+
+    const stored = await app.get<MalStore>(MAL_STORE).find([first, second]);
+    expect(stored.get(first)).toMatchObject({
+      status: 'ok',
+      malId: phantom,
+      matchedBy: 'franchise',
+    });
+    expect(stored.get(second)).toMatchObject({
+      status: 'ok',
+      malId: crossroad,
+      matchedBy: 'franchise',
+    });
+    expect(fetchMock).toHaveFetchedTimes(
+      1,
+      `begin:https://mal.test/v2/anime/${seriesMalId}?`,
+    );
+    expect(fetchMock).toHaveFetchedTimes(
+      1,
+      `begin:https://mal.test/v2/anime/${phantom}?`,
+    );
+    expect(fetchMock).toHavePostedTimes(
+      2,
+      'https://api.typesafe.ai/v1/systemone',
+    );
+  });
+
   it('leaves a same-named movie unmatched when Jev is not sure enough which franchise entry it is', async () => {
     const { app, http } = await buildApp({
       env: {
