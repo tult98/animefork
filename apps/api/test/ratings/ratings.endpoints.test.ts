@@ -14,7 +14,7 @@ describe('AVS ratings', () => {
     });
     const slug = `black-clover-${randomUUID()}`;
     // Every lookup also starts an art fill for the title, which finds nothing here.
-    fetchMock.get('begin:https://tmdb.test/3/search/tv', { results: [] });
+    fetchMock.get('begin:https://tmdb.test/3/search/', { results: [] });
 
     const submitted = await http()
       .post('/v1/ratings/avs')
@@ -56,7 +56,7 @@ describe('AVS ratings', () => {
       env: { TMDB_API_BASE: 'https://tmdb.test/3' },
     });
     const slug = `black-clover-${randomUUID()}`;
-    fetchMock.get('begin:https://tmdb.test/3/search/tv', { results: [] });
+    fetchMock.get('begin:https://tmdb.test/3/search/', { results: [] });
     await http()
       .post('/v1/ratings/avs')
       .send({
@@ -85,7 +85,7 @@ describe('AVS ratings', () => {
       env: { TMDB_API_BASE: 'https://tmdb.test/3' },
     });
     const slug = `black-clover-${randomUUID()}`;
-    fetchMock.get('begin:https://tmdb.test/3/search/tv', { results: [] });
+    fetchMock.get('begin:https://tmdb.test/3/search/', { results: [] });
     await http()
       .post('/v1/ratings/avs')
       .send({ items: [{ slug, score: 7, voters: 1, quality: 'FHD' }] });

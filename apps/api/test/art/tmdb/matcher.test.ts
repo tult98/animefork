@@ -25,6 +25,7 @@ describe('BaselineMatcher', () => {
       episodeCount: 12,
       candidates: [
         {
+          kind: 'tv',
           id: 1,
           name: 'Tonikaku Kawaii',
           originalName: 'トニカクカワイイ',
@@ -33,6 +34,7 @@ describe('BaselineMatcher', () => {
           episodeCount: 12,
         },
         {
+          kind: 'tv',
           id: 2,
           name: 'Kaguya-sama: Love is War',
           originalName: 'かぐや様は告らせたい',
@@ -45,6 +47,7 @@ describe('BaselineMatcher', () => {
 
     expect(answer).toEqual({
       choice: 1,
+      kind: 'tv',
       probability: 1,
       episodeOffset: 0,
       by: 'baseline',
@@ -69,6 +72,7 @@ describe('BaselineMatcher', () => {
       ...source,
       candidates: [
         {
+          kind: 'tv',
           id: 1,
           name: 'Tonikaku Kawaii',
           originalName: 'トニカクカワイイ',
@@ -104,6 +108,7 @@ describe('BaselineMatcher', () => {
       ...names,
       candidates: [
         {
+          kind: 'tv',
           id: 9,
           name: 'Soul Land',
           originalName: '斗罗大陆',
@@ -124,12 +129,14 @@ describe('BaselineMatcher', () => {
       season: 1,
       candidates: [
         {
+          kind: 'tv',
           id: 1,
           name: 'Tonikaku Kawaii',
           originalName: 'トニカクカワイイ',
           alternativeTitles: [],
         },
         {
+          kind: 'tv',
           id: 9,
           name: 'Tonikaku Kawaii',
           originalName: 'トニカクカワイイ',

@@ -5,6 +5,7 @@ import { isOverviewSettled, isSettled, isStale } from './retry.ts';
 import { ART_STORE, type ArtStore, type OverviewResult } from './art.store.ts';
 import { fetchOverview } from './tmdb/overview.ts';
 import { syncTitle, type SyncDeps } from './tmdb/sync.ts';
+import type { TmdbKind } from './tmdb/tmdb.ts';
 import { OVERVIEW_TRANSLATOR, type OverviewTranslator } from './translator.ts';
 
 export const ART_SYNC = Symbol('ArtSync');
@@ -60,9 +61,13 @@ export class ArtFiller {
   }
 
   // Overview jobs have their own single-flight map, so one never makes an art fill wait or be skipped.
-  fillOverview(slug: string, tmdbId: number): Promise<void> {
+  fillOverview(
+    slug: string,
+    tmdbKind: TmdbKind,
+    tmdbId: number,
+  ): Promise<void> {
     return this.schedule(this.overviewsInFlight, slug, 'overview', () =>
-      this.runOverview(slug, tmdbId),
+      this.runOverview(slug, tmdbKind, tmdbId),
     );
   }
 
@@ -140,22 +145,30 @@ export class ArtFiller {
       await store.saveMiss(input, 'no_match', outcome.skipped.reason);
       return;
     }
-    const { tmdbId } = outcome.matched;
+    const { tmdbKind, tmdbId } = outcome.matched;
     await store.saveMatched(outcome.matched);
     const keepsOverview =
-      current?.tmdbId === tmdbId && current.overviewStatus === 'ok';
+      current?.tmdbKind === tmdbKind &&
+      current.tmdbId === tmdbId &&
+      current.overviewStatus === 'ok';
     if (keepsOverview || this.overviewsInFlight.has(input.slug)) return;
     await store.saveOverview(
       input.slug,
+      tmdbKind,
       tmdbId,
-      await this.resolveOverview(input.slug, tmdbId),
+      await this.resolveOverview(input.slug, tmdbKind, tmdbId),
     );
   }
 
-  private async runOverview(slug: string, tmdbId: number): Promise<void> {
+  private async runOverview(
+    slug: string,
+    tmdbKind: TmdbKind,
+    tmdbId: number,
+  ): Promise<void> {
     const current = (await this.store.find([slug])).get(slug);
     if (
       current?.status !== 'matched' ||
+      current.tmdbKind !== tmdbKind ||
       current.tmdbId !== tmdbId ||
       isOverviewSettled(current, this.now())
     ) {
@@ -163,17 +176,19 @@ export class ArtFiller {
     }
     await this.store.saveOverview(
       slug,
+      tmdbKind,
       tmdbId,
-      await this.resolveOverview(slug, tmdbId),
+      await this.resolveOverview(slug, tmdbKind, tmdbId),
     );
   }
 
   private async resolveOverview(
     slug: string,
+    tmdbKind: TmdbKind,
     tmdbId: number,
   ): Promise<OverviewResult> {
     try {
-      const found = await fetchOverview(this.sync.tmdb, tmdbId);
+      const found = await fetchOverview(this.sync.tmdb, tmdbKind, tmdbId);
       if (!found) return { status: 'none' };
       if (found.lang === 'vi') {
         return {

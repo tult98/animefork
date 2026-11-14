@@ -84,12 +84,13 @@ export class ArtService {
           };
           if (isStale(row) && !filler.has(slug)) void filler.fill(title);
           if (
+            row.tmdbKind !== null &&
             row.tmdbId !== null &&
             !isOverviewSettled(row, now) &&
             !filler.has(slug) &&
             !filler.hasOverview(slug)
           ) {
-            void filler.fillOverview(slug, row.tmdbId);
+            void filler.fillOverview(slug, row.tmdbKind, row.tmdbId);
           }
         } else {
           art[slug] = { status: 'none' };

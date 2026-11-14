@@ -4,7 +4,7 @@ import pg from 'pg';
 import { loadArtConfig } from '../art/art.config.ts';
 import { EnvError } from '../config/app.config.ts';
 import { createJevClient, JevMatcher } from '../art/tmdb/jev.ts';
-import { BaselineMatcher, decide } from '../art/tmdb/matcher.ts';
+import { BaselineMatcher, candidateKey, decide } from '../art/tmdb/matcher.ts';
 import { effectiveScope, gatherCandidates } from '../art/tmdb/sync.ts';
 import { createTmdbClient } from '../art/tmdb/tmdb.ts';
 import { seasonMarker } from '../art/tmdb/titles.ts';
@@ -163,9 +163,7 @@ async function main(): Promise<void> {
         const verdict = await jev.ask(question);
         const accepted = decide(verdict.answer);
         const showScope = verdict.answer.scope === 'show' && accepted !== null;
-        const chosen = question.candidates.find(
-          (c) => c.id === (showScope ? verdict.showChoiceId : verdict.choiceId),
-        );
+        const chosen = showScope ? verdict.showChoice : verdict.choice;
         const baseScope =
           decide(base) === null
             ? null
@@ -188,7 +186,7 @@ async function main(): Promise<void> {
         printRow([
           ...lead,
           baseCell,
-          chosen ? `${chosen.id} ${chosen.name}` : String(verdict.choiceId),
+          `${candidateKey(chosen)} ${chosen.name}`,
           scope,
           `${verdict.noul.toFixed(2)}/${verdict.showNoul.toFixed(2)}`,
           (showScope

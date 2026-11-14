@@ -10,6 +10,7 @@ describe('art store', () => {
     const slug = `tonikaku-kawaii-${randomUUID()}`;
     const matched = {
       source_slug: slug,
+      tmdb_kind: 'tv' as const,
       tmdb_id: 100,
       tmdb_season: 1,
       match_scope: 'season' as const,
