@@ -11,21 +11,47 @@ import type {
 import type { MalCandidate, MalClient } from './mal.client.ts';
 import type { MalFranchise } from './mal.franchise.ts';
 import type { TrailerClient } from './trailer.client.ts';
-import { jevCandidates, type MalJevVerdict, type MalJudge } from './mal.jev.ts';
-import { matchMal, type MalMatch } from './mal.matcher.ts';
+import {
+  jevCandidates,
+  type MalJevVerdict,
+  type MalJudge,
+  type MalTieEntry,
+} from './mal.jev.ts';
+import { fitsYear, matchMal, type MalMatch } from './mal.matcher.ts';
 import { searchable, sourceQueries } from './mal.queries.ts';
 import {
   MAL_MATCHER_VERSION,
   isMalSettled,
   type MalStatus,
 } from './mal.retry.ts';
-import type { MalMatchedBy, MalStore, StoredMal } from './mal.store.ts';
+import type {
+  MalHolder,
+  MalMatchedBy,
+  MalStore,
+  StoredMal,
+} from './mal.store.ts';
 import type { NameGuessStore } from './name-guess.store.ts';
 import type { MalNameGuesser } from './name-guesser.ts';
 
 // MAL ids other slugs of the same display name already hold. The source gives a franchise's
 // movies the series' name, so without this every movie lands on the series' entry.
 export type TakenSource = () => Promise<number[]>;
+
+export type MalOutcome =
+  // evicts: the slugs that held the id and lost it to this one in a tie-break.
+  | { status: 'ok'; match: MalMatch; by: MalMatchedBy; evicts: string[] }
+  | { status: 'none'; reason: string };
+
+// winner: the slug that keeps the entry, or null when nobody moves.
+export interface MalTie {
+  winner: string | null;
+  reason: string;
+}
+
+type Found = { match: MalMatch; by: MalMatchedBy } | { reason: string };
+
+// Each lost tie-break blocks one id and may cost a Jev question; a title that loses this many is a miss.
+const MAX_TIE_BREAKS = 3;
 
 export interface MalNameGuesses {
   guesser: MalNameGuesser;
@@ -114,7 +140,7 @@ export class MalFiller {
       saved =
         current?.status === 'ok' && current.malId !== null
           ? await this.refresh(current)
-          : await this.match(input, taken);
+          : await this.save(input.slug, await this.match(input, taken));
     } catch (error) {
       const reason = describeError(error);
       this.logger.warn(`mal ${input.slug} failed: ${reason}`);
@@ -164,20 +190,126 @@ export class MalFiller {
     return row;
   }
 
+  // Runs the matcher without saving, so a caller can compare the result with the stored row.
+  rematch(input: TitleInput, taken?: TakenSource): Promise<MalOutcome> {
+    return this.match(input, taken);
+  }
+
+  async save(slug: string, outcome: MalOutcome): Promise<StoredMal | null> {
+    if (outcome.status === 'none') {
+      await this.saveMiss(slug, 'none', outcome.reason);
+      return null;
+    }
+    const row = await this.saveMatch(slug, outcome.match, outcome.by);
+    for (const holder of outcome.evicts) {
+      await this.evict(holder, outcome.match.candidate.id, slug);
+    }
+    return row;
+  }
+
+  // What MAL says of an entry now, for a tie-break over a row stored before its facts were.
+  async entry(malId: number): Promise<MalTieEntry | null> {
+    return (await this.client.entry(malId))?.candidate ?? null;
+  }
+
+  // The year guard settles a tie on its own when only one slug starts near the entry; Jev settles the rest.
+  async tieBreak(entry: MalTieEntry, sources: MalHolder[]): Promise<MalTie> {
+    const near = sources.filter((s) =>
+      fitsYear({ year: s.year ?? undefined }, entry),
+    );
+    const [only] = near;
+    if (only && near.length === 1) {
+      return {
+        winner: only.slug,
+        reason: `only ${only.slug} starts within a year of it`,
+      };
+    }
+    if (!this.judge) return { winner: null, reason: 'Jev is off' };
+    const verdict = await this.judge.askTieBreak(
+      entry,
+      near.length > 1 ? near : sources,
+    );
+    return {
+      winner: verdict.accepted ? verdict.slug : null,
+      reason: `jev best ${verdict.slug} p=${fmt(verdict.probability)} noul=${fmt(verdict.noul)}`,
+    };
+  }
+
+  // Matcher version 0 makes the miss due at once, so the loser is matched again on its next lookup,
+  // where the tie-break hands the id to the winner and the loser looks further.
+  evict(slug: string, malId: number, winner: string): Promise<void> {
+    return this.saveMiss(
+      slug,
+      'none',
+      `lost MAL ${malId} to ${winner} in a tie-break`,
+      0,
+    );
+  }
+
+  // One MAL entry is one slug. When the winner is held by another slug, Jev settles which one it
+  // is; a lost tie-break blocks the id and the match runs again on the same search results.
   private async match(
     input: TitleInput,
     taken?: TakenSource,
-  ): Promise<StoredMal | null> {
-    const takenIds = new Set(taken ? await taken() : []);
+  ): Promise<MalOutcome> {
+    const sameName = taken ? await taken() : [];
+    const blocked = new Set(sameName);
+    const searched = new Map<string, MalCandidate[]>();
+    const lost: string[] = [];
+    const miss = (reason: string): MalOutcome => ({
+      status: 'none',
+      reason:
+        lost.length > 0
+          ? `${reason} (lost ${lost.join(', ')} in a tie-break)`
+          : reason,
+    });
+    for (let round = 0; round < MAX_TIE_BREAKS; round++) {
+      const found = await this.find(input, sameName, blocked, searched);
+      if ('reason' in found) return miss(found.reason);
+      const { candidate } = found.match;
+      const holders = await this.store.holders(candidate.id, input.slug);
+      if (holders.length === 0) return { status: 'ok', ...found, evicts: [] };
+      const held = `MAL ${candidate.id} is held by ${holders.map((h) => h.slug).join(', ')}`;
+      const tie = await this.tieBreak(candidate, [
+        {
+          slug: input.slug,
+          name: input.name,
+          year: input.year ?? null,
+          episodeCount: input.episodeCount ?? null,
+        },
+        ...holders,
+      ]);
+      if (tie.winner === null) {
+        return miss(`${held}; the tie-break is unsure: ${tie.reason}`);
+      }
+      if (tie.winner === input.slug) {
+        return { status: 'ok', ...found, evicts: holders.map((h) => h.slug) };
+      }
+      blocked.add(candidate.id);
+      lost.push(`MAL ${candidate.id} to ${tie.winner}`);
+    }
+    return miss('every match was held by another slug');
+  }
+
+  private async find(
+    input: TitleInput,
+    sameName: number[],
+    blocked: Set<number>,
+    searched: Map<string, MalCandidate[]>,
+  ): Promise<Found> {
+    const open = (c: MalCandidate) => !blocked.has(c.id) && fitsYear(input, c);
     const pages: MalCandidate[][] = [];
     const asked: string[] = [];
     const search = async (query: string) => {
       asked.push(query);
-      const results = (await this.client.search(query)).filter(
-        (c) => !takenIds.has(c.id),
-      );
-      pages.push(results);
-      return results;
+      let results = searched.get(query);
+      if (!results) {
+        results = await this.client.search(query);
+        searched.set(query, results);
+      }
+      const page = results.filter(open);
+      pages.push(page);
+      return page;
     };
     const otherNames = input.otherNames ?? [];
     let found: MalMatch | null = null;
@@ -193,44 +325,35 @@ export class MalFiller {
         if (found) break;
       }
     }
-    if (found) {
-      return this.saveMatch(input.slug, found, 'score');
-    }
+    if (found) return { match: found, by: 'score' };
+    const judged =
+      guessed.length > 0 ? { ...input, otherNames: guessed } : input;
     const candidates = jevCandidates(pages);
-    let miss = 'no candidate cleared the match';
+    let reason = 'no candidate cleared the match';
     if (this.judge && candidates.length > 0) {
-      const verdict = await this.judge.ask(
-        guessed.length > 0 ? { ...input, otherNames: guessed } : input,
-        candidates,
-      );
+      const verdict = await this.judge.ask(judged, candidates);
       if (verdict.accepted) {
-        return this.saveMatch(
-          input.slug,
-          { candidate: verdict.choice, score: verdict.score },
-          'jev',
-        );
+        return {
+          match: { candidate: verdict.choice, score: verdict.score },
+          by: 'jev',
+        };
       }
-      miss = `jev rejected: ${describeVerdict(verdict)}`;
+      reason = `jev rejected: ${describeVerdict(verdict)}`;
     }
-    if (this.judge && this.franchise && takenIds.size > 0) {
-      const pool = await this.franchise.candidates([...takenIds]);
+    if (this.judge && this.franchise && sameName.length > 0) {
+      const pool = (await this.franchise.candidates(sameName)).filter(open);
       if (pool.length > 0) {
-        const verdict = await this.judge.askFranchise(
-          guessed.length > 0 ? { ...input, otherNames: guessed } : input,
-          pool,
-        );
+        const verdict = await this.judge.askFranchise(judged, pool);
         if (verdict.accepted) {
-          return this.saveMatch(
-            input.slug,
-            { candidate: verdict.choice, score: verdict.score },
-            'franchise',
-          );
+          return {
+            match: { candidate: verdict.choice, score: verdict.score },
+            by: 'franchise',
+          };
         }
-        miss = `franchise rejected: ${describeVerdict(verdict)}`;
+        reason = `franchise rejected: ${describeVerdict(verdict)}`;
       }
     }
-    await this.saveMiss(input.slug, 'none', miss);
-    return null;
+    return { reason };
   }
 
   private async guessNames(input: TitleInput): Promise<string[]> {
@@ -299,6 +422,7 @@ export class MalFiller {
     slug: string,
     status: Exclude<MalStatus, 'ok'>,
     reason: string,
+    matcherVersion = MAL_MATCHER_VERSION,
   ): Promise<void> {
     await this.store.save({
       slug,
@@ -321,7 +445,7 @@ export class MalFiller {
       matchedTitle: null,
       matchScore: null,
       matchedBy: null,
-      matcherVersion: MAL_MATCHER_VERSION,
+      matcherVersion,
       reason,
       attemptedAt: this.now(),
       fetchedAt: null,

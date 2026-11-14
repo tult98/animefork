@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import fetchMock from '@fetch-mock/vitest';
 import { describe, expect, it } from 'vitest';
+import { ART_STORE, type ArtStore } from '../../src/art/art.store.ts';
 import type { MalFiller } from '../../src/mal/mal.filler.ts';
 import { MAL_FILLER } from '../../src/mal/mal.module.ts';
 import { MAL_STORE, type MalStore } from '../../src/mal/mal.store.ts';
@@ -631,7 +632,7 @@ describe('MAL filler', () => {
 
     await app
       .get<MalFiller>(MAL_FILLER)
-      .fill({ slug, name: 'TenKen II', year: 2026, episodeCount: 5 });
+      .fill({ slug, name: 'TenKen II', episodeCount: 5 });
 
     const rows = await app.get<MalStore>(MAL_STORE).find([slug]);
     expect(rows.get(slug)).toMatchObject({
@@ -672,9 +673,181 @@ describe('MAL filler', () => {
 
     await app
       .get<MalFiller>(MAL_FILLER)
-      .fill({ slug, name: 'TenKen II', year: 2026, episodeCount: 5 });
+      .fill({ slug, name: 'TenKen II', episodeCount: 5 });
 
     const rows = await app.get<MalStore>(MAL_STORE).find([slug]);
     expect(rows.get(slug)).toMatchObject({ status: 'failed', malId: null });
+  });
+
+  it('does not match a 2026 third season to the 2023 first season, even when Jev would pick it', async () => {
+    const { app } = await buildApp({
+      env: {
+        MAL_CLIENT_ID: 'abc',
+        MAL_API_BASE: 'https://mal.test/v2',
+        TYPESAFE_API_KEY: 'jev-key',
+      },
+    });
+    const slug = `kusuriya-no-hitorigoto-3rd-season-a${randomInt(1_000_000_000)}`;
+    const firstSeason = randomInt(1, 2_000_000_000);
+    fetchMock
+      .get('begin:https://mal.test/v2/anime?q=', {
+        data: [
+          {
+            node: {
+              id: firstSeason,
+              title: 'Kusuriya no Hitorigoto',
+              alternative_titles: { en: 'The Apothecary Diaries' },
+              start_season: { year: 2023, season: 'fall' },
+              start_date: '2023-10-22',
+              num_episodes: 24,
+              media_type: 'tv',
+            },
+          },
+        ],
+      })
+      .post('https://api.typesafe.ai/v1/systemone', {
+        model: 'jev-1.13.0',
+        answers: {
+          match: {
+            type: 'choice',
+            choice: String(firstSeason),
+            confidence: 0.9,
+            probabilities: { [firstSeason]: 0.95 },
+          },
+          any_match: { type: 'noul', noul: 0.95 },
+        },
+        usage: { input_tokens: 400, output_tokens: 20 },
+      });
+
+    await app.get<MalFiller>(MAL_FILLER).fill({
+      slug,
+      name: 'Dược Sư Tự Sự 3',
+      year: 2026,
+      episodeCount: 24,
+    });
+
+    const rows = await app.get<MalStore>(MAL_STORE).find([slug]);
+    expect(rows.get(slug)).toMatchObject({
+      status: 'none',
+      malId: null,
+      reason: 'no candidate cleared the match',
+    });
+    expect(fetchMock).not.toHaveFetched('https://api.typesafe.ai/v1/systemone');
+  });
+
+  it('leaves a movie its MAL entry when a TV slug guesses its way to it, and Jev gives the entry to the movie', async () => {
+    const { app } = await buildApp({
+      now: new Date('2026-03-01T00:00:00Z'),
+      env: {
+        MAL_CLIENT_ID: 'abc',
+        MAL_API_BASE: 'https://mal.test/v2',
+        TYPESAFE_API_KEY: 'jev-key',
+        DEEPSEEK_API_KEY: 'deepseek-key',
+        DEEPSEEK_API_BASE: 'https://deepseek.test',
+      },
+    });
+    const run = randomInt(1_000_000_000);
+    const tvSlug = `naruto-suc-manh-vi-thu-r2-a${run}`;
+    const movieSlug = `naruto-suc-manh-vi-thu-movie-1-a${run}`;
+    const movieId = randomInt(1, 2_000_000_000);
+    const at = new Date('2026-02-01T00:00:00Z');
+    await app.get<ArtStore>(ART_STORE).saveMiss(
+      {
+        slug: movieSlug,
+        name: 'Naruto: Sức Mạnh Vĩ Thú Movie 1',
+        year: 2007,
+        episodeCount: 1,
+      },
+      'no_match',
+      'no candidate',
+    );
+    const movie = {
+      slug: movieSlug,
+      status: 'ok' as const,
+      malId: movieId,
+      score: 7.3,
+      voters: 90000,
+      rank: null,
+      popularity: null,
+      members: null,
+      airing: 'finished_airing' as const,
+      episodes: 1,
+      startDate: '2007-08-04',
+      startSeason: { year: 2007, season: 'summer' as const },
+      trailerYoutubeId: null,
+      mediaType: 'movie',
+      english: 'Naruto Shippuden the Movie',
+      synonyms: [],
+      datesKnown: true,
+      matchedTitle: 'Naruto: Shippuuden Movie 1',
+      matchScore: 0.9,
+      matchedBy: 'franchise' as const,
+      matcherVersion: 8,
+      reason: null,
+      attemptedAt: at,
+      fetchedAt: at,
+    };
+    await app.get<MalStore>(MAL_STORE).save(movie);
+    fetchMock
+      .post('https://deepseek.test/chat/completions', {
+        choices: [
+          {
+            finish_reason: 'stop',
+            message: {
+              content:
+                '{"known": true, "original": "劇場版 NARUTO 疾風伝", "romanized": "Naruto Shippuuden Movie 1", "english": "Naruto Shippuden the Movie"}',
+            },
+          },
+        ],
+      })
+      .get('begin:https://mal.test/v2/anime?q=Naruto+Shippuuden+Movie+1&', {
+        data: [
+          {
+            node: {
+              id: movieId,
+              title: 'Naruto: Shippuuden Movie 1',
+              alternative_titles: { en: 'Naruto Shippuden the Movie' },
+              start_season: { year: 2007, season: 'summer' },
+              start_date: '2007-08-04',
+              num_episodes: 1,
+              media_type: 'movie',
+            },
+          },
+        ],
+      })
+      .get('begin:https://mal.test/v2/anime?q=', { data: [] })
+      .post('https://api.typesafe.ai/v1/systemone', {
+        model: 'jev-1.13.0',
+        answers: {
+          match: {
+            type: 'choice',
+            choice: movieSlug,
+            confidence: 0.9,
+            probabilities: { [movieSlug]: 0.96, [tvSlug]: 0.04 },
+          },
+          any_match: { type: 'noul', noul: 0.97 },
+        },
+        usage: { input_tokens: 300, output_tokens: 20 },
+      });
+
+    await app.get<MalFiller>(MAL_FILLER).fill({
+      slug: tvSlug,
+      name: 'Naruto: Sức Mạnh Vĩ Thú',
+      year: 2007,
+      episodeCount: 500,
+    });
+
+    const rows = await app.get<MalStore>(MAL_STORE).find([tvSlug, movieSlug]);
+    expect(rows.get(tvSlug)).toMatchObject({
+      status: 'none',
+      malId: null,
+      reason: `no candidate cleared the match (lost MAL ${movieId} to ${movieSlug} in a tie-break)`,
+    });
+    expect(rows.get(movieSlug)).toEqual(movie);
+    expect(fetchMock).toHavePostedTimes(
+      1,
+      'https://api.typesafe.ai/v1/systemone',
+      { headers: { Authorization: 'Bearer jev-key' } },
+    );
   });
 });

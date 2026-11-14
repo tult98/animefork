@@ -38,8 +38,17 @@ export interface StoredMal {
   fetchedAt: Date | null;
 }
 
+// A slug matched to a MAL entry, with what the source says of it.
+export interface MalHolder {
+  slug: string;
+  name: string | null;
+  year: number | null;
+  episodeCount: number | null;
+}
+
 export interface MalStore {
   find(slugs: string[]): Promise<Map<string, StoredMal>>;
+  holders(malId: number, except: string): Promise<MalHolder[]>;
   save(row: StoredMal): Promise<void>;
   // Records a failed refresh without touching the stored numbers, so it is not retried on every lookup.
   touch(slug: string): Promise<void>;
@@ -129,6 +138,28 @@ export class PostgresMalStore implements MalStore {
       });
     }
     return found;
+  }
+
+  async holders(malId: number, except: string): Promise<MalHolder[]> {
+    const { rows } = await this.pool.query<{
+      source_slug: string;
+      source_name: string | null;
+      source_year: number | null;
+      source_episode_count: number | null;
+    }>(
+      `select m.source_slug, a.source_name, a.source_year, a.source_episode_count
+         from title_mal m
+         left join title_art a on a.source_slug = m.source_slug
+        where m.mal_id = $1 and m.status = 'ok' and m.source_slug <> $2
+        order by m.source_slug`,
+      [malId, except],
+    );
+    return rows.map((r) => ({
+      slug: r.source_slug,
+      name: r.source_name,
+      year: r.source_year,
+      episodeCount: r.source_episode_count,
+    }));
   }
 
   async save(row: StoredMal): Promise<void> {
