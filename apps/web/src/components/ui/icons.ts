@@ -28,6 +28,8 @@ export {
   Search,
   SkipForward,
   Star,
+  ThumbsDown,
+  ThumbsUp,
   TriangleAlert,
   Trophy,
   Volume2,
