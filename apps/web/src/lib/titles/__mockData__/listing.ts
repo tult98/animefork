@@ -44,3 +44,11 @@ export const mockUpcomingHtml = `<html><body><ul>
 ${upcomingCard(1, '<span class="mli-timeschedule" data-timer_second="7200">countdown</span>')}
 ${upcomingCard(2, '<span class="mli-timeschedule"></span><span class="b">2099</span>')}
 </ul></body></html>`;
+
+// A search page with "Phim 1" and "Phim 2" and a pager of 3 pages, or no cards at all.
+export const mockSearchHtml = page([{ id: 1 }, { id: 2 }], 1).replace(
+  'của 2',
+  'của 3',
+);
+
+export const mockSearchNoCardsHtml = '<html><body><ul></ul></body></html>';
