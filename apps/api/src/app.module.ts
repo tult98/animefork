@@ -9,6 +9,7 @@ import { APP_CONFIG, type AppConfig } from './config/app.config.ts';
 import { ConfigModule } from './config/config.module.ts';
 import { DatabaseModule } from './database/database.module.ts';
 import { HealthModule } from './health/health.module.ts';
+import { LibraryModule } from './library/library.module.ts';
 import { SkipTimesModule } from './skip-times/skip-times.module.ts';
 import { WatchProgressModule } from './watch-progress/watch-progress.module.ts';
 
@@ -26,6 +27,7 @@ import { WatchProgressModule } from './watch-progress/watch-progress.module.ts';
     ArtModule,
     AuthModule,
     EpisodeInfoModule,
+    LibraryModule,
     SkipTimesModule,
     WatchProgressModule,
   ],
