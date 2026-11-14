@@ -340,6 +340,71 @@ body {
 }
 
 @layer components {
+  .af-circle[aria-pressed='true'] {
+    border-color: var(--ink);
+    background: var(--pill-active);
+  }
+
+  .af-circle:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .af-rate[aria-pressed='true'] svg {
+    fill: currentColor;
+  }
+
+  .details-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .save-dialog {
+    width: min(400px, calc(100% - 32px));
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+
+  .save-dialog::backdrop {
+    background: var(--hero-overlay);
+  }
+
+  .save-list {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: var(--space-sm) var(--space-sm) 0;
+  }
+
+  .save-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    min-height: 44px;
+    padding: 0 var(--space-md);
+    border-radius: var(--radius-md);
+    font: 400 16px/1.3 var(--font-sans);
+    cursor: pointer;
+  }
+
+  .save-row:hover {
+    background: var(--pill-active);
+  }
+
+  .save-row input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--brand);
+  }
+}
+
+@layer components {
   .details-dialog {
     position: fixed;
     inset: 0;
