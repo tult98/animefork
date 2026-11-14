@@ -178,6 +178,92 @@ describe('art lookup with MyAnimeList', () => {
     });
   });
 
+  it('leaves a movie unmatched rather than give it the MAL entry its series already holds under the same name', async () => {
+    const { app, http } = await buildApp({
+      env: { MAL_CLIENT_ID: 'abc', MAL_API_BASE: 'https://mal.test/v2' },
+    });
+    const run = randomInt(1_000_000_000);
+    const series = `one-piece-a${run}`;
+    const movie = `one-piece-movie-a${run}`;
+    const seriesMalId = randomInt(1, 2_000_000_000);
+    const art = app.get<ArtStore>(ART_STORE);
+    await art.saveMiss(
+      { slug: series, name: 'One Piece' },
+      'no_match',
+      'no art',
+    );
+    await art.saveMiss(
+      { slug: movie, name: 'One Piece' },
+      'no_match',
+      'no art',
+    );
+    await app.get<MalStore>(MAL_STORE).save({
+      slug: series,
+      status: 'ok',
+      malId: seriesMalId,
+      score: 8.73,
+      voters: 1000,
+      rank: 50,
+      popularity: 20,
+      members: 4000,
+      airing: 'currently_airing',
+      episodes: null,
+      startDate: '1999-10-20',
+      startSeason: { year: 1999, season: 'fall' },
+      trailerYoutubeId: null,
+      datesKnown: true,
+      matchedTitle: 'One Piece',
+      matchScore: 1,
+      matchedBy: 'score',
+      matcherVersion: 4,
+      reason: null,
+      attemptedAt: new Date('2026-03-01T00:00:00Z'),
+      fetchedAt: new Date('2026-03-01T00:00:00Z'),
+    });
+    const seriesPage = {
+      data: [
+        {
+          node: {
+            id: seriesMalId,
+            title: 'One Piece',
+            start_season: { year: 1999, season: 'fall' },
+            media_type: 'tv',
+          },
+        },
+      ],
+    };
+    fetchMock
+      .get('begin:https://mal.test/v2/anime?q=one+piece+movie&', seriesPage)
+      .get('begin:https://mal.test/v2/anime?q=One+Piece&', seriesPage)
+      .get('begin:https://mal.test/v2/anime?q=one+piece&', seriesPage);
+
+    await http()
+      .post('/v1/art/lookup')
+      .send({ titles: [{ slug: movie, name: 'One Piece' }] });
+    await app.get<MalFiller>(MAL_FILLER).idle();
+    const later = await http()
+      .post('/v1/art/lookup')
+      .send({ titles: [{ slug: movie, name: 'One Piece' }] });
+
+    expect(later.status).toBe(200);
+    expect(later.body).toEqual({
+      art: { [movie]: { status: 'none' } },
+      ratings: {},
+      avsStale: [movie],
+    });
+    const stored = (await app.get<MalStore>(MAL_STORE).find([movie])).get(
+      movie,
+    );
+    expect(stored).toMatchObject({
+      status: 'none',
+      malId: null,
+      reason: 'no candidate cleared the match',
+    });
+    expect(fetchMock).toHaveFetched(
+      'begin:https://mal.test/v2/anime?q=One+Piece&',
+    );
+  });
+
   it('never calls MAL and never reports pending when MAL_CLIENT_ID is not set', async () => {
     const { app, http } = await buildApp();
     const slug = `black-clover-a${randomInt(1_000_000_000)}`;

@@ -54,6 +54,7 @@ export const ART_STORE = Symbol('ArtStore');
 
 export interface ArtStore {
   find(slugs: string[]): Promise<Map<string, StoredTitle>>;
+  slugsNamed(name: string, except: string): Promise<string[]>;
   episodesPage(
     slug: string,
     from: number,
@@ -158,6 +159,15 @@ export class PostgresArtStore implements ArtStore {
       });
     }
     return found;
+  }
+
+  async slugsNamed(name: string, except: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ source_slug: string }>(
+      `select source_slug from title_art
+        where source_name = $1 and source_slug <> $2`,
+      [name, except],
+    );
+    return rows.map((r) => r.source_slug);
   }
 
   async episodesPage(

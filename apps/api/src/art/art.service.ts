@@ -142,6 +142,7 @@ export class ArtService {
             title,
             this.aliasSource(rows.get(slug)),
             namesAt,
+            this.takenSource(slug, title.name),
           );
         }
         // A stored number is already shown, so only a title with none yet is worth asking about again.
@@ -207,6 +208,16 @@ export class ArtService {
     const { tmdb } = this;
     const id = row?.tmdbId ?? null;
     return tmdb && id !== null ? () => tmdbAliases(tmdb, id) : undefined;
+  }
+
+  private takenSource(slug: string, name: string) {
+    return async () => {
+      const others = await this.store.slugsNamed(name, slug);
+      const held = await this.mal.find(others);
+      return [...held.values()].flatMap((m) =>
+        m.status === 'ok' && m.malId !== null ? [m.malId] : [],
+      );
+    };
   }
 }
 

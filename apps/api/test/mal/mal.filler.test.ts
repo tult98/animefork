@@ -73,14 +73,14 @@ describe('MAL filler', () => {
       matchedTitle: 'Black Clover',
       matchScore: 1,
       matchedBy: 'score',
-      matcherVersion: 3,
+      matcherVersion: 4,
       reason: null,
       attemptedAt: new Date('2026-03-01T00:00:00Z'),
       fetchedAt: new Date('2026-03-01T00:00:00Z'),
     });
     expect(fetchMock).toHaveFetchedTimes(1, 'begin:https://mal.test/v2/anime');
     expect(fetchMock).toHaveFetched('begin:https://mal.test/v2/anime', {
-      query: { q: 'Black Clover', limit: '10' },
+      query: { q: 'Black Clover', limit: '10', nsfw: 'true' },
       headers: { 'X-MAL-CLIENT-ID': 'abc' },
     });
     expect(fetchMock).toHaveFetched(
