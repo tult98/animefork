@@ -23,6 +23,7 @@ import {
 import { distinctRomaji } from '../art/tmdb/titles.ts';
 import type { MalCandidate } from './mal.client.ts';
 import { isShow, wantedSeason } from './mal.matcher.ts';
+import type { MalHolder } from './mal.store.ts';
 
 export const MAX_JEV_CANDIDATES = 20;
 const SYNONYM_CAP = 10;
@@ -48,7 +49,30 @@ const FRANCHISE_MATCH_INSTRUCTIONS =
 const FRANCHISE_ANY_MATCH_INSTRUCTIONS =
   'At least one candidate is the same entry the source romaji names.';
 
+const TIE_BREAK_INSTRUCTIONS =
+  'Several source titles were matched to the same MyAnimeList entry, and at most one of them is that entry. ' +
+  'Pick the source title that is the same anime, the same season and the same kind of entry (a TV series, a movie or a special) as the MyAnimeList entry. ' +
+  'The slug words come from the source site URL. They are often a romanization of the Japanese title, and may name the season, a movie or a movie number. ' +
+  "The display name may be Vietnamese, and the source can give a franchise's movies the series' display name, so trust the slug words when the two disagree. " +
+  'Compare the entry start date with each source year, and the entry episode count with each source episode count.';
+
+const TIE_BREAK_ANY_INSTRUCTIONS =
+  'At least one source title is the same anime, the same season and the same kind of entry as the MyAnimeList entry.';
+
 const AnswersSchema = z.object({ match: ChoiceSchema, any_match: NoulSchema });
+
+export type MalTieEntry = Pick<
+  MalCandidate,
+  'id' | 'title' | 'english' | 'mediaType' | 'startDate' | 'year' | 'episodes'
+>;
+
+export interface MalTieVerdict {
+  slug: string;
+  probability: number;
+  confidence: number;
+  noul: number;
+  accepted: boolean;
+}
 
 export interface MalJevVerdict {
   choice: MalCandidate;
@@ -67,6 +91,8 @@ export interface MalJudge {
     input: TitleInput,
     candidates: MalCandidate[],
   ): Promise<MalJevVerdict>;
+  // Picks which of the slugs matched to one MAL entry is that entry, when Jev is sure enough.
+  askTieBreak(entry: MalTieEntry, sources: MalHolder[]): Promise<MalTieVerdict>;
 }
 
 export type MalJevThresholds = JevThresholds &
@@ -149,6 +175,54 @@ export function malFranchiseQuestions(candidates: MalCandidate[]) {
   };
 }
 
+const slugWords = (slug: string) =>
+  slug
+    .replace(/-a\d+$/, '')
+    .replace(/-+/g, ' ')
+    .trim();
+
+export function malTieState(
+  entry: MalTieEntry,
+  sources: MalHolder[],
+): { [key: string]: ContentValue } {
+  return {
+    entry: {
+      title: entry.title,
+      ...(entry.english !== undefined && { englishTitle: entry.english }),
+      ...(entry.mediaType !== undefined && { mediaType: entry.mediaType }),
+      ...(entry.startDate !== null && { startDate: entry.startDate }),
+      ...(entry.episodes !== undefined && { episodeCount: entry.episodes }),
+    },
+    sources: sources.map((s) => ({
+      slug: s.slug,
+      slugWords: slugWords(s.slug),
+      ...(s.name !== null && { title: s.name }),
+      ...(s.year !== null && { year: s.year }),
+      ...(s.episodeCount !== null && { episodeCount: s.episodeCount }),
+    })),
+  };
+}
+
+function describeSource(s: MalHolder): string {
+  return [
+    `${s.name ?? 'no display name'} (${slugWords(s.slug)})`,
+    s.year !== null ? `year ${s.year}` : 'year unknown',
+    s.episodeCount !== null
+      ? `${s.episodeCount} episodes`
+      : 'episode count unknown',
+  ].join(', ');
+}
+
+export function malTieQuestions(sources: MalHolder[]) {
+  return {
+    match: choice(
+      TIE_BREAK_INSTRUCTIONS,
+      Object.fromEntries(sources.map((s) => [s.slug, describeSource(s)])),
+    ),
+    any_match: noul(TIE_BREAK_ANY_INSTRUCTIONS),
+  };
+}
+
 export class MalJevJudge implements MalJudge {
   private readonly logger = new Logger(MalJevJudge.name);
   private readonly client: TypeSafeClient;
@@ -194,6 +268,40 @@ export class MalJevJudge implements MalJudge {
       },
       'jev mal franchise',
     );
+  }
+
+  async askTieBreak(
+    entry: MalTieEntry,
+    sources: MalHolder[],
+  ): Promise<MalTieVerdict> {
+    const result = await this.client.systemOne({
+      model: this.model,
+      state: malTieState(entry, sources),
+      questions: malTieQuestions(sources),
+    });
+    const answers = AnswersSchema.parse(result.answers);
+    const slug = answers.match.choice;
+    if (!sources.some((s) => s.slug === slug)) {
+      throw new Error(`Jev chose ${slug}, which is not a source`);
+    }
+    const probability = answers.match.probabilities[slug] ?? 0;
+    const { confidence } = answers.match;
+    const anyMatch = answers.any_match.noul;
+    const accepted = acceptsChoice(
+      {
+        minChoice: this.thresholds.malMinChoice,
+        minNoul: this.thresholds.malMinNoul,
+        minConfidence: this.thresholds.minConfidence,
+      },
+      anyMatch,
+      probability,
+      confidence,
+    );
+    this.logger.log(
+      `jev mal tie-break ${entry.id}: choice ${slug} p=${fmt(probability)} ` +
+        `confidence=${fmt(confidence)} noul=${fmt(anyMatch)} -> ${accepted ? 'accept' : 'reject'}`,
+    );
+    return { slug, probability, confidence, noul: anyMatch, accepted };
   }
 
   private async judge(

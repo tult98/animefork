@@ -37,6 +37,28 @@ const NOT_A_SHOW = new Set(['pv', 'cm', 'music']);
 
 export const isShow = (c: MalCandidate) => !NOT_A_SHOW.has(c.mediaType ?? '');
 
+// A later season, a remake or a live action shares the show's name but starts years after it.
+export const MAX_YEAR_GAP = 1;
+
+export function startYear(
+  c: Pick<MalCandidate, 'year' | 'startDate'>,
+): number | undefined {
+  const year = c.year ?? Number.parseInt(c.startDate?.slice(0, 4) ?? '', 10);
+  return Number.isNaN(year) ? undefined : year;
+}
+
+export function fitsYear(
+  input: Pick<TitleInput, 'year'>,
+  c: Pick<MalCandidate, 'year' | 'startDate'>,
+): boolean {
+  const year = startYear(c);
+  return (
+    input.year === undefined ||
+    year === undefined ||
+    Math.abs(input.year - year) <= MAX_YEAR_GAP
+  );
+}
+
 export interface MalMatch {
   candidate: MalCandidate;
   score: number;
@@ -71,6 +93,24 @@ function nameScore(
 export function wantedSeason(input: TitleInput): number {
   const named = parseSeasonNumber(input.seasonName, input.name);
   return named > 1 ? named : slugSeasonNumber(input.slug);
+}
+
+const ROMAN_SEASON: Record<string, number> = { II: 2, III: 3, IV: 4 };
+// "X II", "X 2" and "X II: Subtitle" name a sequel, while "Movie 2", "Part 2" or "No. 8" count something else.
+const SEQUEL_NUMBER =
+  /(?<!\b(?:movie|film|part|cour|no\.?|vol\.?))\s(II|III|IV|\d{1,2})\s*(?::|$)/i;
+
+// The season a MAL entry's titles name; a first season carries no marker.
+export function entrySeason(titles: (string | null | undefined)[]): number {
+  for (const title of titles) {
+    if (!title) continue;
+    const marked = parseSeasonNumber(undefined, title);
+    if (marked > 1) return marked;
+    const word = SEQUEL_NUMBER.exec(title)?.[1];
+    const numbered = word && (ROMAN_SEASON[word.toUpperCase()] ?? Number(word));
+    if (numbered && numbered > 1) return numbered;
+  }
+  return 1;
 }
 
 function cour(texts: string[]): number {
@@ -126,7 +166,7 @@ export function matchMal(
   aliases: string[] = [],
 ): MalMatch | null {
   const ranked = candidates
-    .filter(isShow)
+    .filter((c) => isShow(c) && fitsYear(input, c))
     .map((candidate) => ({
       candidate,
       score: scoreCandidate(input, candidate, aliases),

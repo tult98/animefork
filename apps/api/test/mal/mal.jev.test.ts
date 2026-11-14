@@ -4,6 +4,8 @@ import {
   jevCandidates,
   malJevQuestions,
   malJevState,
+  malTieQuestions,
+  malTieState,
 } from '../../src/mal/mal.jev.ts';
 
 // The matcher and Jev read the titles, the dates, the episode count and the media type. The numbers are carried along.
@@ -143,5 +145,64 @@ describe('what Jev is asked about a MAL match', () => {
       53913, 52347, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 200, 201,
       202, 203, 204, 205, 206, 207,
     ]);
+  });
+
+  it('asks which slug a shared entry is with the entry and each slug’s display name, slug words, year and episode count', () => {
+    const sources = [
+      {
+        slug: 'naruto-suc-manh-vi-thu-r2-a5',
+        name: 'Naruto: Sức Mạnh Vĩ Thú',
+        year: 2007,
+        episodeCount: 500,
+      },
+      {
+        slug: 'naruto-suc-manh-vi-thu-movie-1-a521',
+        name: null,
+        year: null,
+        episodeCount: null,
+      },
+    ];
+
+    expect(
+      malTieState(
+        {
+          id: 2472,
+          title: 'Naruto: Shippuuden Movie 1',
+          english: 'Naruto Shippuden the Movie',
+          mediaType: 'movie',
+          startDate: '2007-08-04',
+          year: 2007,
+          episodes: 1,
+        },
+        sources,
+      ),
+    ).toEqual({
+      entry: {
+        title: 'Naruto: Shippuuden Movie 1',
+        englishTitle: 'Naruto Shippuden the Movie',
+        mediaType: 'movie',
+        startDate: '2007-08-04',
+        episodeCount: 1,
+      },
+      sources: [
+        {
+          slug: 'naruto-suc-manh-vi-thu-r2-a5',
+          slugWords: 'naruto suc manh vi thu r2',
+          title: 'Naruto: Sức Mạnh Vĩ Thú',
+          year: 2007,
+          episodeCount: 500,
+        },
+        {
+          slug: 'naruto-suc-manh-vi-thu-movie-1-a521',
+          slugWords: 'naruto suc manh vi thu movie 1',
+        },
+      ],
+    });
+    expect(malTieQuestions(sources).match.criteria).toEqual({
+      'naruto-suc-manh-vi-thu-r2-a5':
+        'Naruto: Sức Mạnh Vĩ Thú (naruto suc manh vi thu r2), year 2007, 500 episodes',
+      'naruto-suc-manh-vi-thu-movie-1-a521':
+        'no display name (naruto suc manh vi thu movie 1), year unknown, episode count unknown',
+    });
   });
 });
