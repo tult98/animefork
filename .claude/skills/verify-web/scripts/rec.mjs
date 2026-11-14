@@ -30,7 +30,13 @@ const { chromium } = createRequire(join(REPO, 'apps/web/package.json'))(
 // Headless gets a 403 from the stream host, so it is never used. One run at a time: the profile is locked while open.
 export async function start(
   scenario,
-  { ev, actions, proves, viewport = { width: 1280, height: 800 } },
+  {
+    ev,
+    actions,
+    proves,
+    viewport = { width: 1280, height: 800 },
+    deviceScaleFactor,
+  },
 ) {
   mkdirSync(join(ev, 'video'), { recursive: true });
   mkdirSync(join(ev, 'shots'), { recursive: true });
@@ -45,6 +51,7 @@ export async function start(
     channel: 'chromium',
     headless: false,
     viewport,
+    ...(deviceScaleFactor && { deviceScaleFactor }),
     recordVideo,
     args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`],
   });
