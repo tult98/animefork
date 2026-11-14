@@ -84,13 +84,16 @@ function stripArcSuffix(query: string): string | undefined {
 const SLUG_LONG_WORDS = 6;
 const SLUG_SHORT_WORDS = 3;
 
+// The words of a source slug, without the trailing id ("-a4476").
+export function slugWords(slug: string): string {
+  return slug
+    .replace(/-a\d+$/, '')
+    .replace(/-+/g, ' ')
+    .trim();
+}
+
 export function slugRomaji(slug: string): string {
-  return stripSeasonMarker(
-    slug
-      .replace(/-a\d+$/, '')
-      .replace(/-+/g, ' ')
-      .trim(),
-  );
+  return stripSeasonMarker(slugWords(slug));
 }
 
 // The slug romaji only helps when it says something the display name does not.

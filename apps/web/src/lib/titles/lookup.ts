@@ -4,7 +4,7 @@ import {
 } from '../../../../api/src/art/contract.ts';
 import {
   seasonMarker,
-  stripSeasonMarker,
+  slugWords,
 } from '../../../../api/src/art/tmdb/titles.ts';
 import { titleWatchLink } from './link.ts';
 import type { HomeShelves } from './shelves.ts';
@@ -75,12 +75,15 @@ export function watchLookupTitle(page: WatchPage): TitleInput | undefined {
   });
 }
 
-// A sibling season is only a slug and a label, so the current title's name stands in for it and the API matches by slug.
-// The name drops the page's own season marker, which would otherwise pin every sibling to that season.
+// A sibling season is only a slug and a label such as "Phần OVA", so it is looked up by the words of its own slug.
+// The page's title names another entry, often another show ("ITEM" on a "Railgun" sibling), and would decide its match.
+// The current season is looked up as the page's own art is.
 export function seasonLookupTitles(page: WatchPage): TitleInput[] {
-  const name = stripSeasonMarker(page.title) || page.title;
   return page.seasons.flatMap((season) => {
-    const input = toInput({ slug: season.slug, name });
+    const input =
+      season.slug === page.slug
+        ? watchLookupTitle(page)
+        : toInput({ slug: season.slug, name: slugWords(season.slug) });
     return input ? [input] : [];
   });
 }

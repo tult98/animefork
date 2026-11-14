@@ -16,15 +16,10 @@ function pageWith(seasons: [slug: string, label: string][]) {
         `<a href="https://animevietsub.cc/phim/${slug}/"${slug === 'tonikaku-kawaii-a3860' ? ' class="active"' : ''}>${label}</a>`,
     )
     .join('');
-  return mockWatchHtml
-    .replace(
-      /<h1 class="Title">.*?<\/h1>/,
-      '<h1 class="Title">Tonikaku Kawaii 2nd Season</h1>',
-    )
-    .replace(
-      /<div class="season_item">.*?<\/div>/s,
-      `<div class="season_item">${links}</div>`,
-    );
+  return mockWatchHtml.replace(
+    /<div class="season_item">.*?<\/div>/s,
+    `<div class="season_item">${links}</div>`,
+  );
 }
 
 const unscored = {
@@ -59,6 +54,39 @@ beforeEach(() => {
 });
 
 describe('the season picker', () => {
+  it('looks up each other season by the words of its own slug, not by the page title', async () => {
+    fetchMock
+      .get(
+        'path:/phim/tonikaku-kawaii-a3860/xem-phim.html',
+        pageWith([
+          ['tonikaku-kawaii-a3860', 'Phần TV Series'],
+          ['tonikaku-kawaii-2nd-season-a4476', 'Phần 2'],
+          ['tonikaku-kawaii-sns-a4229', 'Phần OVA'],
+        ]),
+      )
+      .post('path:/v1/art/lookup', { art: {} });
+    await openSeasonPicker();
+
+    await expect(fetchMock).toBeFetched('path:/v1/art/lookup', {
+      method: 'post',
+      body: {
+        titles: [
+          {
+            slug: 'tonikaku-kawaii-a3860',
+            name: 'Tonikaku Kawaii',
+            otherNames: ['TONIKAWA: Over the Moon For You'],
+          },
+          {
+            slug: 'tonikaku-kawaii-2nd-season-a4476',
+            name: 'tonikaku kawaii 2nd season',
+            seasonName: '2nd season',
+          },
+          { slug: 'tonikaku-kawaii-sns-a4229', name: 'tonikaku kawaii sns' },
+        ],
+      },
+    });
+  });
+
   it('lists the main line by MyAnimeList start date, then the side entries in source order', async () => {
     fetchMock
       .get(
@@ -84,10 +112,14 @@ describe('the season picker', () => {
       method: 'post',
       body: {
         titles: [
-          { slug: 'special-a1', name: 'Tonikaku Kawaii' },
-          { slug: 'tonikaku-kawaii-a3860', name: 'Tonikaku Kawaii' },
-          { slug: 'movie-a2', name: 'Tonikaku Kawaii' },
-          { slug: 'season-2-a3', name: 'Tonikaku Kawaii' },
+          { slug: 'special-a1', name: 'special' },
+          {
+            slug: 'tonikaku-kawaii-a3860',
+            name: 'Tonikaku Kawaii',
+            otherNames: ['TONIKAWA: Over the Moon For You'],
+          },
+          { slug: 'movie-a2', name: 'movie' },
+          { slug: 'season-2-a3', name: 'season 2', seasonName: 'season 2' },
         ],
       },
     });
@@ -124,9 +156,13 @@ describe('the season picker', () => {
       method: 'post',
       body: {
         titles: [
-          { slug: 'tonikaku-kawaii-a3860', name: 'Tonikaku Kawaii' },
-          { slug: 'season-3-a4', name: 'Tonikaku Kawaii' },
-          { slug: 'season-2-a3', name: 'Tonikaku Kawaii' },
+          {
+            slug: 'tonikaku-kawaii-a3860',
+            name: 'Tonikaku Kawaii',
+            otherNames: ['TONIKAWA: Over the Moon For You'],
+          },
+          { slug: 'season-3-a4', name: 'season 3', seasonName: 'season 3' },
+          { slug: 'season-2-a3', name: 'season 2', seasonName: 'season 2' },
         ],
       },
     });
@@ -153,10 +189,14 @@ describe('the season picker', () => {
       method: 'post',
       body: {
         titles: [
-          { slug: 'special-a1', name: 'Tonikaku Kawaii' },
-          { slug: 'tonikaku-kawaii-a3860', name: 'Tonikaku Kawaii' },
-          { slug: 'movie-a2', name: 'Tonikaku Kawaii' },
-          { slug: 'season-2-a3', name: 'Tonikaku Kawaii' },
+          { slug: 'special-a1', name: 'special' },
+          {
+            slug: 'tonikaku-kawaii-a3860',
+            name: 'Tonikaku Kawaii',
+            otherNames: ['TONIKAWA: Over the Moon For You'],
+          },
+          { slug: 'movie-a2', name: 'movie' },
+          { slug: 'season-2-a3', name: 'season 2', seasonName: 'season 2' },
         ],
       },
     });
