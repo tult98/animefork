@@ -71,7 +71,7 @@ function SearchForm({
         aria-label="Tìm phim"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        className={`h-11 min-w-0 flex-1 border-0 bg-transparent text-base/normal text-ink outline-0 [&::-webkit-search-cancel-button]:hidden ${
+        className={`h-11 min-w-0 flex-1 border-0 bg-transparent text-base/normal text-ink outline-0! [&::-webkit-search-cancel-button]:hidden ${
           open ? '' : 'invisible'
         }`}
       />
