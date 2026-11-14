@@ -14,6 +14,7 @@ type Opening = Anchor & { height: number };
 
 // The hover popover shared by the shelf cards. The first child of the preview element is its art, which the grow animation centres on the cover.
 export function useHoverPreview<Cover extends HTMLElement>() {
+  const pinned = useRef(false);
   const coverRef = useRef<Cover>(null);
   const timer = useRef<number | undefined>(undefined);
   const closeTimer = useRef<number | undefined>(undefined);
@@ -38,7 +39,7 @@ export function useHoverPreview<Cover extends HTMLElement>() {
 
   const close = () => {
     window.clearTimeout(timer.current);
-    if (!anchor || closing) return;
+    if (!anchor || closing || pinned.current) return;
     if (window.matchMedia(REDUCED_MOTION_QUERY).matches) {
       unmount();
       return;
@@ -106,10 +107,17 @@ export function useHoverPreview<Cover extends HTMLElement>() {
     [anchor],
   );
 
+  // A modal opened from the preview keeps it mounted, since closing the preview would take the modal with it. Unpinning closes it, because the pointer has long since left.
+  const pin = (hold: boolean) => {
+    pinned.current = hold;
+    if (!hold) closeRef.current();
+  };
+
   return {
     coverRef,
     open: anchor !== null,
     unmount,
+    pin,
     wrapperProps: {
       onMouseEnter: scheduleOpen,
       onMouseLeave: close,

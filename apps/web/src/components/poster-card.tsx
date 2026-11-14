@@ -6,6 +6,7 @@ import { releaseInfo } from '../lib/titles/release.ts';
 import type { Title } from '../lib/titles/title.ts';
 import { DetailsButton } from './details-button.tsx';
 import { useDetails } from './details/details-context.tsx';
+import { TitleActions } from './library/title-actions.tsx';
 import { PromoVideo } from './promo-video.tsx';
 import { useHoverPreview } from './use-hover-preview.ts';
 import { Play, Star } from './ui/icons.ts';
@@ -81,7 +82,7 @@ export function PosterCard({
   const isRank = rank !== undefined;
   const [shownAt] = useState(Date.now);
   const details = useDetails();
-  const { coverRef, open, unmount, wrapperProps, previewProps } =
+  const { coverRef, open, unmount, pin, wrapperProps, previewProps } =
     useHoverPreview<HTMLButtonElement>();
 
   const openDetails = () => {
@@ -197,6 +198,7 @@ export function PosterCard({
                   <Play aria-hidden="true" />
                 </Link>
               )}
+              <TitleActions title={title} onDialogChange={pin} />
               <span className="af-spacer" />
               <DetailsButton
                 name={title.name}

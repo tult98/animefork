@@ -7,6 +7,7 @@ import { useEpisodeInfo } from '../../lib/titles/use-episode-info.ts';
 import { useWatchPage } from '../../lib/titles/use-watch-page.ts';
 import type { Episode } from '../../lib/titles/watch.ts';
 import { useListWindow } from '../../lib/ui/use-list-window.ts';
+import { TitleActions, TitleStatus } from '../library/title-actions.tsx';
 import { TrailerSoundButton } from '../trailer-sound-button.tsx';
 import { Trailer, type TrailerPhase } from '../trailer.tsx';
 import { Check, ChevronDown, Play, Star, X } from '../ui/icons.ts';
@@ -329,17 +330,20 @@ export function DetailsModal({
 
         <div className="details-head">
           <h2 id="details-title">{title.name}</h2>
-          {upcoming ? null : (
-            <Link
-              {...titleWatchLink(title)}
-              className="af-pill af-pill--play"
-              data-testid="details:play"
-              onClick={onClose}
-            >
-              <Play aria-hidden="true" className="fill-current stroke-none" />
-              Phát
-            </Link>
-          )}
+          <div className="details-actions">
+            {upcoming ? null : (
+              <Link
+                {...titleWatchLink(title)}
+                className="af-pill af-pill--play"
+                data-testid="details:play"
+                onClick={onClose}
+              >
+                <Play aria-hidden="true" className="fill-current stroke-none" />
+                Phát
+              </Link>
+            )}
+            <TitleActions title={title} />
+          </div>
         </div>
 
         <div className="details-info">
@@ -352,6 +356,7 @@ export function DetailsModal({
             {title.description ? (
               <Description text={title.description} />
             ) : null}
+            <TitleStatus title={title} />
           </div>
           <dl className="details-facts">
             {title.genres.length > 0 ? (
