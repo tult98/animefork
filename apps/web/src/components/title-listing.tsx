@@ -1,9 +1,4 @@
-import {
-  keepPreviousData,
-  skipToken,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { skipToken, useQuery } from '@tanstack/react-query';
 import { useMemo, useRef } from 'react';
 import {
   arrange,
@@ -13,21 +8,12 @@ import {
   type SortKey,
 } from '../lib/titles/airing-list.ts';
 import {
-  applyHomeArt,
-  applyRatings,
-  artPollDelay,
-  artSkeletonLeft,
-  fetchHomeArt,
-  markArtPending,
-} from '../lib/titles/art.ts';
-import {
   fetchSeasonFirstPage,
   fetchSeasonRest,
   joinSeasonPages,
   limitTitles,
   pagesNeeded,
 } from '../lib/titles/season-pages.ts';
-import { lookupTitles } from '../lib/titles/lookup.ts';
 import type { DefaultShelf } from '../lib/titles/shelves.ts';
 import { paginate } from '../lib/ui/paging.ts';
 import { Dropdown } from './dropdown.tsx';
@@ -35,6 +21,7 @@ import { ErrorScreen } from './error-screen.tsx';
 import { Pager } from './pager.tsx';
 import { PosterCard } from './poster-card.tsx';
 import { SHIMMER } from './shelf.tsx';
+import { useArtTitles } from './use-art-titles.ts';
 
 export interface TitleListingProps {
   heading: string;
@@ -126,35 +113,7 @@ export function TitleListing({
     ],
     [first.data?.titles, rest.data?.titles, limit],
   );
-  const lookup = useMemo(() => lookupTitles(shelf), [shelf]);
-  const apiOn = Boolean(import.meta.env.VITE_API_URL);
-  const queryClient = useQueryClient();
-  const artKey = ['home-art', lookup];
-  const art = useQuery({
-    queryKey: artKey,
-    queryFn: ({ signal }) =>
-      fetchHomeArt(lookup, { env: import.meta.env, signal }),
-    enabled: settled && lookup.length > 0 && apiOn,
-    placeholderData: keepPreviousData,
-    refetchInterval: (query) =>
-      artPollDelay(query.state.data?.pending, query.state.dataUpdateCount),
-  });
-  const pollsLeft =
-    art.isPlaceholderData ||
-    artSkeletonLeft(queryClient.getQueryState(artKey)?.dataUpdateCount ?? 0);
-  const titles = useMemo(() => {
-    const applied = art.data
-      ? applyRatings(applyHomeArt(shelf, art.data.paths), art.data.ratings)
-      : shelf;
-    const [marked] = markArtPending(applied, {
-      apiOn,
-      art: art.data,
-      pollsLeft,
-      failed: art.isError,
-      sent: new Set(lookup.map((t) => t.slug)),
-    });
-    return marked?.items ?? shelf[0]?.items ?? [];
-  }, [shelf, lookup, art.data, art.isError, apiOn, pollsLeft]);
+  const titles = useArtTitles(shelf, settled);
 
   const entries = useMemo(() => arrange(titles, { sort }), [titles, sort]);
   const paged = paginate(entries, page);
