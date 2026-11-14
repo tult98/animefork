@@ -1,18 +1,18 @@
 import { Logger } from '@nestjs/common';
 import { parseArgs } from 'node:util';
 import pg from 'pg';
-import { loadJevConfig } from '../src/art/art.config.ts';
-import { tmdbAliases } from '../src/art/tmdb/aliases.ts';
-import { createTmdbClient, type TmdbClient } from '../src/art/tmdb/tmdb.ts';
-import { systemClock } from '../src/common/clock.ts';
-import { EnvError } from '../src/config/app.config.ts';
-import { createMalClient } from '../src/mal/mal.client.ts';
-import { loadMalConfig } from '../src/mal/mal.config.ts';
-import { MalFiller } from '../src/mal/mal.filler.ts';
-import { MalFranchise } from '../src/mal/mal.franchise.ts';
-import { createMalJudge } from '../src/mal/mal.jev.ts';
-import { PostgresMalStore, type MalStore } from '../src/mal/mal.store.ts';
-import { createTrailerClient } from '../src/mal/trailer.client.ts';
+import { loadJevConfig } from '../art/art.config.ts';
+import { tmdbAliases } from '../art/tmdb/aliases.ts';
+import { createTmdbClient, type TmdbClient } from '../art/tmdb/tmdb.ts';
+import { systemClock } from '../common/clock.ts';
+import { EnvError } from '../config/app.config.ts';
+import { createMalClient } from '../mal/mal.client.ts';
+import { loadMalConfig } from '../mal/mal.config.ts';
+import { MalFiller } from '../mal/mal.filler.ts';
+import { MalFranchise } from '../mal/mal.franchise.ts';
+import { createMalJudge } from '../mal/mal.jev.ts';
+import { PostgresMalStore, type MalStore } from '../mal/mal.store.ts';
+import { createTrailerClient } from '../mal/trailer.client.ts';
 import { evalInput, type SourceRow } from './eval-mal.ts';
 
 // The store and the filler pull in Nest decorators, which node's type stripping cannot run,

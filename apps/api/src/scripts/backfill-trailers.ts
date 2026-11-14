@@ -2,12 +2,12 @@ import { parseArgs } from 'node:util';
 import { setTimeout as sleep } from 'node:timers/promises';
 import pg from 'pg';
 import { z } from 'zod';
-import { EnvError, parseEnv } from '../src/config/app.config.ts';
-import { DEFAULT_TENRAI_API } from '../src/mal/mal.config.ts';
+import { EnvError, parseEnv } from '../config/app.config.ts';
+import { DEFAULT_TENRAI_API } from '../mal/mal.config.ts';
 import {
   createTrailerClient,
   type TrailerClient,
-} from '../src/mal/trailer.client.ts';
+} from '../mal/trailer.client.ts';
 
 // Tenrai allows 120 requests a minute without a key, and the running API shares that budget.
 const DEFAULT_DELAY_MS = 600;

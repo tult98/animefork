@@ -26,6 +26,17 @@ If you change `PUBLIC_URL`, the web image must be rebuilt (`up -d --build` does 
 
 The workflow cleans up after itself: `docker image prune -f` removes the previous app images, and `docker builder prune` removes build cache older than a week. Database volumes are never touched. If you update by hand, run the same two commands afterwards so the disk does not fill up.
 
+## Running a backfill
+
+The image carries the one-off jobs compiled to `dist/scripts/`. They read the same env as the API. Run them after a deploy, so the API has applied the migrations, and one at a time, since both share the MAL and Tenrai rate limits with the running API. In `deploy/`, run the MAL pass first and the trailers after it, because the trailer pass only reads rows the MAL pass matched:
+
+```bash
+docker compose exec api node dist/scripts/backfill-mal.js --limit=20
+docker compose exec api node dist/scripts/backfill-trailers.js --limit=20
+```
+
+Drop `--limit` to take every row. `apps/api/README.md` describes both under **MyAnimeList**.
+
 ## Backups
 
 `deploy/backup.sh` dumps the database with `pg_dump` into `~/backups/api-<date>.sql.gz` and deletes dumps older than 14 days. Change the location or retention with `BACKUP_DIR` and `RETENTION_DAYS`.

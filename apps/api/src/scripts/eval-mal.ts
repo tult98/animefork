@@ -1,20 +1,20 @@
 import { Logger } from '@nestjs/common';
 import { parseArgs } from 'node:util';
 import pg from 'pg';
-import { loadJevConfig } from '../src/art/art.config.ts';
-import type { TitleInput } from '../src/art/contract.ts';
-import { createJevClient, fmt } from '../src/art/tmdb/jev.ts';
-import { seasonMarker } from '../src/art/tmdb/titles.ts';
-import { EnvError } from '../src/config/app.config.ts';
-import { createMalClient, type MalCandidate } from '../src/mal/mal.client.ts';
-import { loadMalConfig } from '../src/mal/mal.config.ts';
+import { loadJevConfig } from '../art/art.config.ts';
+import type { TitleInput } from '../art/contract.ts';
+import { createJevClient, fmt } from '../art/tmdb/jev.ts';
+import { seasonMarker } from '../art/tmdb/titles.ts';
+import { EnvError } from '../config/app.config.ts';
+import { createMalClient, type MalCandidate } from '../mal/mal.client.ts';
+import { loadMalConfig } from '../mal/mal.config.ts';
 import {
   jevCandidates,
   MalJevJudge,
   type MalJevVerdict,
-} from '../src/mal/mal.jev.ts';
-import { matchMal, type MalMatch } from '../src/mal/mal.matcher.ts';
-import { sourceQueries } from '../src/mal/mal.queries.ts';
+} from '../mal/mal.jev.ts';
+import { matchMal, type MalMatch } from '../mal/mal.matcher.ts';
+import { sourceQueries } from '../mal/mal.queries.ts';
 
 const STATUSES = ['none', 'ok', 'all'] as const;
 type StatusFilter = (typeof STATUSES)[number];

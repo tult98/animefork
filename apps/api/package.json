@@ -9,10 +9,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "eval-matcher": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/eval-matcher.ts",
-    "eval-mal": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/eval-mal.ts",
-    "backfill-trailers": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/backfill-trailers.ts",
-    "backfill-mal": "node --env-file-if-exists=.env --import @swc-node/register/esm-register --disable-warning=ExperimentalWarning scripts/backfill-mal.ts"
+    "eval-matcher": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/scripts/eval-matcher.ts",
+    "eval-mal": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/scripts/eval-mal.ts",
+    "backfill-trailers": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/scripts/backfill-trailers.ts",
+    "backfill-mal": "node --env-file-if-exists=.env --import @swc-node/register/esm-register --disable-warning=ExperimentalWarning src/scripts/backfill-mal.ts"
   },
   "nx": {
     "targets": {

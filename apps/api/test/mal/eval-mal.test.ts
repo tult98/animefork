@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evalCells, evalInput, formatRow } from '../../scripts/eval-mal.ts';
+import { evalCells, evalInput, formatRow } from '../../src/scripts/eval-mal.ts';
 import type { MalCandidate } from '../../src/mal/mal.client.ts';
 import type { MalJevVerdict } from '../../src/mal/mal.jev.ts';
 
