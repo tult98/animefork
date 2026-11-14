@@ -21,13 +21,13 @@ function detailsTitle(item: ContinueItem): Title {
   };
 }
 
-function watchedText({ state }: ContinueItem): string {
+export function watchedText({ state }: ContinueItem): string {
   return state.kind === 'finished'
     ? FINISHED_LABEL
     : formatWatched(state.positionS, state.durationS);
 }
 
-function ProgressBar({
+export function ProgressBar({
   item,
   testId,
   className,

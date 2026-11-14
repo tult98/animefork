@@ -19,7 +19,7 @@ export interface TitleLibrary {
   playlists: TitlePlaylist[];
 }
 
-// What the viewer's library says about one title. Signed out and failed both read as an empty library.
+// What the viewer's library says about one title. Signed out and a failed load both read as an empty library.
 export function useTitleLibrary(title: Title): TitleLibrary {
   const state = useLibrary();
   if (state.status !== 'ready') {
