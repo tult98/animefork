@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { NAV_ITEMS } from '../nav.ts';
 import { AccountMenu } from './account-menu.tsx';
+import { SearchBox } from './search-box.tsx';
 import {
   Header,
   HeaderActions,
@@ -9,7 +10,7 @@ import {
   HeaderNav,
   NAV_PILL_CLASS,
 } from './ui/header.tsx';
-import { Bell, Search } from './ui/icons.ts';
+import { Bell } from './ui/icons.ts';
 import { Logo } from './ui/logo.tsx';
 
 const SOLID_AFTER_PX = 8;
@@ -60,12 +61,7 @@ export function TopBar() {
         ))}
       </HeaderNav>
       <HeaderActions className="max-desk:ml-auto gap-1">
-        <HeaderIconButton
-          icon={Search}
-          label="Tìm kiếm"
-          disabled
-          className={ICON_BUTTON_CLASS}
-        />
+        <SearchBox />
         <HeaderIconButton
           icon={Bell}
           label="Thông báo"
