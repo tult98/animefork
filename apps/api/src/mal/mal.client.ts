@@ -190,6 +190,8 @@ export function createMalClient(options: MalClientOptions): MalClient {
           q: fitQuery(query),
           limit: String(SEARCH_LIMIT),
           fields: FIELDS,
+          // Without it MAL leaves out every entry it rates gray, such as ecchi shows.
+          nsfw: 'true',
         });
         if (!res.ok)
           throw new MalError(`MAL /anime answered ${res.status}`, res.status);
