@@ -187,50 +187,6 @@ describe('MAL filler', () => {
     expect(fetchMock).toHaveFetchedTimes(1, 'begin:https://mal.test/v2/anime');
   });
 
-  it('searches a name TMDB knows the show by only after the source’s own names find nothing', async () => {
-    const { app } = await buildApp({
-      env: {
-        MAL_CLIENT_ID: 'abc',
-        MAL_API_BASE: 'https://mal.test/v2',
-        TENRAI_API_BASE: 'https://tenrai.test/v1',
-      },
-    });
-    const slug = `conan-a${randomInt(1_000_000_000)}`;
-    const malId = randomInt(1, 2_000_000_000);
-    fetchMock
-      .get('begin:https://mal.test/v2/anime?q=Conan&', { data: [] })
-      .get('begin:https://mal.test/v2/anime?q=conan&', { data: [] })
-      .get('begin:https://mal.test/v2/anime?q=Case+Closed&', {
-        data: [
-          {
-            node: {
-              id: malId,
-              title: 'Meitantei Conan',
-              alternative_titles: { en: 'Case Closed' },
-              media_type: 'tv',
-            },
-          },
-        ],
-      })
-      .get(`https://tenrai.test/v1/anime/${malId}/full`, 503)
-      .get(`https://api.tenrai.org/v1/anime/${malId}/episodes?page=1`, 404);
-
-    await app
-      .get<MalFiller>(MAL_FILLER)
-      .fill({ slug, name: 'Conan' }, async () => ['Case Closed']);
-
-    const rows = await app.get<MalStore>(MAL_STORE).find([slug]);
-    expect(rows.get(slug)).toMatchObject({
-      status: 'ok',
-      malId,
-      matchedTitle: 'Meitantei Conan',
-    });
-    expect(fetchMock).toHaveNthFetched(
-      3,
-      'begin:https://mal.test/v2/anime?q=Case+Closed&',
-    );
-  });
-
   it('stores a no-match with its reason when no candidate is the show, and leaves Jev out when it is off', async () => {
     const { app } = await buildApp({
       env: { MAL_CLIENT_ID: 'abc', MAL_API_BASE: 'https://mal.test/v2' },

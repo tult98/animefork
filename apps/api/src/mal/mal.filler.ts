@@ -23,11 +23,6 @@ import type { MalMatchedBy, MalStore, StoredMal } from './mal.store.ts';
 import type { NameGuessStore } from './name-guess.store.ts';
 import type { MalNameGuesser } from './name-guesser.ts';
 
-export const MAX_ALIAS_QUERIES = 2;
-
-// Looks up other names for a title; only asked when the source's own name found nothing.
-export type AliasSource = () => Promise<string[]>;
-
 // MAL ids other slugs of the same display name already hold. The source gives a franchise's
 // movies the series' name, so without this every movie lands on the series' entry.
 export type TakenSource = () => Promise<number[]>;
@@ -76,13 +71,12 @@ export class MalFiller {
 
   fill(
     input: TitleInput,
-    aliases?: AliasSource,
     namesAt?: Date,
     taken?: TakenSource,
   ): Promise<void> {
     const existing = this.inFlight.get(input.slug);
     if (existing) return existing;
-    const done = this.run(input, aliases, namesAt, taken)
+    const done = this.run(input, namesAt, taken)
       .catch((error: unknown) => {
         this.logger.error(
           `mal ${input.slug} could not be saved: ${describeError(error)}`,
@@ -114,7 +108,6 @@ export class MalFiller {
 
   private async run(
     input: TitleInput,
-    aliases?: AliasSource,
     namesAt?: Date,
     taken?: TakenSource,
   ): Promise<void> {
@@ -125,7 +118,7 @@ export class MalFiller {
       saved =
         current?.status === 'ok' && current.malId !== null
           ? await this.refresh(current)
-          : await this.match(input, aliases, taken);
+          : await this.match(input, taken);
     } catch (error) {
       const reason = describeError(error);
       this.logger.warn(`mal ${input.slug} failed: ${reason}`);
@@ -174,7 +167,6 @@ export class MalFiller {
 
   private async match(
     input: TitleInput,
-    aliases?: AliasSource,
     taken?: TakenSource,
   ): Promise<StoredMal | null> {
     const takenIds = new Set(taken ? await taken() : []);
@@ -193,19 +185,6 @@ export class MalFiller {
     for (const query of sourceQueries(input)) {
       found = matchMal(input, await search(query), otherNames);
       if (found) break;
-    }
-    // A name TMDB confirmed for this show reaches MAL titles the source's own name never would.
-    if (!found && aliases) {
-      const names = await aliases().catch((error: unknown) => {
-        this.logger.warn(
-          `mal ${input.slug} aliases failed: ${describeError(error)}`,
-        );
-        return [];
-      });
-      for (const query of names.slice(0, MAX_ALIAS_QUERIES)) {
-        found = matchMal(input, await search(query), [...otherNames, ...names]);
-        if (found) break;
-      }
     }
     let guessed: string[] = [];
     if (!found && otherNames.length === 0) {
@@ -237,7 +216,10 @@ export class MalFiller {
     if (this.judge && this.franchise && takenIds.size > 0) {
       const pool = await this.franchise.candidates([...takenIds]);
       if (pool.length > 0) {
-        const verdict = await this.judge.askFranchise(input, pool);
+        const verdict = await this.judge.askFranchise(
+          guessed.length > 0 ? { ...input, otherNames: guessed } : input,
+          pool,
+        );
         if (verdict.accepted) {
           return this.saveMatch(
             input.slug,

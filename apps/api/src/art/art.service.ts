@@ -17,14 +17,12 @@ import type {
 } from './contract.ts';
 import { artStatus, isOverviewSettled, isStale } from './retry.ts';
 import { ART_STORE, type ArtStore, type StoredTitle } from './art.store.ts';
-import { ART_SYNC, ArtFiller } from './art.filler.ts';
+import { ArtFiller } from './art.filler.ts';
 import {
   TITLE_NAMES_STORE,
   type StoredNames,
   type TitleNamesStore,
 } from './title-names.store.ts';
-import { tmdbAliases } from './tmdb/aliases.ts';
-import type { SyncDeps } from './tmdb/sync.ts';
 
 @Injectable()
 export class ArtService {
@@ -34,7 +32,6 @@ export class ArtService {
   private readonly ratings: RatingsStore;
   private readonly mal: MalStore;
   private readonly malFiller: MalFiller | null;
-  private readonly tmdb: SyncDeps['tmdb'] | null;
   private readonly names: TitleNamesStore;
 
   constructor(
@@ -44,7 +41,6 @@ export class ArtService {
     @Inject(RATINGS_STORE) ratings: RatingsStore,
     @Inject(MAL_STORE) mal: MalStore,
     @Inject(MAL_FILLER) malFiller: MalFiller | null = null,
-    @Inject(ART_SYNC) sync: SyncDeps | null = null,
     @Inject(TITLE_NAMES_STORE) names: TitleNamesStore,
   ) {
     this.store = store;
@@ -53,7 +49,6 @@ export class ArtService {
     this.ratings = ratings;
     this.mal = mal;
     this.malFiller = malFiller;
-    this.tmdb = sync?.tmdb ?? null;
     this.names = names;
   }
 
@@ -140,7 +135,6 @@ export class ArtService {
         if (!this.malFiller.has(slug)) {
           void this.malFiller.fill(
             title,
-            this.aliasSource(rows.get(slug)),
             namesAt,
             this.takenSource(slug, title.name),
           );
@@ -201,13 +195,6 @@ export class ArtService {
       fresh.map((t) => this.names.saveIfAbsent(t.slug, t.otherNames, now)),
     );
     return this.names.find(slugs);
-  }
-
-  // The TMDB match, when there is one, knows the show by an English name MAL also lists.
-  private aliasSource(row: { tmdbId: number | null } | undefined) {
-    const { tmdb } = this;
-    const id = row?.tmdbId ?? null;
-    return tmdb && id !== null ? () => tmdbAliases(tmdb, id) : undefined;
   }
 
   private takenSource(slug: string, name: string) {

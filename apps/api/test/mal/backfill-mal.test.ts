@@ -6,7 +6,6 @@ import {
   backfillMal,
   findBackfillRows,
 } from '../../src/scripts/backfill-mal.ts';
-import { createTmdbClient } from '../../src/art/tmdb/tmdb.ts';
 import { createMalClient } from '../../src/mal/mal.client.ts';
 import { MalFiller } from '../../src/mal/mal.filler.ts';
 import { PostgresMalStore } from '../../src/mal/mal.store.ts';
@@ -22,9 +21,8 @@ describe('backfill-mal', () => {
     await pool.end();
   });
 
-  it('matches an old miss through the name TMDB knows the show by and keeps a title MAL has no entry for a miss under the current matcher', async () => {
+  it('matches an old miss and keeps a title MAL has no entry for a miss under the current matcher', async () => {
     const run = randomInt(1_000_000_000);
-    const tmdbId = randomInt(1, 2_000_000_000);
     const malId = randomInt(1, 2_000_000_000);
     const attemptedAt = new Date('2026-02-01T00:00:00Z');
     const rows = [
@@ -34,7 +32,6 @@ describe('backfill-mal', () => {
         source_year: 2023,
         source_episode_count: null,
         other_names: null,
-        tmdb_id: tmdbId,
         names_at: null,
         taken_mal_ids: [],
         attempted_at: attemptedAt,
@@ -45,7 +42,6 @@ describe('backfill-mal', () => {
         source_year: null,
         source_episode_count: null,
         other_names: null,
-        tmdb_id: null,
         names_at: null,
         taken_mal_ids: [],
         attempted_at: attemptedAt,
@@ -61,23 +57,12 @@ describe('backfill-mal', () => {
       .get('begin:https://mal.test/v2/anime?q=Ti%C3%AAn+Ngh%E1%BB%8Bch&', {
         data: [],
       })
-      .get('begin:https://mal.test/v2/anime?q=tien+nghich&', { data: [] })
-      .get(`https://tmdb.test/3/tv/${tmdbId}?api_key=key`, {
-        id: tmdbId,
-        name: 'Renegade Immortal',
-        original_name: '仙逆',
-        number_of_episodes: 129,
-      })
-      .get(`https://tmdb.test/3/tv/${tmdbId}/alternative_titles?api_key=key`, {
-        results: [],
-      })
-      .get('begin:https://mal.test/v2/anime?q=Renegade+Immortal&', {
+      .get('begin:https://mal.test/v2/anime?q=tien+nghich&', {
         data: [
           {
             node: {
               id: malId,
-              title: 'Xian Ni',
-              alternative_titles: { en: 'Renegade Immortal' },
+              title: 'Tien Nghich',
               start_season: { year: 2023, season: 'fall' },
               media_type: 'ona',
             },
@@ -106,7 +91,6 @@ describe('backfill-mal', () => {
         createTrailerClient({ baseUrl: 'https://tenrai.test/v1' }),
       ),
       store,
-      tmdb: createTmdbClient({ apiKey: 'key', baseUrl: 'https://tmdb.test/3' }),
       log: (line) => lines.push(line),
     });
 
@@ -118,7 +102,7 @@ describe('backfill-mal', () => {
       settled: 0,
     });
     expect(lines).toEqual([
-      `tien-nghich-a${run} ok ${malId} Xian Ni by score`,
+      `tien-nghich-a${run} ok ${malId} Tien Nghich by score`,
       `nobody-knows-a${run} none no candidate cleared the match`,
     ]);
     const stored = await pool.query(
@@ -144,7 +128,7 @@ describe('backfill-mal', () => {
       },
     ]);
     expect(fetchMock).toHaveFetched('begin:https://mal.test/v2/anime', {
-      query: { q: 'Renegade Immortal', nsfw: 'true' },
+      query: { q: 'tien nghich', nsfw: 'true' },
     });
   });
 
@@ -192,7 +176,6 @@ describe('backfill-mal', () => {
         createTrailerClient({ baseUrl: 'https://tenrai.test/v1' }),
       ),
       store,
-      tmdb: null,
       log: (line) => lines.push(line),
     });
 
@@ -203,7 +186,6 @@ describe('backfill-mal', () => {
         source_name: 'Shirobako',
         source_year: 2014,
         source_episode_count: null,
-        tmdb_id: null,
         other_names: null,
         names_at: null,
         taken_mal_ids: [],
