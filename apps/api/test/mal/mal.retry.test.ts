@@ -75,8 +75,8 @@ describe('isMalSettled', () => {
   it.each([
     ['keeps a failure for 10 minutes', 'failed', 3, 10 * MINUTE - 1, true],
     ['tries a failure again after 10 minutes', 'failed', 3, 10 * MINUTE, false],
-    ['keeps a no-match for 7 days', 'none', 7, 7 * DAY - 1, true],
-    ['tries a no-match again after 7 days', 'none', 7, 7 * DAY, false],
+    ['keeps a no-match for 7 days', 'none', 8, 7 * DAY - 1, true],
+    ['tries a no-match again after 7 days', 'none', 8, 7 * DAY, false],
     [
       'tries a no-match from an older matcher again at once',
       'none',
@@ -101,7 +101,7 @@ describe('isMalSettled', () => {
   it('tries a miss again when the source’s other names arrived after its last try, and never a match', () => {
     const miss = {
       status: 'none' as const,
-      matcherVersion: 7,
+      matcherVersion: 8,
       fetchedAt: null,
       attemptedAt: ago(1000),
     };

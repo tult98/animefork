@@ -70,7 +70,10 @@ export interface MalJudge {
 }
 
 export type MalJevThresholds = JevThresholds &
-  Pick<JevConfig, 'franchiseMinChoice' | 'franchiseMinNoul'>;
+  Pick<
+    JevConfig,
+    'malMinNoul' | 'malMinChoice' | 'franchiseMinChoice' | 'franchiseMinNoul'
+  >;
 
 export function jevCandidates(pages: MalCandidate[][]): MalCandidate[] {
   const seen = new Map<number, MalCandidate>();
@@ -167,7 +170,11 @@ export class MalJevJudge implements MalJudge {
       input,
       candidates,
       malJevQuestions(candidates),
-      this.thresholds,
+      {
+        minChoice: this.thresholds.malMinChoice,
+        minNoul: this.thresholds.malMinNoul,
+        minConfidence: this.thresholds.minConfidence,
+      },
       'jev mal',
     );
   }

@@ -68,7 +68,7 @@ describe('MAL name guesses', () => {
       malId,
       matchedTitle: 'Xian Ni',
       matchedBy: 'score',
-      matcherVersion: 7,
+      matcherVersion: 8,
     });
     expect(await app.get<NameGuessStore>(NAME_GUESS_STORE).find(slug)).toEqual({
       known: true,
@@ -91,6 +91,10 @@ describe('MAL name guesses', () => {
       },
       matchPartialBody: true,
     });
+    expect(fetchMock).not.toHavePosted(
+      'https://deepseek.test/chat/completions',
+      { body: { thinking: { type: 'disabled' } }, matchPartialBody: true },
+    );
     expect(fetchMock).not.toHaveFetched(
       'begin:https://mal.test/v2/anime?q=Renegade+Immortal&',
     );

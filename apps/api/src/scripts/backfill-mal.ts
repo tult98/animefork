@@ -2,8 +2,6 @@ import { Logger } from '@nestjs/common';
 import { parseArgs } from 'node:util';
 import pg from 'pg';
 import { loadDeepSeekConfig, loadJevConfig } from '../art/art.config.ts';
-import { tmdbAliases } from '../art/tmdb/aliases.ts';
-import { createTmdbClient, type TmdbClient } from '../art/tmdb/tmdb.ts';
 import { systemClock } from '../common/clock.ts';
 import { EnvError } from '../config/app.config.ts';
 import { createMalClient } from '../mal/mal.client.ts';
@@ -22,7 +20,6 @@ import { evalInput, type SourceRow } from './eval-mal.ts';
 
 export interface BackfillMalRow extends Omit<SourceRow, 'status' | 'mal_id'> {
   attempted_at: Date | null;
-  tmdb_id: number | null;
   names_at: Date | null;
   taken_mal_ids: number[];
 }
@@ -38,29 +35,22 @@ export interface BackfillMalSummary {
 export interface BackfillMalDeps {
   filler: MalFiller;
   store: MalStore;
-  tmdb: TmdbClient | null;
   log: (line: string) => void;
 }
 
 export async function backfillMal(
   rows: BackfillMalRow[],
-  { filler, store, tmdb, log }: BackfillMalDeps,
+  { filler, store, log }: BackfillMalDeps,
 ): Promise<BackfillMalSummary> {
   const summary = { lookedUp: 0, ok: 0, none: 0, failed: 0, settled: 0 };
   // The rows' taken ids predate this run, so ids matched during it are added per name.
   const matchedNow = new Map<string, number[]>();
   for (const row of rows) {
     const slug = row.source_slug;
-    const tmdbId = row.tmdb_id;
-    await filler.fill(
-      evalInput(row),
-      tmdb && tmdbId !== null ? () => tmdbAliases(tmdb, tmdbId) : undefined,
-      row.names_at ?? undefined,
-      async () => [
-        ...row.taken_mal_ids,
-        ...(matchedNow.get(row.source_name) ?? []),
-      ],
-    );
+    await filler.fill(evalInput(row), row.names_at ?? undefined, async () => [
+      ...row.taken_mal_ids,
+      ...(matchedNow.get(row.source_name) ?? []),
+    ]);
     summary.lookedUp++;
     const stored = (await store.find([slug])).get(slug);
     if (
@@ -95,7 +85,6 @@ export async function findBackfillRows(
   const { rows } = await pool.query<BackfillMalRow>(
     `select a.source_slug, m.attempted_at,
             a.source_name, a.source_year, a.source_episode_count,
-            case when a.status = 'matched' then a.tmdb_id end as tmdb_id,
             n.names as other_names, n.updated_at as names_at,
             array(select o.mal_id
                     from title_art oa
@@ -151,13 +140,6 @@ async function main(): Promise<void> {
     throw error;
   }
   if (!mal) fail('set MAL_CLIENT_ID');
-  const tmdbKey = process.env.TMDB_API_KEY?.trim();
-  const tmdb = tmdbKey
-    ? createTmdbClient({
-        apiKey: tmdbKey,
-        baseUrl: process.env.TMDB_API_BASE?.trim() || undefined,
-      })
-    : null;
 
   Logger.overrideLogger(['error', 'warn']);
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -181,12 +163,11 @@ async function main(): Promise<void> {
     const rows = await findBackfillRows(pool, limit);
     console.log(
       `backfill-mal: ${rows.length} title(s) without a MAL match, ` +
-        `Jev ${jev ? 'on' : 'off'}, TMDB aliases ${tmdb ? 'on' : 'off'}`,
+        `Jev ${jev ? 'on' : 'off'}`,
     );
     const summary = await backfillMal(rows, {
       filler,
       store,
-      tmdb,
       log: (line) => console.log(line),
     });
     console.log(
