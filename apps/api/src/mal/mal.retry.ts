@@ -7,7 +7,8 @@ const DAY = 24 * 60 * MINUTE;
 
 // Bump when the matcher changes, so rows it rejected under the old rules are tried again.
 // Version history: 2 reads the season from the slug, searches the slug romaji first and breaks part ties.
-export const MAL_MATCHER_VERSION = 5;
+// 6 reads a Roman numeral word in the slug ("-ii-") as the season.
+export const MAL_MATCHER_VERSION = 6;
 
 export const MAL_REFRESH_AFTER_MS = 7 * DAY;
 // Episodes keep coming while a show airs and its status flips when it ends, so those are checked often.

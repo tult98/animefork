@@ -3,6 +3,7 @@ import {
   distinctRomaji,
   parseSeasonNumber,
   searchQueries,
+  slugSeasonNumber,
   stripSeasonMarker,
 } from '../../../src/art/tmdb/titles.ts';
 
@@ -16,6 +17,27 @@ describe('parseSeasonNumber', () => {
     ['season 1 for a season 0', 'Season 0', 'Show', 1],
   ])('reads %s', (_, seasonName, name, season) => {
     expect(parseSeasonNumber(seasonName, name)).toBe(season);
+  });
+});
+
+describe('slugSeasonNumber', () => {
+  it.each([
+    ['an ordinal marker', 'ao-no-hako-2nd-season-a6078', 2],
+    ['a Roman numeral word', 'katainaka-no-ossan-kensei-ni-naru-ii-a5986', 2],
+    [
+      'a Roman numeral word in capitals',
+      'tensei-shitara-ken-deshita-III-a1',
+      3,
+    ],
+    ['season 1 for an "x" between words', 'spy-x-family-a1', 1],
+    ['season 1 for a numeral as the first word', 'ii-sekai-a1', 1],
+    [
+      'season 1 for a slug without a marker',
+      'kikansha-no-mahou-wa-tokubetsu-desu-a5062',
+      1,
+    ],
+  ])('reads %s', (_, slug, season) => {
+    expect(slugSeasonNumber(slug)).toBe(season);
   });
 });
 
