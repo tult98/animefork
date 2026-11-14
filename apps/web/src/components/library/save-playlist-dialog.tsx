@@ -65,7 +65,11 @@ export function SavePlaylistDialog({
       aria-labelledby={`${nameId}-heading`}
       data-testid="save-playlist"
       className="save-dialog"
-      onClose={onClose}
+      onClose={(event) => {
+        // React bubbles close through the component tree, and the details modal's own onClose would unmount it.
+        event.stopPropagation();
+        onClose();
+      }}
       onClick={(event) => {
         event.stopPropagation();
         if (event.target === event.currentTarget) ref.current?.close();

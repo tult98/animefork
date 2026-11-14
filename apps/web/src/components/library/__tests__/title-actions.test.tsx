@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LibraryResponse } from '../../../../../api/src/library/contract.ts';
 import type { Title } from '../../../lib/titles/title.ts';
 import { render, screen, within } from '../../../test/test-utils.tsx';
+import { DetailsModal } from '../../details/details-modal.tsx';
 import { TitleActions, TitleStatus } from '../title-actions.tsx';
 
 const title = {
@@ -166,5 +167,25 @@ describe('the title actions', () => {
     expect(router.state.location.pathname).toBe('/sign-in');
     expect(fetchMock).not.toHaveFetched('path:/v1/library');
     expect(fetchMock).not.toHaveFetched('path:/v1/library/ratings/alpha');
+  });
+
+  it('closes the save dialog without closing the details modal under it', async () => {
+    fetchMock
+      .get('path:/v1/auth/me', { user: { id: 'u1', email: 'mai@example.com' } })
+      .get('path:/v1/library', library);
+    const onClose = vi.fn();
+    render(<DetailsModal title={title} upcoming onClose={onClose} />, {
+      path: '/',
+    });
+    await expect(fetchMock).toBeFetched('path:/v1/library');
+
+    await userEvent.click(button('Lưu vào danh sách'));
+    const dialog = await screen.findByTestId('save-playlist');
+    await userEvent.click(within(dialog).getByTestId('save-playlist:close'));
+
+    expect(screen.queryByTestId('save-playlist')).not.toBeInTheDocument();
+    expect(screen.getByTestId('details')).toBeVisible();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(button('Lưu vào danh sách')).toHaveFocus();
   });
 });

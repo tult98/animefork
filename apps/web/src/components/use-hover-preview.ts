@@ -107,10 +107,9 @@ export function useHoverPreview<Cover extends HTMLElement>() {
     [anchor],
   );
 
-  // A modal opened from the preview keeps it mounted, since closing the preview would take the modal with it. Unpinning closes it, because the pointer has long since left.
+  // A modal opened from the preview keeps it mounted, since closing the preview would take the modal with it. Focus returns to the preview's own button when the modal closes, so the usual blur and Escape rules close it from there.
   const pin = (hold: boolean) => {
     pinned.current = hold;
-    if (!hold) closeRef.current();
   };
 
   return {
