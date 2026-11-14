@@ -17,6 +17,7 @@ import { Route as MyListRouteImport } from './routes/my-list'
 import { Route as NewEpisodesRouteImport } from './routes/new-episodes'
 import { Route as RankingsRouteImport } from './routes/rankings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as UpcomingRouteImport } from './routes/upcoming'
@@ -63,6 +64,11 @@ const ScheduleRoute = ScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/new-episodes': typeof NewEpisodesRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
+  '/search': typeof SearchRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/upcoming': typeof UpcomingRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/new-episodes': typeof NewEpisodesRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
+  '/search': typeof SearchRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/upcoming': typeof UpcomingRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/new-episodes': typeof NewEpisodesRoute
   '/rankings': typeof RankingsRoute
   '/schedule': typeof ScheduleRoute
+  '/search': typeof SearchRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/upcoming': typeof UpcomingRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/new-episodes'
     | '/rankings'
     | '/schedule'
+    | '/search'
     | '/sign-in'
     | '/sign-up'
     | '/upcoming'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/new-episodes'
     | '/rankings'
     | '/schedule'
+    | '/search'
     | '/sign-in'
     | '/sign-up'
     | '/upcoming'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/new-episodes'
     | '/rankings'
     | '/schedule'
+    | '/search'
     | '/sign-in'
     | '/sign-up'
     | '/upcoming'
@@ -193,6 +205,7 @@ export interface RootRouteChildren {
   NewEpisodesRoute: typeof NewEpisodesRoute
   RankingsRoute: typeof RankingsRoute
   ScheduleRoute: typeof ScheduleRoute
+  SearchRoute: typeof SearchRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   UpcomingRoute: typeof UpcomingRoute
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-in': {
       id: '/sign-in'
       path: '/sign-in'
@@ -305,6 +325,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewEpisodesRoute: NewEpisodesRoute,
   RankingsRoute: RankingsRoute,
   ScheduleRoute: ScheduleRoute,
+  SearchRoute: SearchRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   UpcomingRoute: UpcomingRoute,
