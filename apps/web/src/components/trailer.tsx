@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTrailerMuted } from '../lib/ui/trailer-sound.ts';
 import { loadYouTubeApi, type YouTubePlayer } from '../lib/ui/youtube.ts';
 
 // An error counts as 'ended': either way the image under the trailer shows again.
@@ -6,6 +7,25 @@ export type TrailerPhase = 'loading' | 'playing' | 'ended';
 
 // YouTube draws its title bar and pause button over a video for about 4s after each start. Measured: gone by 4.1s after PLAYING.
 const START_OVERLAY_MS = 5000;
+
+const MAX_START_OVERSIZE = 20;
+// Under the GPU's max texture size (16384 on most): a larger layer is drawn in tiles, so the video wipes in instead of fading.
+const MAX_LAYER_DEVICE_PX = 15000;
+
+// How many times larger the player is laid out while YouTube's start overlay shows.
+export function startOversize(
+  boxWidth: number,
+  boxHeight: number,
+  devicePixelRatio: number,
+): number {
+  const width = Math.max(boxWidth, (boxHeight * 16) / 9);
+  const height = Math.max(boxHeight, (boxWidth * 9) / 16);
+  const longest = Math.max(width, height) * devicePixelRatio;
+  return Math.max(
+    1,
+    Math.min(MAX_START_OVERSIZE, MAX_LAYER_DEVICE_PX / longest),
+  );
+}
 
 function playerVars(): Record<string, string | number> {
   return {
@@ -26,17 +46,16 @@ function playerVars(): Record<string, string | number> {
 // Plays over the image it is placed on, which stays visible until the video plays and again once it ends, unless it loops.
 export function Trailer({
   youtubeId,
-  muted,
   loop = false,
   onPhase,
   testId = 'trailer',
 }: {
   youtubeId: string;
-  muted: boolean;
   loop?: boolean;
   onPhase?: (phase: TrailerPhase) => void;
   testId?: string;
 }) {
+  const muted = useTrailerMuted();
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const mutedRef = useRef(muted);
@@ -62,6 +81,14 @@ export function Trailer({
     };
     report('loading');
     setSettled(false);
+    // Layout size: getBoundingClientRect would include the open animation's scale.
+    const box = { width: host.offsetWidth, height: host.offsetHeight };
+    if (box.width > 0 && box.height > 0) {
+      host.style.setProperty(
+        '--start-oversize',
+        String(startOversize(box.width, box.height, window.devicePixelRatio)),
+      );
+    }
     loadYouTubeApi().then(
       (YT) => {
         if (gone) return;

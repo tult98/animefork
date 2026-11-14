@@ -55,6 +55,14 @@ export function lookupTitles(shelves: HomeShelves): TitleInput[] {
       if (input) bySlug.set(slug, input);
     }
   }
+  for (const shelf of shelves) {
+    if (shelf.kind !== 'continue') continue;
+    for (const item of shelf.items) {
+      if (bySlug.has(item.slug)) continue;
+      const input = toInput({ slug: item.slug, name: item.titleName });
+      if (input) bySlug.set(item.slug, input);
+    }
+  }
   return [...bySlug.values()];
 }
 

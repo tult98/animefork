@@ -4,7 +4,7 @@ const r = await start('trailer-hero-modal', {
   ev: process.env.EV,
   actions: 5,
   proves:
-    'home: the hero trailer shows within moments with no YouTube overlay, plays cropped under the scrim, unmutes, holds the slide, stops when the details modal plays its own, stops while scrolled out of view and plays again on return; the card hover video shows within 2s with no YouTube overlay',
+    'home: the hero trailer shows within moments with no YouTube overlay, plays cropped under the scrim, unmutes, holds the slide, stops when the details modal plays its own (which shares the sound switch), stops while scrolled out of view and plays again on return; the card hover video shows within 2s with no YouTube overlay',
 });
 const { page } = r;
 await page.goto(r.url('/'));
@@ -99,16 +99,16 @@ if (modalTrailer) {
     await page.getByTestId('details:mute').getAttribute('aria-label'),
   );
   r.check(
-    'details trailer starts muted',
-    await isMuted('[data-testid="details"]'),
-  );
-  await r.click(page.getByTestId('details:mute'), 'Turn the details sound on');
-  await page.waitForTimeout(500);
-  r.check(
-    'details trailer unmuted',
+    'details trailer follows the hero sound switch: unmuted',
     (await isMuted('[data-testid="details"]')) === false,
   );
-  await r.shot('4-details-unmuted');
+  await r.click(page.getByTestId('details:mute'), 'Mute the details trailer');
+  await page.waitForTimeout(500);
+  r.check(
+    'details trailer muted',
+    (await isMuted('[data-testid="details"]')) === true,
+  );
+  await r.shot('4-details-muted');
 }
 await r.click(page.getByTestId('details:close'), 'Close the details');
 

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LookupRequestSchema } from '../../../../../api/src/art/contract.ts';
+import { watchLink } from '../link.ts';
 import { lookupTitles, watchLookupTitle } from '../lookup.ts';
 import type { HomeShelves } from '../shelves.ts';
 import type { Title } from '../title.ts';
@@ -67,6 +68,38 @@ describe('lookupTitles', () => {
       'c-3',
       'd-4',
     ]);
+  });
+
+  it('looks up the titles of the continue row after the catalog, each slug once', () => {
+    const withContinue: HomeShelves = [
+      {
+        kind: 'continue',
+        id: 'continue-watching',
+        title: 'Tiếp tục xem',
+        items: [
+          { slug: 'z-9', titleName: 'Show Z' },
+          { slug: 'a-1', titleName: 'Show A again' },
+        ].map((row) => ({
+          ...row,
+          image: '/z.jpg',
+          episodeLabel: 'Tập 3',
+          episodeId: '3',
+          state: { kind: 'finished' as const },
+          link: watchLink(row.slug),
+        })),
+      },
+      ...shelves,
+    ];
+    const inputs = lookupTitles(withContinue);
+    expect(inputs.map((e) => e.slug)).toEqual([
+      'a-1',
+      'b-2',
+      'c-3',
+      'd-4',
+      'z-9',
+    ]);
+    expect(inputs[0]).toMatchObject({ name: 'Show A', year: 2026 });
+    expect(inputs[4]).toMatchObject({ slug: 'z-9', name: 'Show Z' });
   });
 
   it('keeps the card name, and adds the season marker and known fields', () => {

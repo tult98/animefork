@@ -12,7 +12,8 @@ import {
   markArtPending,
   NO_ART,
 } from '../art.ts';
-import type { TitleShelf } from '../shelves.ts';
+import { watchLink } from '../link.ts';
+import type { Shelf, TitleShelf } from '../shelves.ts';
 import type { Title } from '../title.ts';
 import { parseWatchPage } from '../watch.ts';
 
@@ -291,6 +292,33 @@ describe('the upcoming shelf once MAL dates its titles', () => {
       now,
     );
     expect(names(out)).toEqual(['U2-A2', 'U3-A3', 'U4-A4']);
+  });
+
+  it('gives a continue row the MyAnimeList stats of its title and leaves its art alone', () => {
+    const continueShelf: Shelf = {
+      kind: 'continue',
+      id: 'continue-watching',
+      title: 'Tiếp tục xem',
+      items: ['c1-a1', 'c2-a2'].map((slug) => ({
+        slug,
+        titleName: slug,
+        image: `/${slug}.jpg`,
+        episodeLabel: 'Tập 2',
+        episodeId: '2',
+        state: { kind: 'finished' as const },
+        link: watchLink(slug),
+      })),
+    };
+    const mal = { ...malOf('2020-01-01').mal, trailerYoutubeId: 'yt-c1' };
+    const [out] = applyRatings(
+      [continueShelf],
+      new Map([['c1-a1', { mal }]]),
+      now,
+    );
+    expect(out?.kind === 'continue' && out.items).toEqual([
+      { ...continueShelf.items[0], mal },
+      continueShelf.items[1],
+    ]);
   });
 
   it('drops the shelf when fewer than three titles remain', () => {

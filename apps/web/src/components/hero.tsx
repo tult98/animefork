@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { titleWatchLink } from '../lib/titles/link.ts';
+import { useCardVideoShowing } from '../lib/ui/card-video.ts';
 import type { Title } from '../lib/titles/title.ts';
 import {
   HERO_ADVANCE_MS,
@@ -10,16 +11,9 @@ import {
   prevIndex,
 } from '../lib/ui/carousel.ts';
 import { useDetails } from './details/details-context.tsx';
+import { TrailerSoundButton } from './trailer-sound-button.tsx';
 import { Trailer, type TrailerPhase } from './trailer.tsx';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Info,
-  Pause,
-  Play,
-  Volume2,
-  VolumeX,
-} from './ui/icons.ts';
+import { ChevronLeft, ChevronRight, Info, Pause, Play } from './ui/icons.ts';
 import { NO_HOVER_QUERY } from './use-hover-preview.ts';
 import { SHIMMER } from './ui/shimmer.ts';
 
@@ -45,11 +39,11 @@ const CONTROL_CLASS =
 export function Hero({ items }: { items: Title[] }) {
   const reducedMotion = useReducedMotion();
   const details = useDetails();
+  const cardVideoShowing = useCardVideoShowing();
   const [index, setIndex] = useState(0);
   const [userPaused, setUserPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [muted, setMuted] = useState(true);
   const [inView, setInView] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
   const [trailer, setTrailer] = useState<{
@@ -64,12 +58,14 @@ export function Hero({ items }: { items: Title[] }) {
     !userPaused &&
     !hovered &&
     !focused &&
-    !details.isOpen;
-  // A touch device did not ask for the video, and the open modal plays its own.
+    !details.isOpen &&
+    !cardVideoShowing;
+  // A touch device did not ask for the video, and the open modal or a card popover plays its own.
   const trailerId =
     !inView ||
     reducedMotion ||
     details.isOpen ||
+    cardVideoShowing ||
     window.matchMedia(NO_HOVER_QUERY).matches
       ? null
       : (items[index]?.mal?.trailerYoutubeId ?? null);
@@ -152,11 +148,7 @@ export function Hero({ items }: { items: Title[] }) {
                 />
               )}
               {active && trailerId ? (
-                <Trailer
-                  youtubeId={trailerId}
-                  muted={muted}
-                  onPhase={onTrailerPhase}
-                />
+                <Trailer youtubeId={trailerId} onPhase={onTrailerPhase} />
               ) : null}
               <div className="hero-scrim absolute inset-0" />
               <div className="af-billboard-body absolute bottom-0 left-0 pb-8 max-md:right-0 max-md:max-w-none max-md:p-4">
@@ -211,19 +203,7 @@ export function Hero({ items }: { items: Title[] }) {
       </div>
       <div className="absolute right-4 bottom-4 z-3 flex items-center gap-2 max-md:top-2 max-md:right-2 max-md:bottom-auto">
         {trailerPhase === 'playing' ? (
-          <button
-            type="button"
-            data-testid="hero:mute"
-            aria-label={muted ? 'Bật tiếng' : 'Tắt tiếng'}
-            className={`${CONTROL_CLASS} trailer-toggle`}
-            onClick={() => setMuted(!muted)}
-          >
-            {muted ? (
-              <VolumeX aria-hidden="true" />
-            ) : (
-              <Volume2 aria-hidden="true" />
-            )}
-          </button>
+          <TrailerSoundButton className={CONTROL_CLASS} testId="hero:mute" />
         ) : null}
         <span
           data-testid="hero:counter"

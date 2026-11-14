@@ -4,6 +4,7 @@ import type { ContinueItem } from '../lib/titles/shelves.ts';
 import type { Title } from '../lib/titles/title.ts';
 import { DetailsButton } from './details-button.tsx';
 import { useDetails } from './details/details-context.tsx';
+import { PromoVideo } from './promo-video.tsx';
 import { useHoverPreview } from './use-hover-preview.ts';
 import { Play } from './ui/icons.ts';
 
@@ -16,6 +17,7 @@ function detailsTitle(item: ContinueItem): Title {
     rating: 0,
     episodeLabel: item.episodeLabel,
     genres: [],
+    ...(item.mal ? { mal: item.mal } : {}),
   };
 }
 
@@ -98,19 +100,24 @@ export function ContinueCard({ item }: { item: ContinueItem }) {
           data-testid={`${id}:preview`}
           className="af-hover card-preview fixed top-0 left-0 z-100 w-[340px]"
         >
-          <Link
-            {...item.link}
-            tabIndex={-1}
-            aria-hidden="true"
-            className="block aspect-(--card-art-ratio) bg-surface-alt"
-          >
-            <img
-              src={item.image}
-              alt=""
-              decoding="async"
-              className="size-full object-cover"
-            />
-          </Link>
+          <div className="relative aspect-(--card-art-ratio) bg-surface-alt">
+            <Link
+              {...item.link}
+              tabIndex={-1}
+              aria-hidden="true"
+              className="block size-full"
+            >
+              <img
+                src={item.image}
+                alt=""
+                decoding="async"
+                className="size-full object-cover"
+              />
+            </Link>
+            {item.mal?.trailerYoutubeId ? (
+              <PromoVideo youtubeId={item.mal.trailerYoutubeId} />
+            ) : null}
+          </div>
           <div
             className="af-hover-body card-preview-body cursor-pointer hover:bg-surface-alt"
             data-testid={`${id}:body`}

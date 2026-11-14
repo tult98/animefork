@@ -260,7 +260,7 @@ body {
 
 @layer components {
   .video-cover {
-    --oversize: 20;
+    --oversize: var(--start-oversize, 20);
     position: absolute;
     inset: 0;
     overflow: hidden;
@@ -288,7 +288,7 @@ body {
     }
   }
 
-  /* Covers its box like object-fit: cover. YouTube's start overlay is drawn at a fixed pixel size, so until it is gone the player is laid out 20 times larger and scaled back down: the overlay shrinks to a speck and the extra 6% crop pushes its title bar and logo past the edges. */
+  /* Covers its box like object-fit: cover. YouTube's start overlay is drawn at a fixed pixel size, so until it is gone the player is laid out up to 20 times larger, capped per box by the GPU texture limit (Trailer sets --start-oversize), and scaled back down: the overlay shrinks to a speck and the extra 6% crop pushes its title bar and logo past the edges. */
   .video-cover[data-settled] {
     --oversize: 1;
   }

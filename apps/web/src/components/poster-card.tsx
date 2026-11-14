@@ -164,21 +164,23 @@ export function PosterCard({
           data-testid={`card:${title.path}:preview`}
           className="af-hover card-preview fixed top-0 left-0 z-100 w-[340px]"
         >
-          <Link
-            {...watch}
-            tabIndex={-1}
-            aria-hidden="true"
-            className="relative block aspect-(--card-art-ratio) bg-surface-alt"
-          >
-            <CardImage
-              title={title}
-              alt=""
-              src={title.backdrop ?? title.image}
-            />
+          <div className="relative aspect-(--card-art-ratio) bg-surface-alt">
+            <Link
+              {...watch}
+              tabIndex={-1}
+              aria-hidden="true"
+              className="block size-full"
+            >
+              <CardImage
+                title={title}
+                alt=""
+                src={title.backdrop ?? title.image}
+              />
+            </Link>
             {title.mal?.trailerYoutubeId ? (
               <PromoVideo youtubeId={title.mal.trailerYoutubeId} />
             ) : null}
-          </Link>
+          </div>
           <div
             className="af-hover-body card-preview-body cursor-pointer hover:bg-surface-alt"
             data-testid={`card:${title.path}:body`}

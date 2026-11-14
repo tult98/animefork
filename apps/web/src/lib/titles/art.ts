@@ -311,7 +311,13 @@ export function applyRatings<S extends Shelf>(
 ): S[] {
   if (ratings.size === 0) return shelves;
   return shelves.flatMap((shelf) => {
-    if (shelf.kind === 'continue') return [shelf];
+    if (shelf.kind === 'continue') {
+      const items = shelf.items.map((item) => {
+        const mal = ratings.get(item.slug)?.mal;
+        return mal ? { ...item, mal } : item;
+      });
+      return [{ ...shelf, items } as S];
+    }
     const items = shelf.items.map((t) => withRatings(t, ratings));
     if (shelf.id !== 'upcoming') return [{ ...shelf, items }];
     const upcoming = arrangeUpcoming(items, now);

@@ -1,3 +1,4 @@
+import type { MalStats } from '../../../../api/src/art/contract.ts';
 import type { WatchProgressShelfItem } from '../../../../api/src/watch-progress/contract.ts';
 import { titleWatchLink, watchLink } from './link.ts';
 import { releaseInfo } from './release.ts';
@@ -47,6 +48,7 @@ export interface ContinueItem {
   episodeId: string;
   state: ContinueState;
   link: ReturnType<typeof watchLink>;
+  mal?: MalStats;
 }
 
 export interface ContinueShelf {
