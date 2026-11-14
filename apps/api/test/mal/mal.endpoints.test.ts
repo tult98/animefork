@@ -520,10 +520,7 @@ describe('art lookup with MyAnimeList', () => {
       .get(`https://tenrai.test/v1/anime/${crossroad}/full`, {
         data: { trailer: null },
       })
-      .get(
-        `https://api.tenrai.org/v1/anime/${crossroad}/episodes?page=1`,
-        404,
-      );
+      .get(`https://api.tenrai.org/v1/anime/${crossroad}/episodes?page=1`, 404);
 
     await http()
       .post('/v1/art/lookup')
