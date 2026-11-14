@@ -58,7 +58,7 @@ describe('what Jev is asked about a MAL match', () => {
         title: 'Chuyển Sinh Thành Thanh Kiếm II',
         romaji: 'tensei shitara ken deshita II',
         otherNames: ['TenKen 2'],
-        season: 1,
+        season: 2,
         year: 2026,
         episodeCount: 5,
       },

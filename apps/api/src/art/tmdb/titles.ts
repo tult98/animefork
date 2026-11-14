@@ -23,11 +23,22 @@ export function parseSeasonNumber(
   return found && found.season > 0 ? found.season : 1;
 }
 
+// The source also marks a sequel with a Roman numeral as its own slug word ("-ii-a5986").
+// Only II to IV: "x" is a common slug word ("spy-x-family"), and the first word is never a numeral.
+const SLUG_ROMAN_SEASON: Record<string, number> = { ii: 2, iii: 3, iv: 4 };
+
 // A translated display name often drops the season marker the source slug still carries.
 export function slugSeasonNumber(slug: string): number {
   const text = slug.replace(/-a\d+$/, '').replace(/-+/g, ' ');
   const found = findSeasonMarker(text);
-  return found && found.season > 0 ? found.season : 1;
+  if (found && found.season > 0) return found.season;
+  const roman = text
+    .toLowerCase()
+    .split(' ')
+    .slice(1)
+    .map((word) => SLUG_ROMAN_SEASON[word])
+    .find((season) => season !== undefined);
+  return roman ?? 1;
 }
 
 const PART_MARKER = /\b(?:part|cour)\s*(\d+)\b/i;

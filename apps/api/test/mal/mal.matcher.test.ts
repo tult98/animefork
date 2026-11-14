@@ -144,6 +144,35 @@ describe('matchMal', () => {
     expect(found?.candidate.id).toBe(2);
   });
 
+  it('reads a Roman numeral in the slug as the season instead of taking the first season', () => {
+    const found = matchMal(
+      {
+        slug: 'hyouken-no-majutsushi-ga-sekai-wo-suberu-ii-a6132',
+        name: 'Phù Thủy Băng Kiếm Sẽ Thống Trị Thế Giới 2',
+        year: 2026,
+      },
+      [
+        {
+          ...show,
+          id: 51711,
+          title: 'Hyouken no Majutsushi ga Sekai wo Suberu',
+          year: 2023,
+          episodes: 12,
+        },
+        {
+          ...show,
+          id: 64254,
+          title: 'Hyouken no Majutsushi ga Sekai wo Suberu II',
+          synonyms: ['Hyouken no Majutsushi ga Sekai wo Suberu 2nd Season'],
+          year: 2026,
+          episodes: 12,
+        },
+      ],
+    );
+
+    expect(found?.candidate.id).toBe(64254);
+  });
+
   it('takes the season over its Part 2 when the source asks for no part', () => {
     const found = matchMal(
       {
