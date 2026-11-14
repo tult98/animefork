@@ -41,5 +41,12 @@ export async function fetchSearchPage(
   const html = await upstream
     .get(upstreamPath(searchPagePath(q, page)), { signal })
     .text();
-  return { titles: parseSeason(html), pageCount: parsePageCount(html) };
+  // parseSeason rejects an empty list, but a search with no matches is an answer, not a failure.
+  const hasCards = new DOMParser()
+    .parseFromString(html, 'text/html')
+    .querySelector('.TPostMv');
+  return {
+    titles: hasCards ? parseSeason(html) : [],
+    pageCount: parsePageCount(html),
+  };
 }
