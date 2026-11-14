@@ -81,7 +81,8 @@ export function Trailer({
     };
     report('loading');
     setSettled(false);
-    const box = host.getBoundingClientRect();
+    // Layout size: getBoundingClientRect would include the open animation's scale.
+    const box = { width: host.offsetWidth, height: host.offsetHeight };
     if (box.width > 0 && box.height > 0) {
       host.style.setProperty(
         '--start-oversize',
