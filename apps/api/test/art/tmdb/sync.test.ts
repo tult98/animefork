@@ -21,6 +21,7 @@ describe('syncTitle', () => {
           ],
         },
       )
+      .get('begin:https://api.themoviedb.org/3/search/movie', { results: [] })
       .get('https://api.themoviedb.org/3/tv/100?api_key=key', mockTmdbDetail)
       .get(
         'https://api.themoviedb.org/3/tv/100/alternative_titles?api_key=key',
@@ -56,10 +57,12 @@ describe('syncTitle', () => {
       kind: 'matched',
       matched: {
         slug: 'tonikaku-kawaii-a3860',
+        tmdbKind: 'tv',
         tmdbId: 100,
         probability: 1,
         title: {
           source_slug: 'tonikaku-kawaii-a3860',
+          tmdb_kind: 'tv',
           tmdb_id: 100,
           tmdb_season: 1,
           match_scope: 'season',
@@ -110,6 +113,7 @@ describe('syncTitle', () => {
           ],
         },
       )
+      .get('begin:https://api.themoviedb.org/3/search/movie', { results: [] })
       .get('https://api.themoviedb.org/3/tv/100?api_key=key', mockTmdbDetail)
       .get(
         'https://api.themoviedb.org/3/tv/100/alternative_titles?api_key=key',
@@ -141,8 +145,8 @@ describe('syncTitle', () => {
     });
   });
 
-  it('skips a title after 5 name and slug searches and 2 searches by other names find nothing', async () => {
-    fetchMock.get('begin:https://api.themoviedb.org/3/search/tv', {
+  it('skips a title after 5 name and slug searches and 2 searches by other names find no TV series and no movie', async () => {
+    fetchMock.get('begin:https://api.themoviedb.org/3/search/', {
       results: [],
     });
 
@@ -167,7 +171,11 @@ describe('syncTitle', () => {
       kind: 'skipped',
       skipped: { slug: 'a-b-c-d-e-f-a1', reason: 'no TMDB search results' },
     });
-    expect(fetchMock).toHaveFetchedTimes(7);
+    expect(fetchMock).toHaveFetchedTimes(14);
+    expect(fetchMock).toHaveFetchedTimes(
+      7,
+      'begin:https://api.themoviedb.org/3/search/movie',
+    );
     expect(fetchMock).toHaveNthFetched(
       1,
       'https://api.themoviedb.org/3/search/tv?api_key=key&query=Nothing+Here-hen%3A+Sub+Story-hen',
@@ -212,6 +220,7 @@ describe('syncTitle', () => {
           ],
         },
       )
+      .get('begin:https://api.themoviedb.org/3/search/movie', { results: [] })
       .get('https://api.themoviedb.org/3/tv/100?api_key=key', mockTmdbDetail)
       .get(
         'https://api.themoviedb.org/3/tv/100/alternative_titles?api_key=key',
@@ -254,6 +263,7 @@ describe('syncTitle', () => {
           ],
         },
       )
+      .get('begin:https://api.themoviedb.org/3/search/movie', { results: [] })
       .get('https://api.themoviedb.org/3/tv/100?api_key=key', {
         ...mockTmdbDetail,
         name: 'TONIKAWA: Over the Moon for You',
@@ -298,6 +308,7 @@ describe('syncTitle', () => {
           ],
         },
       )
+      .get('begin:https://api.themoviedb.org/3/search/movie', { results: [] })
       .get('https://api.themoviedb.org/3/tv/100?api_key=key', mockTmdbDetail)
       .get(
         'https://api.themoviedb.org/3/tv/100/alternative_titles?api_key=key',
@@ -352,6 +363,7 @@ describe('syncTitle', () => {
           ],
         },
       )
+      .get('begin:https://api.themoviedb.org/3/search/movie', { results: [] })
       .get('https://api.themoviedb.org/3/tv/100?api_key=key', mockTmdbDetail)
       .get(
         'https://api.themoviedb.org/3/tv/100/alternative_titles?api_key=key',
@@ -406,6 +418,7 @@ describe('syncTitle', () => {
           ],
         },
       )
+      .get('begin:https://api.themoviedb.org/3/search/movie', { results: [] })
       .get('https://api.themoviedb.org/3/tv/100?api_key=key', mockTmdbDetail)
       .get(
         'https://api.themoviedb.org/3/tv/100/alternative_titles?api_key=key',

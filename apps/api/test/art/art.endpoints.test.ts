@@ -30,6 +30,7 @@ describe('art lookup', () => {
           },
         ],
       })
+      .get('begin:https://tmdb.test/3/search/movie', { results: [] })
       .get('https://tmdb.test/3/tv/100?api_key=key', mockTmdbShow)
       .get('https://tmdb.test/3/tv/100/alternative_titles?api_key=key', {
         results: [],
@@ -107,7 +108,7 @@ describe('art lookup', () => {
     const slug = `nothing-here-${randomUUID()}`;
     const title = { slug, name: 'Nothing Here' };
     fetchMock.get(
-      'begin:https://tmdb.test/3/search/tv',
+      'begin:https://tmdb.test/3/search/',
       { results: [] },
       { delay: 100 },
     );
@@ -135,7 +136,7 @@ describe('art lookup', () => {
     });
     const slug = `nothing-here-${randomUUID()}`;
     const title = { slug, name: 'Nothing Here' };
-    fetchMock.get('begin:https://tmdb.test/3/search/tv', { results: [] });
+    fetchMock.get('begin:https://tmdb.test/3/search/', { results: [] });
     await http()
       .post('/v1/art/lookup')
       .send({ titles: [title] });
@@ -175,6 +176,7 @@ describe('art lookup', () => {
           },
         ],
       })
+      .get('begin:https://tmdb.test/3/search/movie', { results: [] })
       .get('https://tmdb.test/3/tv/100?api_key=key', mockTmdbShow)
       .get('https://tmdb.test/3/tv/100/alternative_titles?api_key=key', {
         results: [],
@@ -238,6 +240,7 @@ describe('art lookup', () => {
           },
         ],
       })
+      .get('begin:https://tmdb.test/3/search/movie', { results: [] })
       .get('https://tmdb.test/3/tv/100?api_key=key', mockTmdbShow)
       .get('https://tmdb.test/3/tv/100/alternative_titles?api_key=key', {
         results: [],
@@ -302,6 +305,7 @@ describe('art lookup', () => {
           },
         ],
       })
+      .get('begin:https://tmdb.test/3/search/movie', { results: [] })
       .get('https://tmdb.test/3/tv/100?api_key=key', mockTmdbShow)
       .get('https://tmdb.test/3/tv/100/alternative_titles?api_key=key', {
         results: [],
@@ -359,6 +363,7 @@ describe('art lookup', () => {
           },
         ],
       })
+      .get('begin:https://tmdb.test/3/search/movie', { results: [] })
       .get('https://tmdb.test/3/tv/100?api_key=key', mockTmdbShow)
       .get('https://tmdb.test/3/tv/100/alternative_titles?api_key=key', {
         results: [],
@@ -441,6 +446,7 @@ describe('art lookup', () => {
           ],
         },
       )
+      .get('begin:https://tmdb.test/3/search/movie', { results: [] })
       .get('https://tmdb.test/3/tv/100?api_key=key', mockTmdbShow)
       .get('https://tmdb.test/3/tv/100/alternative_titles?api_key=key', {
         results: [],
@@ -450,18 +456,19 @@ describe('art lookup', () => {
         answers: {
           match: {
             type: 'choice',
-            choice: '100',
+            choice: 'tv:100',
             confidence: 0.3,
-            probabilities: { '100': 0.4 },
+            probabilities: { 'tv:100': 0.4 },
           },
           any_match: { type: 'noul', noul: 0.2 },
           show_match: {
             type: 'choice',
-            choice: '100',
+            choice: 'tv:100',
             confidence: 0.9,
-            probabilities: { '100': 0.95 },
+            probabilities: { 'tv:100': 0.95 },
           },
           any_show: { type: 'noul', noul: 0.95 },
+          side_entry: { type: 'noul', noul: 0.1 },
         },
         usage: { input_tokens: 400, output_tokens: 30 },
       })
@@ -510,7 +517,7 @@ describe('art lookup', () => {
       .get('https://tmdb.test/3/search/tv?api_key=key&query=Soul+Land', {
         results: [{ id: 100, name: 'Soul Land', original_name: '斗罗大陆' }],
       })
-      .get('begin:https://tmdb.test/3/search/tv', { results: [] })
+      .get('begin:https://tmdb.test/3/search/', { results: [] })
       .get('https://tmdb.test/3/tv/100?api_key=key', {
         ...mockTmdbShow,
         name: 'Soul Land',
@@ -559,7 +566,7 @@ describe('art lookup', () => {
     });
     const slug = `dau-la-dai-luc-${randomUUID()}`;
     const title = { slug, name: 'Đấu La Đại Lục' };
-    fetchMock.get('begin:https://tmdb.test/3/search/tv', { results: [] });
+    fetchMock.get('begin:https://tmdb.test/3/search/', { results: [] });
     await http()
       .post('/v1/art/lookup')
       .send({ titles: [{ ...title, otherNames: ['Soul Land'] }] });
@@ -593,6 +600,7 @@ describe('art lookup', () => {
           },
         ],
       })
+      .get('begin:https://tmdb.test/3/search/movie', { results: [] })
       .get('https://tmdb.test/3/tv/100?api_key=key', mockTmdbShow)
       .get('https://tmdb.test/3/tv/100/alternative_titles?api_key=key', {
         results: [],
@@ -649,6 +657,7 @@ describe('episode stills', () => {
     await app.get<ArtStore>(ART_STORE).saveMatched({
       title: {
         source_slug: slug,
+        tmdb_kind: 'tv',
         tmdb_id: 37854,
         tmdb_season: 1,
         match_scope: 'season',

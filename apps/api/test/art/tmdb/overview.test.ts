@@ -16,6 +16,7 @@ describe('fetchOverview', () => {
 
     const overview = await fetchOverview(
       createTmdbClient({ apiKey: 'key' }),
+      'tv',
       100,
     );
 
@@ -41,6 +42,7 @@ describe('fetchOverview', () => {
 
     const overview = await fetchOverview(
       createTmdbClient({ apiKey: 'key' }),
+      'tv',
       100,
     );
 
@@ -63,6 +65,7 @@ describe('fetchOverview', () => {
 
     const overview = await fetchOverview(
       createTmdbClient({ apiKey: 'key' }),
+      'tv',
       100,
     );
 
@@ -77,7 +80,7 @@ describe('fetchOverview', () => {
       })
       .get('https://api.themoviedb.org/3/tv/100?api_key=key&language=en', 503);
 
-    const call = fetchOverview(createTmdbClient({ apiKey: 'key' }), 100);
+    const call = fetchOverview(createTmdbClient({ apiKey: 'key' }), 'tv', 100);
 
     await expect(call).rejects.toThrow(new TmdbError(503, '/tv/100'));
   });

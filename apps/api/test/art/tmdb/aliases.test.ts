@@ -24,7 +24,11 @@ describe('tmdbAliases', () => {
         },
       );
 
-    const names = await tmdbAliases(createTmdbClient({ apiKey: 'key' }), 30983);
+    const names = await tmdbAliases(
+      createTmdbClient({ apiKey: 'key' }),
+      'tv',
+      30983,
+    );
 
     expect(names).toEqual(['Case Closed', 'Detective Conan']);
   });

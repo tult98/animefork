@@ -89,12 +89,13 @@ export class ArtService {
           };
           if (isStale(row) && !filler.has(slug)) void filler.fill(title);
           if (
+            row.tmdbKind !== null &&
             row.tmdbId !== null &&
             !isOverviewSettled(row, now) &&
             !filler.has(slug) &&
             !filler.hasOverview(slug)
           ) {
-            void filler.fillOverview(slug, row.tmdbId);
+            void filler.fillOverview(slug, row.tmdbKind, row.tmdbId);
           }
         } else {
           art[slug] = { status: 'none' };
@@ -204,10 +205,15 @@ export class ArtService {
   }
 
   // The TMDB match, when there is one, knows the show by an English name MAL also lists.
-  private aliasSource(row: { tmdbId: number | null } | undefined) {
+  private aliasSource(
+    row: Pick<StoredTitle, 'tmdbKind' | 'tmdbId'> | undefined,
+  ) {
     const { tmdb } = this;
+    const kind = row?.tmdbKind ?? null;
     const id = row?.tmdbId ?? null;
-    return tmdb && id !== null ? () => tmdbAliases(tmdb, id) : undefined;
+    return tmdb && kind !== null && id !== null
+      ? () => tmdbAliases(tmdb, kind, id)
+      : undefined;
   }
 
   private takenSource(slug: string, name: string) {

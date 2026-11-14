@@ -3,7 +3,11 @@ import { parseArgs } from 'node:util';
 import pg from 'pg';
 import { loadJevConfig } from '../art/art.config.ts';
 import { tmdbAliases } from '../art/tmdb/aliases.ts';
-import { createTmdbClient, type TmdbClient } from '../art/tmdb/tmdb.ts';
+import {
+  createTmdbClient,
+  type TmdbClient,
+  type TmdbKind,
+} from '../art/tmdb/tmdb.ts';
 import { systemClock } from '../common/clock.ts';
 import { EnvError } from '../config/app.config.ts';
 import { createMalClient } from '../mal/mal.client.ts';
@@ -20,6 +24,7 @@ import { evalInput, type SourceRow } from './eval-mal.ts';
 
 export interface BackfillMalRow extends Omit<SourceRow, 'status' | 'mal_id'> {
   attempted_at: Date;
+  tmdb_kind: TmdbKind | null;
   tmdb_id: number | null;
   names_at: Date | null;
   taken_mal_ids: number[];
@@ -49,10 +54,12 @@ export async function backfillMal(
   const matchedNow = new Map<string, number[]>();
   for (const row of rows) {
     const slug = row.source_slug;
-    const tmdbId = row.tmdb_id;
+    const { tmdb_kind: tmdbKind, tmdb_id: tmdbId } = row;
     await filler.fill(
       evalInput(row),
-      tmdb && tmdbId !== null ? () => tmdbAliases(tmdb, tmdbId) : undefined,
+      tmdb && tmdbKind !== null && tmdbId !== null
+        ? () => tmdbAliases(tmdb, tmdbKind, tmdbId)
+        : undefined,
       row.names_at ?? undefined,
       async () => [
         ...row.taken_mal_ids,
@@ -148,6 +155,7 @@ async function main(): Promise<void> {
     const { rows } = await pool.query<BackfillMalRow>(
       `select m.source_slug, m.attempted_at,
               a.source_name, a.source_year, a.source_episode_count,
+              case when a.status = 'matched' then a.tmdb_kind end as tmdb_kind,
               case when a.status = 'matched' then a.tmdb_id end as tmdb_id,
               n.names as other_names, n.updated_at as names_at,
               array(select o.mal_id

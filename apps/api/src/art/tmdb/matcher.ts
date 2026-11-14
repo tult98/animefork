@@ -1,12 +1,19 @@
+import type { TmdbKind } from './tmdb.ts';
+
 export interface Candidate {
+  kind: TmdbKind;
   id: number;
   name: string;
   originalName: string;
   alternativeTitles: string[];
   firstAirDate?: string;
+  showFirstAirDate?: string;
   episodeCount?: number;
   overview?: string;
 }
+
+export const candidateKey = (c: Pick<Candidate, 'kind' | 'id'>) =>
+  `${c.kind}:${c.id}`;
 
 export interface MatchQuestion {
   slug: string;
@@ -28,12 +35,14 @@ export type MatchScope = 'season' | 'show';
 
 export interface MatchAnswer {
   choice: number | null;
+  kind: TmdbKind;
   probability: number;
   episodeOffset?: number;
   by: MatcherName;
   scope: MatchScope;
   // Set on a rejection that was also judged at show level.
   showProbability?: number;
+  sideEntry?: boolean;
 }
 
 export interface Matcher {
@@ -127,6 +136,7 @@ export function scoreCandidate(
 export class BaselineMatcher implements Matcher {
   async match(question: MatchQuestion): Promise<MatchAnswer> {
     const scored = question.candidates
+      .filter((candidate) => candidate.kind === 'tv')
       .map((candidate) => ({
         id: candidate.id,
         score: scoreCandidate(question, candidate),
@@ -134,11 +144,18 @@ export class BaselineMatcher implements Matcher {
       .sort((a, b) => b.score - a.score);
     const [best, runnerUp] = scored;
     if (!best) {
-      return { choice: null, probability: 0, by: 'baseline', scope: 'season' };
+      return {
+        choice: null,
+        kind: 'tv',
+        probability: 0,
+        by: 'baseline',
+        scope: 'season',
+      };
     }
     if (runnerUp && best.score - runnerUp.score < MIN_MARGIN) {
       return {
         choice: null,
+        kind: 'tv',
         probability: best.score,
         by: 'baseline',
         scope: 'season',
@@ -146,6 +163,7 @@ export class BaselineMatcher implements Matcher {
     }
     return {
       choice: best.id,
+      kind: 'tv',
       probability: best.score,
       episodeOffset: 0,
       by: 'baseline',
