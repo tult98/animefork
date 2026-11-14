@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import type { TitleInput } from '../art/contract.ts';
 import { describeError } from '../art/art.filler.ts';
 import { fmt } from '../art/tmdb/jev.ts';
+import { nameQueries } from '../art/tmdb/titles.ts';
 import type { Clock } from '../common/clock.ts';
 import type {
   EpisodeFiller,
@@ -12,13 +13,15 @@ import type { MalFranchise } from './mal.franchise.ts';
 import type { TrailerClient } from './trailer.client.ts';
 import { jevCandidates, type MalJevVerdict, type MalJudge } from './mal.jev.ts';
 import { matchMal, type MalMatch } from './mal.matcher.ts';
-import { sourceQueries } from './mal.queries.ts';
+import { searchable, sourceQueries } from './mal.queries.ts';
 import {
   MAL_MATCHER_VERSION,
   isMalSettled,
   type MalStatus,
 } from './mal.retry.ts';
 import type { MalMatchedBy, MalStore, StoredMal } from './mal.store.ts';
+import type { NameGuessStore } from './name-guess.store.ts';
+import type { MalNameGuesser } from './name-guesser.ts';
 
 export const MAX_ALIAS_QUERIES = 2;
 
@@ -28,6 +31,11 @@ export type AliasSource = () => Promise<string[]>;
 // MAL ids other slugs of the same display name already hold. The source gives a franchise's
 // movies the series' name, so without this every movie lands on the series' entry.
 export type TakenSource = () => Promise<number[]>;
+
+export interface MalNameGuesses {
+  guesser: MalNameGuesser;
+  store: NameGuessStore;
+}
 
 // Single-flight lives in this process's memory, and the client already serializes calls to MAL.
 export class MalFiller {
@@ -40,6 +48,7 @@ export class MalFiller {
   private readonly episodes: EpisodeFiller | null;
   private readonly trailers: TrailerClient | null;
   private readonly franchise: MalFranchise | null;
+  private readonly guesses: MalNameGuesses | null;
 
   constructor(
     store: MalStore,
@@ -49,6 +58,7 @@ export class MalFiller {
     episodes: EpisodeFiller | null = null,
     trailers: TrailerClient | null = null,
     franchise: MalFranchise | null = null,
+    guesses: MalNameGuesses | null = null,
   ) {
     this.store = store;
     this.client = client;
@@ -57,6 +67,7 @@ export class MalFiller {
     this.episodes = episodes;
     this.trailers = trailers;
     this.franchise = franchise;
+    this.guesses = guesses;
   }
 
   has(slug: string): boolean {
@@ -168,7 +179,9 @@ export class MalFiller {
   ): Promise<StoredMal | null> {
     const takenIds = new Set(taken ? await taken() : []);
     const pages: MalCandidate[][] = [];
+    const asked: string[] = [];
     const search = async (query: string) => {
+      asked.push(query);
       const results = (await this.client.search(query)).filter(
         (c) => !takenIds.has(c.id),
       );
@@ -194,13 +207,24 @@ export class MalFiller {
         if (found) break;
       }
     }
+    let guessed: string[] = [];
+    if (!found && otherNames.length === 0) {
+      guessed = await this.guessNames(input);
+      for (const query of nameQueries(guessed, asked, searchable)) {
+        found = matchMal(input, await search(query), guessed);
+        if (found) break;
+      }
+    }
     if (found) {
       return this.saveMatch(input.slug, found, 'score');
     }
     const candidates = jevCandidates(pages);
     let miss = 'no candidate cleared the match';
     if (this.judge && candidates.length > 0) {
-      const verdict = await this.judge.ask(input, candidates);
+      const verdict = await this.judge.ask(
+        guessed.length > 0 ? { ...input, otherNames: guessed } : input,
+        candidates,
+      );
       if (verdict.accepted) {
         return this.saveMatch(
           input.slug,
@@ -226,6 +250,27 @@ export class MalFiller {
     }
     await this.saveMiss(input.slug, 'none', miss);
     return null;
+  }
+
+  private async guessNames(input: TitleInput): Promise<string[]> {
+    if (!this.guesses) return [];
+    const { guesser, store } = this.guesses;
+    let guess = await store.find(input.slug);
+    if (guess) return guess.known ? guess.names : [];
+    try {
+      guess = await guesser.guess({
+        name: input.name,
+        slug: input.slug,
+        year: input.year,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `mal ${input.slug} name guess failed: ${describeError(error)}`,
+      );
+      return [];
+    }
+    await store.save(input.slug, guess, this.now());
+    return guess.known ? guess.names : [];
   }
 
   private async saveMatch(

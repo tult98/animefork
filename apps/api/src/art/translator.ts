@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { z } from 'zod';
 import type { DeepSeekConfig } from './art.config.ts';
+import { DeepSeekClient, type DeepSeekClientOptions } from './deepseek.ts';
 
 export const OVERVIEW_TRANSLATOR = Symbol('OverviewTranslator');
 
@@ -19,8 +20,6 @@ export class TranslationError extends Error {
 
 export const MAX_INPUT_CHARS = 2000;
 export const MAX_OUTPUT_RATIO = 3;
-export const DEEPSEEK_TIMEOUT_MS = 20_000;
-export const DEEPSEEK_RETRY_DELAY_MS = 1000;
 // DeepSeek's parameter guide recommends 1.3 for translation.
 export const DEEPSEEK_TEMPERATURE = 1.3;
 const MAX_OUTPUT_TOKENS = 4096;
@@ -91,21 +90,7 @@ export function truncateAtSentence(text: string, max: number): string {
   return (space > 0 ? head.slice(0, space) : head).trimEnd();
 }
 
-const CompletionSchema = z.object({
-  choices: z
-    .array(
-      z.object({
-        finish_reason: z.string().nullish(),
-        message: z.object({ content: z.string().nullish() }),
-      }),
-    )
-    .min(1),
-});
-
-export interface DeepSeekOptions extends DeepSeekConfig {
-  fetch?: typeof fetch;
-  timeoutMs?: number;
-  retryDelayMs?: number;
+export interface DeepSeekOptions extends DeepSeekClientOptions {
   // The system prompt and the tag the text is wrapped in. They default to the synopsis pair.
   prompt?: string;
   tag?: string;
@@ -115,14 +100,12 @@ export interface DeepSeekOptions extends DeepSeekConfig {
 const AnswerSchema = z.array(z.string());
 
 export class DeepSeekTranslator implements OverviewTranslator {
-  private readonly url: string;
   private readonly options: DeepSeekOptions;
-  private readonly doFetch: typeof fetch;
+  private readonly client: DeepSeekClient;
 
   constructor(options: DeepSeekOptions) {
     this.options = options;
-    this.url = `${options.baseUrl.replace(/\/+$/, '')}/chat/completions`;
-    this.doFetch = options.fetch ?? fetch;
+    this.client = new DeepSeekClient(options);
   }
 
   async translate(text: string): Promise<string> {
@@ -195,73 +178,17 @@ export class DeepSeekTranslator implements OverviewTranslator {
     return outputs;
   }
 
-  // Posts one chat completion, retrying once on 429 and 5xx, and returns the message text.
-  private async complete(
+  private complete(
     system: string,
     user: string,
     maxTokens: number,
   ): Promise<string> {
-    let res = await this.post(system, user, maxTokens);
-    if (res.status === 429 || res.status >= 500) {
-      void res.body?.cancel().catch(() => undefined);
-      await new Promise((resolve) =>
-        setTimeout(
-          resolve,
-          this.options.retryDelayMs ?? DEEPSEEK_RETRY_DELAY_MS,
-        ),
-      );
-      res = await this.post(system, user, maxTokens);
-    }
-    if (!res.ok) throw new TranslationError(`DeepSeek answered ${res.status}`);
-    const parsed = CompletionSchema.safeParse(
-      await res.json().catch(() => null),
-    );
-    if (!parsed.success) {
-      throw new TranslationError('DeepSeek answered a malformed completion');
-    }
-    const [choice] = parsed.data.choices;
-    if (choice?.finish_reason && choice.finish_reason !== 'stop') {
-      throw new TranslationError(
-        `DeepSeek stopped with finish_reason ${choice.finish_reason}`,
-      );
-    }
-    return choice?.message.content ?? '';
-  }
-
-  private async post(
-    system: string,
-    user: string,
-    maxTokens: number,
-  ): Promise<Response> {
-    const timeoutMs = this.options.timeoutMs ?? DEEPSEEK_TIMEOUT_MS;
-    try {
-      return await this.doFetch(this.url, {
-        method: 'POST',
-        signal: AbortSignal.timeout(timeoutMs),
-        headers: {
-          authorization: `Bearer ${this.options.apiKey}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: this.options.model,
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: user },
-          ],
-          thinking: { type: 'disabled' },
-          temperature: DEEPSEEK_TEMPERATURE,
-          max_tokens: maxTokens,
-          stream: false,
-        }),
-      });
-    } catch (error) {
-      if (error instanceof Error && error.name === 'TimeoutError') {
-        throw new TranslationError(`DeepSeek timed out after ${timeoutMs} ms`);
-      }
-      throw new TranslationError(
-        `DeepSeek request failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
+    return this.client.complete({
+      system,
+      user,
+      maxTokens,
+      temperature: DEEPSEEK_TEMPERATURE,
+    });
   }
 }
 

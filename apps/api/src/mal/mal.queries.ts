@@ -9,7 +9,7 @@ import { MIN_QUERY_LENGTH } from './mal.client.ts';
 
 export const MAX_QUERIES = 4;
 
-const searchable = (q: string) => q.length >= MIN_QUERY_LENGTH;
+export const searchable = (q: string) => q.length >= MIN_QUERY_LENGTH;
 
 function romajiQueries(input: TitleInput, queries: string[]): string[] {
   if (distinctRomaji(input.slug, input.name) === undefined) return [];
