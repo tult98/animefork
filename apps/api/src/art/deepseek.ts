@@ -20,9 +20,10 @@ export interface DeepSeekClientOptions extends DeepSeekConfig {
 export interface DeepSeekChat {
   system: string;
   user: string;
-  maxTokens: number;
+  maxTokens?: number;
   temperature: number;
   json?: boolean;
+  thinking?: boolean;
 }
 
 const CompletionSchema = z.object({
@@ -91,9 +92,9 @@ export class DeepSeekClient {
             { role: 'system', content: chat.system },
             { role: 'user', content: chat.user },
           ],
-          thinking: { type: 'disabled' },
+          ...(!chat.thinking && { thinking: { type: 'disabled' } }),
           temperature: chat.temperature,
-          max_tokens: chat.maxTokens,
+          ...(chat.maxTokens !== undefined && { max_tokens: chat.maxTokens }),
           ...(chat.json && { response_format: { type: 'json_object' } }),
           stream: false,
         }),

@@ -29,7 +29,9 @@ export const NAME_GUESS_PROMPT = [
 ].join('\n');
 
 const NAME_GUESS_TEMPERATURE = 0.2;
-const NAME_GUESS_MAX_TOKENS = 512;
+// Reasoning is what turns a Sino-Vietnamese name back into its pinyin or romaji. Without it the
+// model answers in a second and names a better-known show; with it a guess takes up to a minute.
+export const NAME_GUESS_TIMEOUT_MS = 90_000;
 
 const GuessSchema = z.object({
   known: z.boolean(),
@@ -63,9 +65,9 @@ export class DeepSeekNameGuesser implements MalNameGuesser {
     const content = await this.client.complete({
       system: NAME_GUESS_PROMPT,
       user: nameGuessMessage(title),
-      maxTokens: NAME_GUESS_MAX_TOKENS,
       temperature: NAME_GUESS_TEMPERATURE,
       json: true,
+      thinking: true,
     });
     let json: unknown;
     try {
@@ -96,5 +98,7 @@ export function createNameGuesser(
     return null;
   }
   logger.log(`MAL name guesser is on (model ${config.model})`);
-  return new DeepSeekNameGuesser(new DeepSeekClient(config));
+  return new DeepSeekNameGuesser(
+    new DeepSeekClient({ ...config, timeoutMs: NAME_GUESS_TIMEOUT_MS }),
+  );
 }

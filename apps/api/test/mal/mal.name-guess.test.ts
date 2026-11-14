@@ -91,6 +91,10 @@ describe('MAL name guesses', () => {
       },
       matchPartialBody: true,
     });
+    expect(fetchMock).not.toHavePosted(
+      'https://deepseek.test/chat/completions',
+      { body: { thinking: { type: 'disabled' } }, matchPartialBody: true },
+    );
     expect(fetchMock).not.toHaveFetched(
       'begin:https://mal.test/v2/anime?q=Renegade+Immortal&',
     );
