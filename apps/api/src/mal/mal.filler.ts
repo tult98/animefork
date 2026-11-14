@@ -69,11 +69,7 @@ export class MalFiller {
     return this.inFlight.has(slug);
   }
 
-  fill(
-    input: TitleInput,
-    namesAt?: Date,
-    taken?: TakenSource,
-  ): Promise<void> {
+  fill(input: TitleInput, namesAt?: Date, taken?: TakenSource): Promise<void> {
     const existing = this.inFlight.get(input.slug);
     if (existing) return existing;
     const done = this.run(input, namesAt, taken)

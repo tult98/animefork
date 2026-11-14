@@ -47,14 +47,10 @@ export async function backfillMal(
   const matchedNow = new Map<string, number[]>();
   for (const row of rows) {
     const slug = row.source_slug;
-    await filler.fill(
-      evalInput(row),
-      row.names_at ?? undefined,
-      async () => [
-        ...row.taken_mal_ids,
-        ...(matchedNow.get(row.source_name) ?? []),
-      ],
-    );
+    await filler.fill(evalInput(row), row.names_at ?? undefined, async () => [
+      ...row.taken_mal_ids,
+      ...(matchedNow.get(row.source_name) ?? []),
+    ]);
     summary.lookedUp++;
     const stored = (await store.find([slug])).get(slug);
     if (
