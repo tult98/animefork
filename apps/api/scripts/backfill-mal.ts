@@ -53,7 +53,6 @@ export async function backfillMal(
     );
     summary.lookedUp++;
     const stored = (await store.find([slug])).get(slug);
-    // The filler leaves a row it finds settled untouched.
     if (
       !stored ||
       stored.attemptedAt.getTime() === row.attempted_at.getTime()
@@ -124,7 +123,6 @@ async function main(): Promise<void> {
       createMalClient({ clientId: mal.clientId, baseUrl: mal.baseUrl }),
       systemClock,
       createMalJudge(jev),
-      // Episode lists fill on the title's next lookup, through ensureEpisodes.
       null,
       createTrailerClient({ baseUrl: mal.trailerBaseUrl }),
     );

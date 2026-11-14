@@ -7,7 +7,6 @@ const DAY = 24 * 60 * MINUTE;
 
 // Bump when the matcher changes, so rows it rejected under the old rules are tried again.
 // Version history: 2 reads the season from the slug, searches the slug romaji first and breaks part ties.
-// 3 asks Jev. 4 searches with nsfw=true, which MAL needs to return the entries it rates gray.
 export const MAL_MATCHER_VERSION = 4;
 
 export const MAL_REFRESH_AFTER_MS = 7 * DAY;
