@@ -41,7 +41,7 @@ describe('api app', () => {
       'https://web.test',
     );
     expect(preflight.headers['access-control-allow-methods']).toBe(
-      'GET,POST,PUT',
+      'GET,POST,PUT,DELETE',
     );
   });
 
