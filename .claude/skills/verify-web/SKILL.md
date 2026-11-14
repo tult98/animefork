@@ -90,7 +90,7 @@ The real readiness proof is `scripts/home-live.mjs` passing: it asserts `window.
 
 ## Auth
 
-Browsing, listings and watching need **no sign-in**, so no credentials are set. Sign-in, sign-up and verify-email talk to `apps/api` and need a database and mail, so they are _not yet mapped_. `scripts/library-actions.mjs` signs in through the real form with `VERIFY_WEB_EMAIL` and `VERIFY_WEB_PASSWORD`, which need a confirmed account on the local API. With no mail provider, insert a throwaway `users` row (hash from `hashPassword` in `apps/api/src/auth/password.ts`) and delete it afterwards. When mapped, use `VERIFY_WEB_EMAIL` and `VERIFY_WEB_PASSWORD` set in the developer's shell, never written here. If missing, ask the user. The 401 console errors on every page are the session probe answering "signed out", not a failure.
+Browsing, listings and watching need **no sign-in**, so no credentials are set. Sign-in, sign-up and verify-email talk to `apps/api` and need a database and mail, so they are _not yet mapped_. `scripts/library-actions.mjs` signs in through the real form with `VERIFY_WEB_EMAIL` and `VERIFY_WEB_PASSWORD`, which need a confirmed account on the local API. With no mail provider, insert a throwaway `users` row (hash from `hashPassword` in `apps/api/src/auth/password.ts`) and delete it afterwards. `library-page` also needs one `watch_progress` row for that user so the history section has a card. When mapped, use `VERIFY_WEB_EMAIL` and `VERIFY_WEB_PASSWORD` set in the developer's shell, never written here. If missing, ask the user. The 401 console errors on every page are the session probe answering "signed out", not a failure.
 
 ## Drive
 
@@ -100,7 +100,7 @@ Each scenario is one script, one run of the persistent profile, one recorded pag
 EV=$(cat apps/web/artifacts/verify-web/latest) node .claude/skills/verify-web/scripts/<scenario>.mjs
 ```
 
-Exit 0 means every check passed and the clip is paced. Scenarios: `home-live`, `listing-sort-page`, `watch-player`, `watch-episodes-scroll`, `watch-episodes-anchor`, `watch-episode-stills`, `trailer-hero-modal`, `trailer-sound-continue`, `library-actions`. To write a new one copy `scripts/listing-sort-page.mjs`: `start(name, { ev, actions, proves })`, then `r.title()`, `r.click(locator, 'label')`, `r.type(locator, value, 'label')`, `r.check(name, bool)`, `r.shot(name)`, `r.url(path)`, `r.finish()`.
+Exit 0 means every check passed and the clip is paced. Scenarios: `home-live`, `listing-sort-page`, `watch-player`, `watch-episodes-scroll`, `watch-episodes-anchor`, `watch-episode-stills`, `trailer-hero-modal`, `trailer-sound-continue`, `library-actions`, `library-page`. To write a new one copy `scripts/listing-sort-page.mjs`: `start(name, { ev, actions, proves })`, then `r.title()`, `r.click(locator, 'label')`, `r.type(locator, value, 'label')`, `r.check(name, bool)`, `r.shot(name)`, `r.url(path)`, `r.finish()`.
 
 Handles: `data-testid` first (listed per feature), ARIA roles second, never coordinates. Dev-only hook `window.__app` (`route()`, `queryKeys()`, `shelves()`, `transport`) is for reading state, never for causing it.
 
