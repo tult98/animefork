@@ -8,7 +8,13 @@ import {
   type MatchScope,
   type MatchQuestion,
 } from './matcher.ts';
-import type { TmdbClient, TmdbDetail } from './tmdb.ts';
+import type {
+  TmdbClient,
+  TmdbDetail,
+  TmdbImages,
+  TmdbKind,
+  TmdbMovieDetail,
+} from './tmdb.ts';
 import type { TitleInput } from '../contract.ts';
 import {
   distinctRomaji,
@@ -19,6 +25,7 @@ import {
 
 export interface TitleArtRow {
   source_slug: string;
+  tmdb_kind: TmdbKind;
   tmdb_id: number;
   tmdb_season: number | null;
   match_scope: MatchScope;
@@ -29,8 +36,11 @@ export interface TitleArtRow {
   source_name: string;
   source_year: number | null;
   source_episode_count: number | null;
-  matched_by: MatcherName;
+  matched_by: ArtMatchedBy;
+  source_mal_id?: number | null;
 }
+
+export type ArtMatchedBy = MatcherName | 'mal';
 
 export interface EpisodeArtRow {
   source_slug: string;
@@ -41,9 +51,13 @@ export interface EpisodeArtRow {
 const CANDIDATE_LIMIT = 5;
 const ALTERNATIVE_TITLE_LIMIT = 3;
 const MAX_SEARCHES = 5;
+const MOVIE_LIMIT = 5;
+const MOVIES_PER_QUERY = 3;
+export const ANIMATION_GENRE = 16;
 
 export interface MatchedTitle {
   slug: string;
+  tmdbKind: TmdbKind;
   tmdbId: number;
   probability: number;
   title: TitleArtRow;
@@ -53,6 +67,7 @@ export interface MatchedTitle {
 export interface SkippedTitle {
   slug: string;
   reason: string;
+  sideEntry?: boolean;
 }
 
 export type SyncOutcome =
@@ -71,13 +86,30 @@ function toCandidate(
 ): Candidate {
   const entry = detail.seasons?.find((s) => s.season_number === season);
   return {
+    kind: 'tv',
     id: detail.id,
     name: detail.name,
     originalName: detail.original_name,
     alternativeTitles,
     firstAirDate:
       (season > 1 ? entry?.air_date : detail.first_air_date) ?? undefined,
+    showFirstAirDate: detail.first_air_date ?? undefined,
     episodeCount: entry?.episode_count ?? detail.number_of_episodes,
+    ...(detail.overview ? { overview: detail.overview } : {}),
+  };
+}
+
+function toMovieCandidate(
+  detail: TmdbMovieDetail,
+  alternativeTitles: string[],
+): Candidate {
+  return {
+    kind: 'movie',
+    id: detail.id,
+    name: detail.title,
+    originalName: detail.original_title,
+    alternativeTitles,
+    ...(detail.release_date ? { firstAirDate: detail.release_date } : {}),
     ...(detail.overview ? { overview: detail.overview } : {}),
   };
 }
@@ -103,8 +135,11 @@ export function mapEpisodes(
   return rows;
 }
 
-function skip(slug: string, reason: string): SyncOutcome {
-  return { kind: 'skipped', skipped: { slug, reason } };
+function skip(slug: string, reason: string, sideEntry?: boolean): SyncOutcome {
+  return {
+    kind: 'skipped',
+    skipped: { slug, reason, ...(sideEntry !== undefined && { sideEntry }) },
+  };
 }
 
 export interface Gathered {
@@ -119,19 +154,51 @@ export function tmdbQueries(input: TitleInput): string[] {
   return [...base, ...nameQueries(input.otherNames, base)];
 }
 
+async function movieCandidates(
+  queries: string[],
+  tmdb: TmdbClient,
+): Promise<Candidate[]> {
+  const ids: number[] = [];
+  for (const query of queries) {
+    if (ids.length >= MOVIE_LIMIT) break;
+    const found = (await tmdb.searchMovie(query))
+      .filter(
+        (m) => m.genre_ids.includes(ANIMATION_GENRE) && !ids.includes(m.id),
+      )
+      .slice(0, MOVIES_PER_QUERY);
+    ids.push(...found.map((m) => m.id));
+  }
+  return Promise.all(
+    ids.slice(0, MOVIE_LIMIT).map(async (id) => {
+      const [detail, alternativeTitles] = await Promise.all([
+        tmdb.movieDetail(id),
+        tmdb.movieAlternativeTitles(id),
+      ]);
+      return toMovieCandidate(detail, alternativeTitles);
+    }),
+  );
+}
+
+export interface SyncOptions {
+  sideEntry?: boolean;
+}
+
 export async function gatherCandidates(
   input: TitleInput,
   tmdb: TmdbClient,
+  { sideEntry = false }: SyncOptions = {},
 ): Promise<Gathered | null> {
   const season = parseSeasonNumber(input.seasonName, input.name);
-  let query = '';
+  const queries = tmdbQueries(input);
+  let query = queries[0] ?? '';
   let results: Awaited<ReturnType<TmdbClient['searchTv']>> = [];
-  for (const candidate of tmdbQueries(input)) {
+  for (const candidate of sideEntry ? [] : queries) {
     query = candidate;
     results = await tmdb.searchTv(candidate);
     if (results.length > 0) break;
   }
-  if (results.length === 0) return null;
+  const movies = await movieCandidates(queries, tmdb);
+  if (results.length === 0 && movies.length === 0) return null;
 
   const details = await Promise.all(
     results.slice(0, CANDIDATE_LIMIT).map((r) => tmdb.tvDetail(r.id)),
@@ -155,21 +222,25 @@ export async function gatherCandidates(
       seasonName: input.seasonName,
       year: input.year,
       episodeCount: input.episodeCount,
-      candidates: details.map((d, i) =>
-        toCandidate(d, season, alternativeTitles[i] ?? []),
-      ),
+      ...(sideEntry && { sideEntry }),
+      candidates: [
+        ...details.map((d, i) =>
+          toCandidate(d, season, alternativeTitles[i] ?? []),
+        ),
+        ...movies,
+      ],
     },
   };
 }
 
 // TMDB art is per show, so a season TMDB lacks costs the stills and nothing else.
 export function effectiveScope(
-  answer: Pick<MatchAnswer, 'scope'>,
+  answer: Pick<MatchAnswer, 'scope' | 'kind'>,
   choice: number,
   details: TmdbDetail[],
   season: number,
 ): MatchScope {
-  if (answer.scope === 'show') return 'show';
+  if (answer.scope === 'show' || answer.kind === 'movie') return 'show';
   const seasons = details.find((d) => d.id === choice)?.seasons;
   return seasons && !seasons.some((s) => s.season_number === season)
     ? 'show'
@@ -181,7 +252,7 @@ function matchedOutcome(
   answer: MatchAnswer,
   tmdbId: number,
   scope: MatchScope,
-  images: Awaited<ReturnType<TmdbClient['tvImages']>>,
+  images: TmdbImages,
   episodes: EpisodeArtRow[],
   season: number | null = null,
 ): SyncOutcome {
@@ -191,10 +262,12 @@ function matchedOutcome(
     kind: 'matched',
     matched: {
       slug: input.slug,
+      tmdbKind: answer.kind,
       tmdbId,
       probability: answer.probability,
       title: {
         source_slug: input.slug,
+        tmdb_kind: answer.kind,
         tmdb_id: tmdbId,
         tmdb_season: scope === 'season' ? season : null,
         match_scope: scope,
@@ -215,8 +288,9 @@ function matchedOutcome(
 export async function syncTitle(
   input: TitleInput,
   { tmdb, matcher }: SyncDeps,
+  options: SyncOptions = {},
 ): Promise<SyncOutcome> {
-  const gathered = await gatherCandidates(input, tmdb);
+  const gathered = await gatherCandidates(input, tmdb, options);
   if (!gathered) return skip(input.slug, 'no TMDB search results');
   const { season, query, question, details } = gathered;
 
@@ -230,9 +304,14 @@ export async function syncTitle(
     return skip(
       input.slug,
       `no confident match by ${answer.by} (best probability ${answer.probability.toFixed(2)}${show}) via query '${query}'`,
+      answer.sideEntry,
     );
   }
 
+  if (answer.kind === 'movie') {
+    const images = await tmdb.movieImages(choice);
+    return matchedOutcome(input, answer, choice, 'show', images, []);
+  }
   const scope = effectiveScope(answer, choice, details, season);
   if (scope === 'show') {
     const images = await tmdb.tvImages(choice);

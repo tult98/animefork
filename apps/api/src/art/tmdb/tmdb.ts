@@ -7,9 +7,22 @@ const SearchResultSchema = z.object({
   name: z.string(),
   original_name: z.string(),
   first_air_date: z.string().nullish(),
+  genre_ids: z.array(z.number().int()).default([]),
 });
 
 const SearchSchema = z.object({ results: z.array(SearchResultSchema) });
+
+const MovieSearchResultSchema = z.object({
+  id: z.number().int(),
+  title: z.string(),
+  original_title: z.string(),
+  release_date: z.string().nullish(),
+  genre_ids: z.array(z.number().int()).default([]),
+});
+
+const MovieSearchSchema = z.object({
+  results: z.array(MovieSearchResultSchema),
+});
 
 const ImageSchema = z.object({
   file_path: z.string().min(1),
@@ -46,10 +59,19 @@ const DetailSchema = z.object({
     .optional(),
 });
 
+const MovieDetailSchema = z.object({
+  id: z.number().int(),
+  title: z.string(),
+  original_title: z.string(),
+  release_date: z.string().nullish(),
+  overview: z.string().nullish(),
+});
+
 const SeasonSchema = z.object({
   episodes: z.array(
     z.object({
       episode_number: z.number().int(),
+      air_date: z.string().nullish(),
       still_path: z
         .string()
         .nullish()
@@ -68,10 +90,19 @@ const AlternativeTitlesSchema = z.object({
   ),
 });
 
+const MovieAlternativeTitlesSchema = z.object({
+  titles: z.array(z.object({ title: z.string() })),
+});
+
+// TV and movie ids share one integer space, so an id names a TMDB record only together with its kind.
+export type TmdbKind = 'tv' | 'movie';
+
 export type TmdbSearchResult = z.infer<typeof SearchResultSchema>;
+export type TmdbMovieSearchResult = z.infer<typeof MovieSearchResultSchema>;
 export type TmdbImage = z.infer<typeof ImageSchema>;
 export type TmdbImages = z.infer<typeof ImagesSchema>;
 export type TmdbDetail = z.infer<typeof DetailSchema>;
+export type TmdbMovieDetail = z.infer<typeof MovieDetailSchema>;
 export type TmdbSeason = z.infer<typeof SeasonSchema>;
 
 export class TmdbError extends Error {
@@ -90,6 +121,10 @@ export interface TmdbClient {
   tvDetail(tvId: number, language?: string): Promise<TmdbDetail>;
   tvAlternativeTitles(tvId: number): Promise<string[]>;
   seasonDetail(tvId: number, season: number): Promise<TmdbSeason>;
+  searchMovie(query: string): Promise<TmdbMovieSearchResult[]>;
+  movieImages(movieId: number): Promise<TmdbImages>;
+  movieDetail(movieId: number, language?: string): Promise<TmdbMovieDetail>;
+  movieAlternativeTitles(movieId: number): Promise<string[]>;
 }
 
 export function createTmdbClient(options: {
@@ -132,5 +167,23 @@ export function createTmdbClient(options: {
       ).results.map((r) => r.title),
     seasonDetail: (tvId, season) =>
       get(`/tv/${tvId}/season/${season}`, {}, SeasonSchema),
+    searchMovie: async (query) =>
+      (await get('/search/movie', { query }, MovieSearchSchema)).results,
+    movieImages: (movieId) =>
+      get(
+        `/movie/${movieId}/images`,
+        { include_image_language: 'vi,en,null' },
+        ImagesSchema,
+      ),
+    movieDetail: (movieId, language) =>
+      get(`/movie/${movieId}`, language ? { language } : {}, MovieDetailSchema),
+    movieAlternativeTitles: async (movieId) =>
+      (
+        await get(
+          `/movie/${movieId}/alternative_titles`,
+          {},
+          MovieAlternativeTitlesSchema,
+        )
+      ).titles.map((t) => t.title),
   };
 }

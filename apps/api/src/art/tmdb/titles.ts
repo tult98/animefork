@@ -49,6 +49,16 @@ export function parseCourNumber(text: string): number {
   return found?.[1] ? Number.parseInt(found[1], 10) || 1 : 1;
 }
 
+// MAL names the second half of a season "X Part 2", while TMDB lists both halves under the season.
+export function stripPartMarker(name: string): string {
+  const stripped = name
+    .replace(PART_MARKER, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/[\s:\-–]+$/, '')
+    .trim();
+  return stripped || name;
+}
+
 export function seasonMarker(name: string): string | undefined {
   return findSeasonMarker(name)?.match[0];
 }

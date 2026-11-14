@@ -19,7 +19,7 @@ export const MAX_QUERY_LENGTH = 64;
 const FIELDS =
   'alternative_titles,start_season,num_episodes,media_type,mean,num_scoring_users,rank,popularity,num_list_users,status,start_date';
 const STATS_FIELDS =
-  'mean,num_scoring_users,rank,popularity,num_list_users,status,num_episodes,start_date,start_season';
+  'mean,num_scoring_users,rank,popularity,num_list_users,status,num_episodes,start_date,start_season,media_type,alternative_titles';
 
 export interface MalCandidate extends Omit<MalCounts, 'episodes'> {
   title: string;
@@ -28,6 +28,12 @@ export interface MalCandidate extends Omit<MalCounts, 'episodes'> {
   year: number | undefined;
   episodes: number | undefined;
   mediaType: string | undefined;
+}
+
+export interface MalFactFields {
+  mediaType: string | null;
+  english: string | null;
+  synonyms: string[];
 }
 
 export interface MalRelation {
@@ -52,7 +58,7 @@ export class MalError extends Error {
 
 export interface MalClient {
   search(query: string): Promise<MalCandidate[]>;
-  stats(id: number): Promise<MalCounts | null>;
+  stats(id: number): Promise<(MalCounts & MalFactFields) | null>;
   entry(id: number): Promise<MalEntry | null>;
 }
 
@@ -117,6 +123,14 @@ function toStats(node: Node): MalCounts {
       ? (node.start_date ?? null)
       : null,
     startSeason: toStartSeason(node.start_season),
+  };
+}
+
+function toFacts(node: Node): MalFactFields {
+  return {
+    mediaType: node.media_type ?? null,
+    english: node.alternative_titles?.en?.trim() || null,
+    synonyms: node.alternative_titles?.synonyms ?? [],
   };
 }
 
@@ -233,7 +247,8 @@ export function createMalClient(options: MalClientOptions): MalClient {
             res.status,
           );
         }
-        return toStats(NodeSchema.parse(await res.json()));
+        const node = NodeSchema.parse(await res.json());
+        return { ...toStats(node), ...toFacts(node) };
       }),
     entry: (id) =>
       serial(async () => {

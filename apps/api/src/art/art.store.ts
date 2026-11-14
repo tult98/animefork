@@ -9,12 +9,14 @@ import {
   type OverviewStatus,
   type TitleStatus,
 } from './retry.ts';
-import type { MatcherName, MatchScope } from './tmdb/matcher.ts';
-import type { MatchedTitle } from './tmdb/sync.ts';
+import type { MatchScope } from './tmdb/matcher.ts';
+import type { ArtMatchedBy, MatchedTitle } from './tmdb/sync.ts';
+import type { TmdbKind } from './tmdb/tmdb.ts';
 
 export interface StoredTitle {
   slug: string;
   status: TitleStatus;
+  tmdbKind: TmdbKind | null;
   tmdbId: number | null;
   tmdbSeason: number | null;
   matchScope: MatchScope | null;
@@ -28,7 +30,8 @@ export interface StoredTitle {
   sourceName: string | null;
   sourceYear: number | null;
   sourceEpisodeCount: number | null;
-  matchedBy: MatcherName | null;
+  matchedBy: ArtMatchedBy | null;
+  sourceMalId: number | null;
   overview: string | null;
   overviewLang: OverviewLang | null;
   overviewTranslated: boolean;
@@ -60,14 +63,20 @@ export interface ArtStore {
     from: number,
     limit: number,
   ): Promise<Map<number, string>>;
-  saveMatched(art: MatchedArt): Promise<void>;
+  saveMatched(
+    art: MatchedArt,
+    options?: { overwriteMatch?: boolean },
+  ): Promise<void>;
   saveMiss(
     source: TitleSource,
     status: MissStatus,
     reason: string,
   ): Promise<void>;
+  stampSourceMalId(slug: string, sourceMalId: number): Promise<void>;
+  clearMatch(slug: string, status: MissStatus, reason: string): Promise<void>;
   saveOverview(
     slug: string,
+    tmdbKind: TmdbKind,
     tmdbId: number,
     result: OverviewResult,
   ): Promise<void>;
@@ -92,6 +101,7 @@ function overviewColumns(result: OverviewResult) {
 interface TitleRow {
   source_slug: string;
   status: TitleStatus;
+  tmdb_kind: TmdbKind;
   tmdb_id: number | null;
   tmdb_season: number | null;
   match_scope: MatchScope;
@@ -105,7 +115,8 @@ interface TitleRow {
   source_name: string | null;
   source_year: number | null;
   source_episode_count: number | null;
-  matched_by: MatcherName | null;
+  matched_by: ArtMatchedBy | null;
+  source_mal_id: number | null;
   overview: string | null;
   overview_lang: OverviewLang | null;
   overview_translated: boolean;
@@ -125,10 +136,10 @@ export class PostgresArtStore implements ArtStore {
     const found = new Map<string, StoredTitle>();
     if (slugs.length === 0) return found;
     const { rows } = await this.pool.query<TitleRow>(
-      `select source_slug, status, tmdb_id, tmdb_season, match_scope,
+      `select source_slug, status, tmdb_kind, tmdb_id, tmdb_season, match_scope,
               backdrop_path, backdrop_lang, poster_path, poster_lang, reason, matcher_version,
               attempted_at, source_name, source_year, source_episode_count,
-              matched_by, overview, overview_lang, overview_translated,
+              matched_by, source_mal_id, overview, overview_lang, overview_translated,
               overview_status, overview_attempted_at
          from title_art where source_slug = any($1::text[])`,
       [slugs],
@@ -137,6 +148,7 @@ export class PostgresArtStore implements ArtStore {
       found.set(row.source_slug, {
         slug: row.source_slug,
         status: row.status,
+        tmdbKind: row.status === 'matched' ? row.tmdb_kind : null,
         tmdbId: row.tmdb_id,
         tmdbSeason: row.tmdb_season,
         matchScope: row.status === 'matched' ? row.match_scope : null,
@@ -151,6 +163,7 @@ export class PostgresArtStore implements ArtStore {
         sourceYear: row.source_year,
         sourceEpisodeCount: row.source_episode_count,
         matchedBy: row.matched_by,
+        sourceMalId: row.source_mal_id,
         overview: row.overview,
         overviewLang: row.overview_lang,
         overviewTranslated: row.overview_translated,
@@ -187,7 +200,10 @@ export class PostgresArtStore implements ArtStore {
     return new Map(rows.map((r) => [r.episode_number, r.still_path]));
   }
 
-  async saveMatched({ title, episodes }: MatchedArt): Promise<void> {
+  async saveMatched(
+    { title, episodes }: MatchedArt,
+    { overwriteMatch = false }: { overwriteMatch?: boolean } = {},
+  ): Promise<void> {
     const client = await this.pool.connect();
     try {
       await client.query('begin');
@@ -196,11 +212,12 @@ export class PostgresArtStore implements ArtStore {
            (source_slug, status, tmdb_id, tmdb_season, match_scope,
             backdrop_path, backdrop_lang, poster_path, poster_lang, reason,
             matcher_version, attempted_at, source_name, source_year,
-            source_episode_count, matched_by)
+            source_episode_count, matched_by, tmdb_kind, source_mal_id)
          values ($1, 'matched', $2, $3, $14, $4, $5, $6, $7, null, $8, now(),
-                 $9, $10, $11, $12)
+                 $9, $10, $11, $12, $15, $17)
          on conflict (source_slug) do update set
            status = excluded.status,
+           tmdb_kind = excluded.tmdb_kind,
            tmdb_id = excluded.tmdb_id,
            tmdb_season = excluded.tmdb_season,
            match_scope = excluded.match_scope,
@@ -215,17 +232,20 @@ export class PostgresArtStore implements ArtStore {
            source_year = excluded.source_year,
            source_episode_count = excluded.source_episode_count,
            matched_by = excluded.matched_by,
-           overview = case when title_art.tmdb_id = excluded.tmdb_id
-             then title_art.overview end,
-           overview_lang = case when title_art.tmdb_id = excluded.tmdb_id
-             then title_art.overview_lang end,
-           overview_translated = coalesce(title_art.tmdb_id = excluded.tmdb_id
+           source_mal_id = excluded.source_mal_id,
+           overview = case when (title_art.tmdb_kind, title_art.tmdb_id)
+             = (excluded.tmdb_kind, excluded.tmdb_id) then title_art.overview end,
+           overview_lang = case when (title_art.tmdb_kind, title_art.tmdb_id)
+             = (excluded.tmdb_kind, excluded.tmdb_id) then title_art.overview_lang end,
+           overview_translated = coalesce((title_art.tmdb_kind, title_art.tmdb_id)
+             = (excluded.tmdb_kind, excluded.tmdb_id)
              and title_art.overview_translated, false),
-           overview_status = case when title_art.tmdb_id = excluded.tmdb_id
-             then title_art.overview_status end,
-           overview_attempted_at = case when title_art.tmdb_id = excluded.tmdb_id
-             then title_art.overview_attempted_at end
-         where title_art.status <> 'matched'
+           overview_status = case when (title_art.tmdb_kind, title_art.tmdb_id)
+             = (excluded.tmdb_kind, excluded.tmdb_id) then title_art.overview_status end,
+           overview_attempted_at = case when (title_art.tmdb_kind, title_art.tmdb_id)
+             = (excluded.tmdb_kind, excluded.tmdb_id) then title_art.overview_attempted_at end
+         where $16::boolean
+            or title_art.status <> 'matched'
             or title_art.matcher_version < $13
          returning source_slug`,
         [
@@ -243,8 +263,16 @@ export class PostgresArtStore implements ArtStore {
           title.matched_by,
           MATCHED_REFRESH_BELOW,
           title.match_scope,
+          title.tmdb_kind,
+          overwriteMatch,
+          title.source_mal_id ?? null,
         ],
       );
+      if (overwriteMatch) {
+        await client.query('delete from episode_art where source_slug = $1', [
+          title.source_slug,
+        ]);
+      }
       if (written.rowCount && episodes.length > 0) {
         await client.query(
           `insert into episode_art (source_slug, episode_number, still_path)
@@ -285,7 +313,8 @@ export class PostgresArtStore implements ArtStore {
          source_name = excluded.source_name,
          source_year = excluded.source_year,
          source_episode_count = excluded.source_episode_count,
-         matched_by = null
+         matched_by = null,
+         source_mal_id = null
        where title_art.status <> 'matched'`,
       [
         source.slug,
@@ -299,8 +328,61 @@ export class PostgresArtStore implements ArtStore {
     );
   }
 
+  async stampSourceMalId(slug: string, sourceMalId: number): Promise<void> {
+    await this.pool.query(
+      `update title_art set source_mal_id = $2
+        where source_slug = $1 and status = 'matched'`,
+      [slug, sourceMalId],
+    );
+  }
+
+  async clearMatch(
+    slug: string,
+    status: MissStatus,
+    reason: string,
+  ): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('begin');
+      await client.query(
+        `update title_art set
+           status = $2,
+           reason = $3,
+           matcher_version = $4,
+           attempted_at = now(),
+           tmdb_kind = default,
+           tmdb_id = null,
+           tmdb_season = null,
+           match_scope = default,
+           backdrop_path = null,
+           backdrop_lang = null,
+           poster_path = null,
+           poster_lang = null,
+           matched_by = null,
+           source_mal_id = null,
+           overview = null,
+           overview_lang = null,
+           overview_translated = false,
+           overview_status = null,
+           overview_attempted_at = null
+         where source_slug = $1`,
+        [slug, status, reason, MATCHER_VERSION],
+      );
+      await client.query('delete from episode_art where source_slug = $1', [
+        slug,
+      ]);
+      await client.query('commit');
+    } catch (error) {
+      await client.query('rollback').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async saveOverview(
     slug: string,
+    tmdbKind: TmdbKind,
     tmdbId: number,
     result: OverviewResult,
   ): Promise<void> {
@@ -315,6 +397,7 @@ export class PostgresArtStore implements ArtStore {
        where source_slug = $1
          and status = 'matched'
          and tmdb_id = $2
+         and tmdb_kind = $7
          and overview_status is distinct from 'ok'`,
       [
         slug,
@@ -323,6 +406,7 @@ export class PostgresArtStore implements ArtStore {
         columns.overviewLang,
         columns.overviewTranslated,
         columns.overviewStatus,
+        tmdbKind,
       ],
     );
   }

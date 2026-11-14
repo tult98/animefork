@@ -78,24 +78,24 @@ export const mockTmdbImages = {
   ],
 };
 
-// Jev is sure that candidate 30983 is the same season and the same show.
 export const mockJevReply = {
   model: 'jev-1.13.0',
   answers: {
     match: {
       type: 'choice',
-      choice: '30983',
+      choice: 'tv:30983',
       confidence: 0.8,
-      probabilities: { '30983': 0.92 },
+      probabilities: { 'tv:30983': 0.92 },
     },
     any_match: { type: 'noul', noul: 0.96 },
     show_match: {
       type: 'choice',
-      choice: '30983',
+      choice: 'tv:30983',
       confidence: 0.8,
-      probabilities: { '30983': 0.92 },
+      probabilities: { 'tv:30983': 0.92 },
     },
     any_show: { type: 'noul', noul: 0.96 },
+    side_entry: { type: 'noul', noul: 0.05 },
   },
   usage: { input_tokens: 400, output_tokens: 30 },
 };

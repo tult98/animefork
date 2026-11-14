@@ -1,10 +1,17 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CLOCK, type Clock } from '../common/clock.ts';
-import type { TitleInput } from './contract.ts';
-import { isOverviewSettled, isSettled, isStale } from './retry.ts';
+import { normalizeOtherNames, type TitleInput } from './contract.ts';
+import {
+  isFromOtherMal,
+  isOverviewSettled,
+  isSettled,
+  isStale,
+} from './retry.ts';
 import { ART_STORE, type ArtStore, type OverviewResult } from './art.store.ts';
+import { findFromMal, isSeries, type MalFacts } from './tmdb/from-mal.ts';
 import { fetchOverview } from './tmdb/overview.ts';
-import { syncTitle, type SyncDeps } from './tmdb/sync.ts';
+import { syncTitle, type SyncDeps, type SyncOutcome } from './tmdb/sync.ts';
+import type { TmdbKind } from './tmdb/tmdb.ts';
 import { OVERVIEW_TRANSLATOR, type OverviewTranslator } from './translator.ts';
 
 export const ART_SYNC = Symbol('ArtSync');
@@ -53,16 +60,24 @@ export class ArtFiller {
     return this.overviewsInFlight.has(slug);
   }
 
-  fill(input: TitleInput, namesAt?: Date): Promise<void> {
+  fill(
+    input: TitleInput,
+    namesAt?: Date,
+    facts: MalFacts | null = null,
+  ): Promise<void> {
     return this.schedule(this.inFlight, input.slug, 'fill', () =>
-      this.run(input, namesAt),
+      this.run(input, namesAt, facts),
     );
   }
 
   // Overview jobs have their own single-flight map, so one never makes an art fill wait or be skipped.
-  fillOverview(slug: string, tmdbId: number): Promise<void> {
+  fillOverview(
+    slug: string,
+    tmdbKind: TmdbKind,
+    tmdbId: number,
+  ): Promise<void> {
     return this.schedule(this.overviewsInFlight, slug, 'overview', () =>
-      this.runOverview(slug, tmdbId),
+      this.runOverview(slug, tmdbKind, tmdbId),
     );
   }
 
@@ -116,20 +131,28 @@ export class ArtFiller {
     this.queue.shift()?.();
   }
 
-  private async run(input: TitleInput, namesAt?: Date): Promise<void> {
+  private async run(
+    input: TitleInput,
+    namesAt: Date | undefined,
+    facts: MalFacts | null,
+  ): Promise<void> {
     const { store } = this;
     const current = (await store.find([input.slug])).get(input.slug);
+    const malId = facts?.malId ?? null;
+    const fromOtherMal =
+      current !== undefined && isFromOtherMal(current, malId);
     if (
       current &&
       isSettled(current, this.now(), namesAt) &&
-      !isStale(current)
+      !isStale(current) &&
+      !fromOtherMal
     ) {
       return;
     }
 
     let outcome;
     try {
-      outcome = await syncTitle(input, this.sync);
+      outcome = await this.find(input, facts);
     } catch (error) {
       const reason = describeError(error);
       this.logger.warn(`fill ${input.slug} failed: ${reason}`);
@@ -137,25 +160,62 @@ export class ArtFiller {
       return;
     }
     if (outcome.kind !== 'matched') {
-      await store.saveMiss(input, 'no_match', outcome.skipped.reason);
+      if (fromOtherMal && malId !== null) {
+        await store.stampSourceMalId(input.slug, malId);
+      } else {
+        await store.saveMiss(input, 'no_match', outcome.skipped.reason);
+      }
       return;
     }
-    const { tmdbId } = outcome.matched;
-    await store.saveMatched(outcome.matched);
+    const { tmdbKind, tmdbId } = outcome.matched;
+    await store.saveMatched(outcome.matched, { overwriteMatch: fromOtherMal });
     const keepsOverview =
-      current?.tmdbId === tmdbId && current.overviewStatus === 'ok';
+      current?.tmdbKind === tmdbKind &&
+      current.tmdbId === tmdbId &&
+      current.overviewStatus === 'ok';
     if (keepsOverview || this.overviewsInFlight.has(input.slug)) return;
     await store.saveOverview(
       input.slug,
+      tmdbKind,
       tmdbId,
-      await this.resolveOverview(input.slug, tmdbId),
+      await this.resolveOverview(input.slug, tmdbKind, tmdbId),
     );
   }
 
-  private async runOverview(slug: string, tmdbId: number): Promise<void> {
+  private async find(
+    input: TitleInput,
+    facts: MalFacts | null,
+  ): Promise<SyncOutcome> {
+    if (!facts) return syncTitle(input, this.sync);
+    const fromMal = await findFromMal(input, facts, this.sync.tmdb);
+    if (fromMal.kind === 'matched') return fromMal;
+    const otherNames = normalizeOtherNames(
+      [facts.english ?? '', facts.title, ...(input.otherNames ?? [])],
+      input.name,
+    );
+    const outcome = await syncTitle({ ...input, otherNames }, this.sync, {
+      sideEntry: !isSeries(facts),
+    });
+    if (outcome.kind !== 'matched') return outcome;
+    const { matched } = outcome;
+    return {
+      kind: 'matched',
+      matched: {
+        ...matched,
+        title: { ...matched.title, source_mal_id: facts.malId },
+      },
+    };
+  }
+
+  private async runOverview(
+    slug: string,
+    tmdbKind: TmdbKind,
+    tmdbId: number,
+  ): Promise<void> {
     const current = (await this.store.find([slug])).get(slug);
     if (
       current?.status !== 'matched' ||
+      current.tmdbKind !== tmdbKind ||
       current.tmdbId !== tmdbId ||
       isOverviewSettled(current, this.now())
     ) {
@@ -163,17 +223,19 @@ export class ArtFiller {
     }
     await this.store.saveOverview(
       slug,
+      tmdbKind,
       tmdbId,
-      await this.resolveOverview(slug, tmdbId),
+      await this.resolveOverview(slug, tmdbKind, tmdbId),
     );
   }
 
   private async resolveOverview(
     slug: string,
+    tmdbKind: TmdbKind,
     tmdbId: number,
   ): Promise<OverviewResult> {
     try {
-      const found = await fetchOverview(this.sync.tmdb, tmdbId);
+      const found = await fetchOverview(this.sync.tmdb, tmdbKind, tmdbId);
       if (!found) return { status: 'none' };
       if (found.lang === 'vi') {
         return {

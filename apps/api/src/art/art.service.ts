@@ -15,9 +15,15 @@ import type {
   StillsResponse,
   TitleRatings,
 } from './contract.ts';
-import { artStatus, isOverviewSettled, isStale } from './retry.ts';
+import {
+  artStatus,
+  isFromOtherMal,
+  isOverviewSettled,
+  isStale,
+} from './retry.ts';
 import { ART_STORE, type ArtStore, type StoredTitle } from './art.store.ts';
 import { ArtFiller } from './art.filler.ts';
+import { malFacts } from './tmdb/from-mal.ts';
 import {
   TITLE_NAMES_STORE,
   type StoredNames,
@@ -69,6 +75,8 @@ export class ArtService {
 
     for (const [slug, title] of titles) {
       const row = rows.get(slug);
+      const mal = malRows.get(slug);
+      const facts = malFacts(mal);
       const namesAt = names.get(slug)?.updatedAt;
       const status = artStatus(row, now, namesAt);
       if (row && status !== 'pending') {
@@ -82,22 +90,30 @@ export class ArtService {
             overview: overviewOk ? row.overview : null,
             overviewTranslated: overviewOk && row.overviewTranslated,
           };
-          if (isStale(row) && !filler.has(slug)) void filler.fill(title);
+          const refill =
+            isStale(row) || isFromOtherMal(row, facts?.malId ?? null);
+          if (refill && !filler.has(slug)) {
+            void filler.fill(title, undefined, facts);
+          }
           if (
+            row.tmdbKind !== null &&
             row.tmdbId !== null &&
             !isOverviewSettled(row, now) &&
             !filler.has(slug) &&
             !filler.hasOverview(slug)
           ) {
-            void filler.fillOverview(slug, row.tmdbId);
+            void filler.fillOverview(slug, row.tmdbKind, row.tmdbId);
           }
         } else {
           art[slug] = { status: 'none' };
         }
         continue;
       }
-      if (!filler.has(slug)) void filler.fill(title, namesAt);
       art[slug] = { status: 'pending' };
+      const waitsForMal =
+        this.malFiller !== null && !facts && !isMalSettled(mal, now, namesAt);
+      if (waitsForMal) continue;
+      if (!filler.has(slug)) void filler.fill(title, namesAt, facts);
     }
 
     const stored = await this.ratings.find(slugs);
