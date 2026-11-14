@@ -8,8 +8,9 @@ export const libraryKey = (userId: string | false) =>
 
 export type Library =
   | { status: 'pending' }
-  // Signed out, or the request failed: the viewer has no ratings and no playlists to show.
+  // Signed out: the viewer has no ratings and no playlists to show.
   | { status: 'none' }
+  | { status: 'failed'; error: unknown; retry: () => void }
   | { status: 'ready'; library: LibraryResponse };
 
 export function useLibrary(): Library {
@@ -24,5 +25,12 @@ export function useLibrary(): Library {
   if (session.state === 'loading') return { status: 'pending' };
   if (session.state === 'signedOut') return { status: 'none' };
   if (query.data) return { status: 'ready', library: query.data };
-  return query.isError ? { status: 'none' } : { status: 'pending' };
+  if (query.isError) {
+    return {
+      status: 'failed',
+      error: query.error,
+      retry: () => void query.refetch(),
+    };
+  }
+  return { status: 'pending' };
 }
