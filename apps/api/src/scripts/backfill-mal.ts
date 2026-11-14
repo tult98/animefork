@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { parseArgs } from 'node:util';
 import pg from 'pg';
-import { loadJevConfig } from '../art/art.config.ts';
+import { loadDeepSeekConfig, loadJevConfig } from '../art/art.config.ts';
 import { tmdbAliases } from '../art/tmdb/aliases.ts';
 import { createTmdbClient, type TmdbClient } from '../art/tmdb/tmdb.ts';
 import { systemClock } from '../common/clock.ts';
@@ -12,6 +12,8 @@ import { MalFiller } from '../mal/mal.filler.ts';
 import { MalFranchise } from '../mal/mal.franchise.ts';
 import { createMalJudge } from '../mal/mal.jev.ts';
 import { PostgresMalStore, type MalStore } from '../mal/mal.store.ts';
+import { PostgresNameGuessStore } from '../mal/name-guess.store.ts';
+import { createNameGuesser } from '../mal/name-guesser.ts';
 import { createTrailerClient } from '../mal/trailer.client.ts';
 import { evalInput, type SourceRow } from './eval-mal.ts';
 
@@ -19,7 +21,7 @@ import { evalInput, type SourceRow } from './eval-mal.ts';
 // so the package script loads this file through @swc-node/register.
 
 export interface BackfillMalRow extends Omit<SourceRow, 'status' | 'mal_id'> {
-  attempted_at: Date;
+  attempted_at: Date | null;
   tmdb_id: number | null;
   names_at: Date | null;
   taken_mal_ids: number[];
@@ -63,7 +65,7 @@ export async function backfillMal(
     const stored = (await store.find([slug])).get(slug);
     if (
       !stored ||
-      stored.attemptedAt.getTime() === row.attempted_at.getTime()
+      stored.attemptedAt.getTime() === row.attempted_at?.getTime()
     ) {
       summary.settled++;
       log(`${slug} settled`);
@@ -84,6 +86,33 @@ export async function backfillMal(
     }
   }
   return summary;
+}
+
+export async function findBackfillRows(
+  pool: pg.Pool,
+  limit: number | null,
+): Promise<BackfillMalRow[]> {
+  const { rows } = await pool.query<BackfillMalRow>(
+    `select a.source_slug, m.attempted_at,
+            a.source_name, a.source_year, a.source_episode_count,
+            case when a.status = 'matched' then a.tmdb_id end as tmdb_id,
+            n.names as other_names, n.updated_at as names_at,
+            array(select o.mal_id
+                    from title_art oa
+                    join title_mal o on o.source_slug = oa.source_slug
+                   where oa.source_name = a.source_name
+                     and oa.source_slug <> a.source_slug
+                     and o.status = 'ok') as taken_mal_ids
+       from title_art a
+       left join title_mal m on m.source_slug = a.source_slug
+       left join title_names n on n.source_slug = a.source_slug
+      where (m.source_slug is null or m.status <> 'ok')
+        and a.source_name is not null
+      order by m.attempted_at nulls first, a.source_slug
+      limit $1`,
+    [limit],
+  );
+  return rows;
 }
 
 function fail(message: string): never {
@@ -112,9 +141,11 @@ async function main(): Promise<void> {
   }
   let mal;
   let jev;
+  let deepseek;
   try {
     mal = loadMalConfig(process.env);
     jev = loadJevConfig(process.env);
+    deepseek = loadDeepSeekConfig(process.env);
   } catch (error) {
     if (error instanceof EnvError) fail(error.message);
     throw error;
@@ -136,6 +167,7 @@ async function main(): Promise<void> {
       clientId: mal.clientId,
       baseUrl: mal.baseUrl,
     });
+    const guesser = createNameGuesser(deepseek);
     const filler = new MalFiller(
       store,
       client,
@@ -144,26 +176,9 @@ async function main(): Promise<void> {
       null,
       createTrailerClient({ baseUrl: mal.trailerBaseUrl }),
       new MalFranchise(client, systemClock),
+      guesser && { guesser, store: new PostgresNameGuessStore(pool) },
     );
-    const { rows } = await pool.query<BackfillMalRow>(
-      `select m.source_slug, m.attempted_at,
-              a.source_name, a.source_year, a.source_episode_count,
-              case when a.status = 'matched' then a.tmdb_id end as tmdb_id,
-              n.names as other_names, n.updated_at as names_at,
-              array(select o.mal_id
-                      from title_art oa
-                      join title_mal o on o.source_slug = oa.source_slug
-                     where oa.source_name = a.source_name
-                       and oa.source_slug <> m.source_slug
-                       and o.status = 'ok') as taken_mal_ids
-         from title_mal m
-         join title_art a on a.source_slug = m.source_slug
-         left join title_names n on n.source_slug = m.source_slug
-        where m.status <> 'ok' and a.source_name is not null
-        order by m.attempted_at
-        limit $1`,
-      [limit],
-    );
+    const rows = await findBackfillRows(pool, limit);
     console.log(
       `backfill-mal: ${rows.length} title(s) without a MAL match, ` +
         `Jev ${jev ? 'on' : 'off'}, TMDB aliases ${tmdb ? 'on' : 'off'}`,

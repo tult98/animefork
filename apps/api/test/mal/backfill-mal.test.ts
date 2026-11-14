@@ -2,7 +2,10 @@ import { randomInt } from 'node:crypto';
 import fetchMock from '@fetch-mock/vitest';
 import pg from 'pg';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { backfillMal } from '../../src/scripts/backfill-mal.ts';
+import {
+  backfillMal,
+  findBackfillRows,
+} from '../../src/scripts/backfill-mal.ts';
 import { createTmdbClient } from '../../src/art/tmdb/tmdb.ts';
 import { createMalClient } from '../../src/mal/mal.client.ts';
 import { MalFiller } from '../../src/mal/mal.filler.ts';
@@ -129,19 +132,95 @@ describe('backfill-mal', () => {
         source_slug: `nobody-knows-a${run}`,
         status: 'none',
         mal_id: null,
-        matcher_version: 6,
+        matcher_version: 7,
         attempted_at: at,
       },
       {
         source_slug: `tien-nghich-a${run}`,
         status: 'ok',
         mal_id: malId,
-        matcher_version: 6,
+        matcher_version: 7,
         attempted_at: at,
       },
     ]);
     expect(fetchMock).toHaveFetched('begin:https://mal.test/v2/anime', {
       query: { q: 'Renegade Immortal', nsfw: 'true' },
     });
+  });
+
+  it('looks up a title that has art but was never looked up on MAL', async () => {
+    const slug = `shirobako-a${randomInt(1_000_000_000)}`;
+    const malId = randomInt(1, 2_000_000_000);
+    await pool.query(
+      `insert into title_art (source_slug, status, reason, matcher_version, source_name, source_year)
+       values ($1, 'no_match', 'no candidate', 1, 'Shirobako', 2014)`,
+      [slug],
+    );
+    fetchMock
+      .get('begin:https://mal.test/v2/anime?q=Shirobako&', {
+        data: [
+          {
+            node: {
+              id: malId,
+              title: 'Shirobako',
+              start_season: { year: 2014, season: 'fall' },
+              media_type: 'tv',
+            },
+          },
+        ],
+      })
+      .get(`https://tenrai.test/v1/anime/${malId}/full`, {
+        data: { trailer: null },
+      });
+    const store = new PostgresMalStore(pool);
+    const lines: string[] = [];
+
+    const rows = (await findBackfillRows(pool, null)).filter(
+      (row) => row.source_slug === slug,
+    );
+    const summary = await backfillMal(rows, {
+      filler: new MalFiller(
+        store,
+        createMalClient({
+          clientId: 'abc',
+          baseUrl: 'https://mal.test/v2',
+          gapMs: 0,
+        }),
+        () => new Date('2026-03-01T00:00:00Z'),
+        null,
+        null,
+        createTrailerClient({ baseUrl: 'https://tenrai.test/v1' }),
+      ),
+      store,
+      tmdb: null,
+      log: (line) => lines.push(line),
+    });
+
+    expect(rows).toEqual([
+      {
+        source_slug: slug,
+        attempted_at: null,
+        source_name: 'Shirobako',
+        source_year: 2014,
+        source_episode_count: null,
+        tmdb_id: null,
+        other_names: null,
+        names_at: null,
+        taken_mal_ids: [],
+      },
+    ]);
+    expect(summary).toEqual({
+      lookedUp: 1,
+      ok: 1,
+      none: 0,
+      failed: 0,
+      settled: 0,
+    });
+    expect(lines).toEqual([`${slug} ok ${malId} Shirobako by score`]);
+    const stored = await pool.query(
+      'select status, mal_id from title_mal where source_slug = $1',
+      [slug],
+    );
+    expect(stored.rows).toEqual([{ status: 'ok', mal_id: malId }]);
   });
 });
