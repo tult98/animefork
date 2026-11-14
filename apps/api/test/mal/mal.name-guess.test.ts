@@ -68,7 +68,7 @@ describe('MAL name guesses', () => {
       malId,
       matchedTitle: 'Xian Ni',
       matchedBy: 'score',
-      matcherVersion: 7,
+      matcherVersion: 8,
     });
     expect(await app.get<NameGuessStore>(NAME_GUESS_STORE).find(slug)).toEqual({
       known: true,

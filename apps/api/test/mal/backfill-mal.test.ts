@@ -116,14 +116,14 @@ describe('backfill-mal', () => {
         source_slug: `nobody-knows-a${run}`,
         status: 'none',
         mal_id: null,
-        matcher_version: 7,
+        matcher_version: 8,
         attempted_at: at,
       },
       {
         source_slug: `tien-nghich-a${run}`,
         status: 'ok',
         mal_id: malId,
-        matcher_version: 7,
+        matcher_version: 8,
         attempted_at: at,
       },
     ]);
