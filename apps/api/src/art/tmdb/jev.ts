@@ -287,7 +287,7 @@ export class JevMatcher implements Matcher {
 }
 
 export function createMatcher(
-  jev: JevConfig | undefined,
+  jev: (Pick<JevConfig, 'apiKey' | 'model'> & JevThresholds) | undefined,
   logger: Pick<Logger, 'log'> = new Logger('ArtMatcher'),
   overrides: Omit<TypeSafeClientConfig, 'apiKey'> = {},
 ): Matcher {

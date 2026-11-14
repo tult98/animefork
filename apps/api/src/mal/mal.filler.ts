@@ -8,8 +8,9 @@ import type {
   EpisodeTarget,
 } from '../episodes/episode.filler.ts';
 import type { MalCandidate, MalClient } from './mal.client.ts';
+import type { MalFranchise } from './mal.franchise.ts';
 import type { TrailerClient } from './trailer.client.ts';
-import { jevCandidates, type MalJudge } from './mal.jev.ts';
+import { jevCandidates, type MalJevVerdict, type MalJudge } from './mal.jev.ts';
 import { matchMal, type MalMatch } from './mal.matcher.ts';
 import { sourceQueries } from './mal.queries.ts';
 import {
@@ -38,6 +39,7 @@ export class MalFiller {
   private readonly judge: MalJudge | null;
   private readonly episodes: EpisodeFiller | null;
   private readonly trailers: TrailerClient | null;
+  private readonly franchise: MalFranchise | null;
 
   constructor(
     store: MalStore,
@@ -46,6 +48,7 @@ export class MalFiller {
     judge: MalJudge | null = null,
     episodes: EpisodeFiller | null = null,
     trailers: TrailerClient | null = null,
+    franchise: MalFranchise | null = null,
   ) {
     this.store = store;
     this.client = client;
@@ -53,6 +56,7 @@ export class MalFiller {
     this.judge = judge;
     this.episodes = episodes;
     this.trailers = trailers;
+    this.franchise = franchise;
   }
 
   has(slug: string): boolean {
@@ -194,23 +198,33 @@ export class MalFiller {
       return this.saveMatch(input.slug, found, 'score');
     }
     const candidates = jevCandidates(pages);
-    if (!this.judge || candidates.length === 0) {
-      await this.saveMiss(input.slug, 'none', 'no candidate cleared the match');
-      return null;
+    let miss = 'no candidate cleared the match';
+    if (this.judge && candidates.length > 0) {
+      const verdict = await this.judge.ask(input, candidates);
+      if (verdict.accepted) {
+        return this.saveMatch(
+          input.slug,
+          { candidate: verdict.choice, score: verdict.score },
+          'jev',
+        );
+      }
+      miss = `jev rejected: ${describeVerdict(verdict)}`;
     }
-    const verdict = await this.judge.ask(input, candidates);
-    if (verdict.accepted) {
-      return this.saveMatch(
-        input.slug,
-        { candidate: verdict.choice, score: verdict.score },
-        'jev',
-      );
+    if (this.judge && this.franchise && takenIds.size > 0) {
+      const pool = await this.franchise.candidates([...takenIds]);
+      if (pool.length > 0) {
+        const verdict = await this.judge.askFranchise(input, pool);
+        if (verdict.accepted) {
+          return this.saveMatch(
+            input.slug,
+            { candidate: verdict.choice, score: verdict.score },
+            'franchise',
+          );
+        }
+        miss = `franchise rejected: ${describeVerdict(verdict)}`;
+      }
     }
-    await this.saveMiss(
-      input.slug,
-      'none',
-      `jev rejected: best ${verdict.choice.id} p=${fmt(verdict.probability)} noul=${fmt(verdict.noul)}`,
-    );
+    await this.saveMiss(input.slug, 'none', miss);
     return null;
   }
 
@@ -282,3 +296,6 @@ export class MalFiller {
     });
   }
 }
+
+const describeVerdict = (verdict: MalJevVerdict) =>
+  `best ${verdict.choice.id} p=${fmt(verdict.probability)} noul=${fmt(verdict.noul)}`;

@@ -73,7 +73,7 @@ describe('MAL filler', () => {
       matchedTitle: 'Black Clover',
       matchScore: 1,
       matchedBy: 'score',
-      matcherVersion: 4,
+      matcherVersion: 5,
       reason: null,
       attemptedAt: new Date('2026-03-01T00:00:00Z'),
       fetchedAt: new Date('2026-03-01T00:00:00Z'),

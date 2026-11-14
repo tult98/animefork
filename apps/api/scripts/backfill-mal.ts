@@ -9,6 +9,7 @@ import { EnvError } from '../src/config/app.config.ts';
 import { createMalClient } from '../src/mal/mal.client.ts';
 import { loadMalConfig } from '../src/mal/mal.config.ts';
 import { MalFiller } from '../src/mal/mal.filler.ts';
+import { MalFranchise } from '../src/mal/mal.franchise.ts';
 import { createMalJudge } from '../src/mal/mal.jev.ts';
 import { PostgresMalStore, type MalStore } from '../src/mal/mal.store.ts';
 import { createTrailerClient } from '../src/mal/trailer.client.ts';
@@ -131,13 +132,18 @@ async function main(): Promise<void> {
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   try {
     const store = new PostgresMalStore(pool);
+    const client = createMalClient({
+      clientId: mal.clientId,
+      baseUrl: mal.baseUrl,
+    });
     const filler = new MalFiller(
       store,
-      createMalClient({ clientId: mal.clientId, baseUrl: mal.baseUrl }),
+      client,
       systemClock,
       createMalJudge(jev),
       null,
       createTrailerClient({ baseUrl: mal.trailerBaseUrl }),
+      new MalFranchise(client, systemClock),
     );
     const { rows } = await pool.query<BackfillMalRow>(
       `select m.source_slug, m.attempted_at,

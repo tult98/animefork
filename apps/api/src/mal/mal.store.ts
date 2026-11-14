@@ -6,7 +6,7 @@ import type { MalStatus } from './mal.retry.ts';
 
 export const MAL_STORE = Symbol('MalStore');
 
-export type MalMatchedBy = 'score' | 'jev';
+export type MalMatchedBy = 'score' | 'jev' | 'franchise';
 
 export interface StoredMal {
   slug: string;
