@@ -8,6 +8,7 @@ import { createMalClient, type MalClient } from './mal.client.ts';
 import { MAL_CONFIG, loadMalConfig, type MalConfig } from './mal.config.ts';
 import { createTrailerClient, type TrailerClient } from './trailer.client.ts';
 import { MalFiller } from './mal.filler.ts';
+import { MalFranchise } from './mal.franchise.ts';
 import { createMalJudge } from './mal.jev.ts';
 import { MAL_STORE, PostgresMalStore, type MalStore } from './mal.store.ts';
 
@@ -64,6 +65,7 @@ export const TRAILER_CLIENT = Symbol('TrailerClient');
               createMalJudge(loadJevConfig(env)),
               episodes,
               trailers,
+              new MalFranchise(client, now),
             )
           : null,
     },

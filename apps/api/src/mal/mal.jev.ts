@@ -37,6 +37,17 @@ const MATCH_INSTRUCTIONS =
   'A movie, a special, a recap or a spin-off is a different show. ' +
   'While a show is currently airing, the source episode count may be only the episodes aired so far, so a source count lower than the candidate total is not a mismatch.';
 
+const FRANCHISE_MATCH_INSTRUCTIONS =
+  'The source site gives every entry of this franchise the same title, the series name, so the title says only which franchise it is. ' +
+  'The romaji, taken from the source site URL slug, names this particular entry: a movie, a special, a TV special or a season, possibly in Vietnamese or with its movie number. ' +
+  'Pick the MyAnimeList candidate that is that entry. ' +
+  'Movies, specials and TV specials are valid answers. ' +
+  'Compare the romaji with each candidate title, English title and synonyms; translate a Vietnamese subtitle before comparing. ' +
+  'A number in the subtitle is not necessarily the movie number.';
+
+const FRANCHISE_ANY_MATCH_INSTRUCTIONS =
+  'At least one candidate is the same entry the source romaji names.';
+
 const AnswersSchema = z.object({ match: ChoiceSchema, any_match: NoulSchema });
 
 export interface MalJevVerdict {
@@ -51,7 +62,15 @@ export interface MalJevVerdict {
 
 export interface MalJudge {
   ask(input: TitleInput, candidates: MalCandidate[]): Promise<MalJevVerdict>;
+  // Picks the movie or special a same-named slug is, among the entries MAL relates to its franchise.
+  askFranchise(
+    input: TitleInput,
+    candidates: MalCandidate[],
+  ): Promise<MalJevVerdict>;
 }
+
+export type MalJevThresholds = JevThresholds &
+  Pick<JevConfig, 'franchiseMinChoice' | 'franchiseMinNoul'>;
 
 export function jevCandidates(pages: MalCandidate[][]): MalCandidate[] {
   const seen = new Map<number, MalCandidate>();
@@ -108,15 +127,22 @@ export function malJevState(
   };
 }
 
+const options = (candidates: MalCandidate[]) =>
+  Object.fromEntries(
+    candidates.map((c) => [String(c.id), describeCandidate(c)]),
+  );
+
 export function malJevQuestions(candidates: MalCandidate[]) {
   return {
-    match: choice(
-      MATCH_INSTRUCTIONS,
-      Object.fromEntries(
-        candidates.map((c) => [String(c.id), describeCandidate(c)]),
-      ),
-    ),
+    match: choice(MATCH_INSTRUCTIONS, options(candidates)),
     any_match: noul(ANY_MATCH_INSTRUCTIONS),
+  };
+}
+
+export function malFranchiseQuestions(candidates: MalCandidate[]) {
+  return {
+    match: choice(FRANCHISE_MATCH_INSTRUCTIONS, options(candidates)),
+    any_match: noul(FRANCHISE_ANY_MATCH_INSTRUCTIONS),
   };
 }
 
@@ -124,26 +150,56 @@ export class MalJevJudge implements MalJudge {
   private readonly logger = new Logger(MalJevJudge.name);
   private readonly client: TypeSafeClient;
   private readonly model: string;
-  private readonly thresholds: JevThresholds;
+  private readonly thresholds: MalJevThresholds;
 
   constructor(
     client: TypeSafeClient,
     model: string,
-    thresholds: JevThresholds,
+    thresholds: MalJevThresholds,
   ) {
     this.client = client;
     this.model = model;
     this.thresholds = thresholds;
   }
 
-  async ask(
+  ask(input: TitleInput, candidates: MalCandidate[]): Promise<MalJevVerdict> {
+    return this.judge(
+      input,
+      candidates,
+      malJevQuestions(candidates),
+      this.thresholds,
+      'jev mal',
+    );
+  }
+
+  askFranchise(
     input: TitleInput,
     candidates: MalCandidate[],
+  ): Promise<MalJevVerdict> {
+    return this.judge(
+      input,
+      candidates,
+      malFranchiseQuestions(candidates),
+      {
+        minChoice: this.thresholds.franchiseMinChoice,
+        minNoul: this.thresholds.franchiseMinNoul,
+        minConfidence: this.thresholds.minConfidence,
+      },
+      'jev mal franchise',
+    );
+  }
+
+  private async judge(
+    input: TitleInput,
+    candidates: MalCandidate[],
+    questions: ReturnType<typeof malJevQuestions>,
+    thresholds: JevThresholds,
+    label: string,
   ): Promise<MalJevVerdict> {
     const result = await this.client.systemOne({
       model: this.model,
       state: malJevState(input, candidates),
-      questions: malJevQuestions(candidates),
+      questions,
     });
     const answers = AnswersSchema.parse(result.answers);
     const chosen = chosenCandidate(candidates, answers.match.choice);
@@ -151,14 +207,14 @@ export class MalJevJudge implements MalJudge {
     const { confidence, probabilities } = answers.match;
     const anyMatch = answers.any_match.noul;
     const accepted = acceptsChoice(
-      this.thresholds,
+      thresholds,
       anyMatch,
       probability,
       confidence,
     );
 
     this.logger.log(
-      `jev mal ${input.slug}: choice ${chosen.id} p=${fmt(probability)} ` +
+      `${label} ${input.slug}: choice ${chosen.id} p=${fmt(probability)} ` +
         `confidence=${fmt(confidence)} noul=${fmt(anyMatch)} ` +
         `probabilities=${formatProbabilities(probabilities)} -> ${accepted ? 'accept' : 'reject'}`,
     );

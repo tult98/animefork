@@ -30,6 +30,16 @@ export interface MalCandidate extends Omit<MalCounts, 'episodes'> {
   mediaType: string | undefined;
 }
 
+export interface MalRelation {
+  id: number;
+  relationType: string;
+}
+
+export interface MalEntry {
+  candidate: MalCandidate;
+  related: MalRelation[];
+}
+
 export class MalError extends Error {
   readonly status: number | undefined;
 
@@ -43,6 +53,7 @@ export class MalError extends Error {
 export interface MalClient {
   search(query: string): Promise<MalCandidate[]>;
   stats(id: number): Promise<MalCounts | null>;
+  entry(id: number): Promise<MalEntry | null>;
 }
 
 const NodeSchema = z.object({
@@ -69,6 +80,17 @@ const NodeSchema = z.object({
 });
 
 type Node = z.infer<typeof NodeSchema>;
+
+const EntrySchema = NodeSchema.extend({
+  related_anime: z
+    .array(
+      z.object({
+        node: z.object({ id: z.number().int() }),
+        relation_type: z.string(),
+      }),
+    )
+    .optional(),
+});
 
 const SearchSchema = z.object({
   data: z.array(z.object({ node: z.unknown() })),
@@ -212,6 +234,28 @@ export function createMalClient(options: MalClientOptions): MalClient {
           );
         }
         return toStats(NodeSchema.parse(await res.json()));
+      }),
+    entry: (id) =>
+      serial(async () => {
+        const res = await call(`/anime/${id}`, {
+          fields: `${FIELDS},related_anime`,
+          nsfw: 'true',
+        });
+        if (res.status === 404) return null;
+        if (!res.ok) {
+          throw new MalError(
+            `MAL /anime/${id} answered ${res.status}`,
+            res.status,
+          );
+        }
+        const node = EntrySchema.parse(await res.json());
+        return {
+          candidate: toCandidate(node),
+          related: (node.related_anime ?? []).map((r) => ({
+            id: r.node.id,
+            relationType: r.relation_type,
+          })),
+        };
       }),
   };
 }

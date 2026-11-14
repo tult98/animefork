@@ -7,6 +7,9 @@ export const DEFAULT_JEV_MODEL = 'jev-latest';
 export const DEFAULT_JEV_MIN_NOUL = 0.85;
 export const DEFAULT_JEV_MIN_CHOICE = 0.85;
 export const DEFAULT_JEV_MIN_CONFIDENCE = 0.5;
+// Fitted on the Conan, One Piece and Railgun movies MAL search never reached.
+export const DEFAULT_JEV_FRANCHISE_MIN_CHOICE = 0.95;
+export const DEFAULT_JEV_FRANCHISE_MIN_NOUL = 0.6;
 
 export const DEFAULT_DEEPSEEK_API = 'https://api.deepseek.com';
 export const DEFAULT_DEEPSEEK_MODEL = 'deepseek-flash';
@@ -23,6 +26,8 @@ export interface JevConfig {
   minNoul: number;
   minChoice: number;
   minConfidence: number;
+  franchiseMinChoice: number;
+  franchiseMinNoul: number;
 }
 
 export interface ArtConfig {
@@ -45,6 +50,8 @@ const JevEnvSchema = z.object({
   JEV_MIN_NOUL: optionalFraction,
   JEV_MIN_CHOICE: optionalFraction,
   JEV_MIN_CONFIDENCE: optionalFraction,
+  JEV_FRANCHISE_MIN_CHOICE: optionalFraction,
+  JEV_FRANCHISE_MIN_NOUL: optionalFraction,
 });
 
 const ArtEnvSchema = JevEnvSchema.extend({
@@ -66,6 +73,10 @@ function toJevConfig(
         minNoul: values.JEV_MIN_NOUL ?? DEFAULT_JEV_MIN_NOUL,
         minChoice: values.JEV_MIN_CHOICE ?? DEFAULT_JEV_MIN_CHOICE,
         minConfidence: values.JEV_MIN_CONFIDENCE ?? DEFAULT_JEV_MIN_CONFIDENCE,
+        franchiseMinChoice:
+          values.JEV_FRANCHISE_MIN_CHOICE ?? DEFAULT_JEV_FRANCHISE_MIN_CHOICE,
+        franchiseMinNoul:
+          values.JEV_FRANCHISE_MIN_NOUL ?? DEFAULT_JEV_FRANCHISE_MIN_NOUL,
       }
     : undefined;
 }
