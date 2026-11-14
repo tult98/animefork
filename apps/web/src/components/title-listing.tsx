@@ -43,7 +43,7 @@ export interface TitleListingProps {
   onRetrySource?: () => void;
 }
 
-const GRID_CLASS =
+export const GRID_CLASS =
   'mt-(--space-lg) grid grid-cols-2 gap-x-2 gap-y-(--space-lg) md:grid-cols-3 desk:grid-cols-6';
 
 function ListSkeleton() {
