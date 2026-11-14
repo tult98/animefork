@@ -97,7 +97,6 @@ export function Trailer({
         host.append(target);
         player = new YT.Player(target, {
           videoId: youtubeId,
-          host: 'https://www.youtube-nocookie.com',
           width: '100%',
           height: '100%',
           playerVars: playerVars(),

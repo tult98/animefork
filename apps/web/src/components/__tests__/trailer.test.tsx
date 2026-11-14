@@ -13,7 +13,7 @@ describe('the trailer', () => {
     );
     const player = await vi.waitUntil(() => players[0]);
     expect(player.videoId).toBe('abc123');
-    expect(player.options.host).toBe('https://www.youtube-nocookie.com');
+    expect(player.options.host).toBeUndefined();
     expect(player.options.playerVars).toMatchObject({
       autoplay: 1,
       mute: 1,
