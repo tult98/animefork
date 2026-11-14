@@ -33,6 +33,7 @@ describe('backfill-mal', () => {
         other_names: null,
         tmdb_id: tmdbId,
         names_at: null,
+        taken_mal_ids: [],
         attempted_at: attemptedAt,
       },
       {
@@ -43,6 +44,7 @@ describe('backfill-mal', () => {
         other_names: null,
         tmdb_id: null,
         names_at: null,
+        taken_mal_ids: [],
         attempted_at: attemptedAt,
       },
     ];

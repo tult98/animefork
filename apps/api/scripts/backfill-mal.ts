@@ -21,6 +21,7 @@ export interface BackfillMalRow extends Omit<SourceRow, 'status' | 'mal_id'> {
   attempted_at: Date;
   tmdb_id: number | null;
   names_at: Date | null;
+  taken_mal_ids: number[];
 }
 
 export interface BackfillMalSummary {
@@ -43,6 +44,8 @@ export async function backfillMal(
   { filler, store, tmdb, log }: BackfillMalDeps,
 ): Promise<BackfillMalSummary> {
   const summary = { lookedUp: 0, ok: 0, none: 0, failed: 0, settled: 0 };
+  // The rows' taken ids predate this run, so ids matched during it are added per name.
+  const matchedNow = new Map<string, number[]>();
   for (const row of rows) {
     const slug = row.source_slug;
     const tmdbId = row.tmdb_id;
@@ -50,6 +53,10 @@ export async function backfillMal(
       evalInput(row),
       tmdb && tmdbId !== null ? () => tmdbAliases(tmdb, tmdbId) : undefined,
       row.names_at ?? undefined,
+      async () => [
+        ...row.taken_mal_ids,
+        ...(matchedNow.get(row.source_name) ?? []),
+      ],
     );
     summary.lookedUp++;
     const stored = (await store.find([slug])).get(slug);
@@ -61,6 +68,12 @@ export async function backfillMal(
       log(`${slug} settled`);
     } else if (stored.status === 'ok') {
       summary.ok++;
+      if (stored.malId !== null) {
+        matchedNow.set(row.source_name, [
+          ...(matchedNow.get(row.source_name) ?? []),
+          stored.malId,
+        ]);
+      }
       log(
         `${slug} ok ${stored.malId} ${stored.matchedTitle} by ${stored.matchedBy}`,
       );
@@ -130,7 +143,13 @@ async function main(): Promise<void> {
       `select m.source_slug, m.attempted_at,
               a.source_name, a.source_year, a.source_episode_count,
               case when a.status = 'matched' then a.tmdb_id end as tmdb_id,
-              n.names as other_names, n.updated_at as names_at
+              n.names as other_names, n.updated_at as names_at,
+              array(select o.mal_id
+                      from title_art oa
+                      join title_mal o on o.source_slug = oa.source_slug
+                     where oa.source_name = a.source_name
+                       and oa.source_slug <> m.source_slug
+                       and o.status = 'ok') as taken_mal_ids
          from title_mal m
          join title_art a on a.source_slug = m.source_slug
          left join title_names n on n.source_slug = m.source_slug

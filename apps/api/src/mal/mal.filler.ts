@@ -24,6 +24,10 @@ export const MAX_ALIAS_QUERIES = 2;
 // Looks up other names for a title; only asked when the source's own name found nothing.
 export type AliasSource = () => Promise<string[]>;
 
+// MAL ids other slugs of the same display name already hold. The source gives a franchise's
+// movies the series' name, so without this every movie lands on the series' entry.
+export type TakenSource = () => Promise<number[]>;
+
 // Single-flight lives in this process's memory, and the client already serializes calls to MAL.
 export class MalFiller {
   private readonly logger = new Logger(MalFiller.name);
@@ -59,10 +63,11 @@ export class MalFiller {
     input: TitleInput,
     aliases?: AliasSource,
     namesAt?: Date,
+    taken?: TakenSource,
   ): Promise<void> {
     const existing = this.inFlight.get(input.slug);
     if (existing) return existing;
-    const done = this.run(input, aliases, namesAt)
+    const done = this.run(input, aliases, namesAt, taken)
       .catch((error: unknown) => {
         this.logger.error(
           `mal ${input.slug} could not be saved: ${describeError(error)}`,
@@ -96,6 +101,7 @@ export class MalFiller {
     input: TitleInput,
     aliases?: AliasSource,
     namesAt?: Date,
+    taken?: TakenSource,
   ): Promise<void> {
     const current = (await this.store.find([input.slug])).get(input.slug);
     if (isMalSettled(current, this.now(), namesAt)) return;
@@ -104,7 +110,7 @@ export class MalFiller {
       saved =
         current?.status === 'ok' && current.malId !== null
           ? await this.refresh(current)
-          : await this.match(input, aliases);
+          : await this.match(input, aliases, taken);
     } catch (error) {
       const reason = describeError(error);
       this.logger.warn(`mal ${input.slug} failed: ${reason}`);
@@ -154,10 +160,14 @@ export class MalFiller {
   private async match(
     input: TitleInput,
     aliases?: AliasSource,
+    taken?: TakenSource,
   ): Promise<StoredMal | null> {
+    const takenIds = new Set(taken ? await taken() : []);
     const pages: MalCandidate[][] = [];
     const search = async (query: string) => {
-      const results = await this.client.search(query);
+      const results = (await this.client.search(query)).filter(
+        (c) => !takenIds.has(c.id),
+      );
       pages.push(results);
       return results;
     };
