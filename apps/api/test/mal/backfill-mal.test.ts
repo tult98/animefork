@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import fetchMock from '@fetch-mock/vitest';
 import pg from 'pg';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { backfillMal } from '../../scripts/backfill-mal.ts';
+import { backfillMal } from '../../src/scripts/backfill-mal.ts';
 import { createTmdbClient } from '../../src/art/tmdb/tmdb.ts';
 import { createMalClient } from '../../src/mal/mal.client.ts';
 import { MalFiller } from '../../src/mal/mal.filler.ts';

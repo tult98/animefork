@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import fetchMock from '@fetch-mock/vitest';
 import pg from 'pg';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { backfillTrailers } from '../../scripts/backfill-trailers.ts';
+import { backfillTrailers } from '../../src/scripts/backfill-trailers.ts';
 import { createTrailerClient } from '../../src/mal/trailer.client.ts';
 import { TEST_DATABASE_URL } from '../test-database.ts';
 

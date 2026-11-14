@@ -1,13 +1,13 @@
 import { Logger } from '@nestjs/common';
 import { parseArgs } from 'node:util';
 import pg from 'pg';
-import { loadArtConfig } from '../src/art/art.config.ts';
-import { EnvError } from '../src/config/app.config.ts';
-import { createJevClient, JevMatcher } from '../src/art/tmdb/jev.ts';
-import { BaselineMatcher, decide } from '../src/art/tmdb/matcher.ts';
-import { effectiveScope, gatherCandidates } from '../src/art/tmdb/sync.ts';
-import { createTmdbClient } from '../src/art/tmdb/tmdb.ts';
-import { seasonMarker } from '../src/art/tmdb/titles.ts';
+import { loadArtConfig } from '../art/art.config.ts';
+import { EnvError } from '../config/app.config.ts';
+import { createJevClient, JevMatcher } from '../art/tmdb/jev.ts';
+import { BaselineMatcher, decide } from '../art/tmdb/matcher.ts';
+import { effectiveScope, gatherCandidates } from '../art/tmdb/sync.ts';
+import { createTmdbClient } from '../art/tmdb/tmdb.ts';
+import { seasonMarker } from '../art/tmdb/titles.ts';
 
 const STATUSES = ['no_match', 'matched', 'all'] as const;
 type StatusFilter = (typeof STATUSES)[number];
